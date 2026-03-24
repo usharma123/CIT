@@ -20,47 +20,58 @@ The system is organized around cooperating components rather than separate micro
 
 ```mermaid
 flowchart LR
-    Client["Client / Upstream Trade Source"] --> API["TradeSubmissionController\nPOST /api/trades"]
-    API --> IQ["ingestionQueue"]
+    classDef queue fill:#fff4e6,stroke:#c45c00,stroke-width:2px,color:#1a1a1a
+    classDef service fill:#e8f6ef,stroke:#1b7f4a,stroke-width:1px,color:#1a1a1a
+    classDef repo fill:#fdecef,stroke:#b12a5c,stroke-width:1px,color:#1a1a1a
+    classDef api fill:#e8f1ff,stroke:#1e5a96,stroke-width:2px,color:#1a1a1a
+    classDef coord fill:#f0e8ff,stroke:#5c3d9e,stroke-width:2px,color:#1a1a1a
+    classDef read fill:#f2f4f7,stroke:#4a5568,stroke-width:1px,color:#1a1a1a
+    classDef external fill:#fafafa,stroke:#6b7280,stroke-width:1px,color:#1a1a1a
+    classDef storage fill:#fffdf7,stroke:#9a8b6a,stroke-width:2px,color:#1a1a1a
 
-    subgraph App["Spring Boot Application"]
-        subgraph Ingestion["Ingestion Component"]
-            IQ --> TIS["TradeIngestionService"]
-            TIS --> CVS["CurrencyValidationService"]
-            TIS --> TR["TradeRepository"]
-            TIS --> MQ["matchingQueue"]
+    Client([Client / upstream]):::external --> API["TradeSubmissionController<br/>POST /api/trades"]:::api
+
+    subgraph APP["Spring Boot (single deployable)"]
+        API --> IQ[ingestionQueue]:::queue
+
+        subgraph ING["Ingestion"]
+            IQ --> TIS[TradeIngestionService]:::service
+            TIS --> CVS[CurrencyValidationService]:::service
+            TIS --> TR[(TradeRepository)]:::repo
+            TIS --> MQ[matchingQueue]:::queue
         end
 
-        subgraph Matching["Matching Component"]
-            MQ --> TME["TradeMatchingEngine"]
-            TME --> MTR["MatchedTradeRepository"]
+        subgraph MAT["Matching"]
+            MQ --> TME[TradeMatchingEngine]:::service
+            TME --> MTR[(MatchedTradeRepository)]:::repo
             TME --> TR
-            TME --> NQ["nettingQueue"]
+            TME --> NQ[nettingQueue]:::queue
         end
 
-        subgraph Netting["Netting Component"]
-            NQ --> NC["NettingCalculator"]
-            NC --> NCS["NettingCutoffService"]
-            NC --> TPC["TwoPhaseCommitCoordinator"]
+        subgraph NET["Netting"]
+            NQ --> NC[NettingCalculator]:::service
+            NC --> NCS[NettingCutoffService]:::service
+            NC --> TPC[TwoPhaseCommitCoordinator]:::coord
         end
 
-        subgraph Commit["Atomic Commit Boundary"]
-            TPC --> TVR["ParticipantVoteRepository"]
-            TPC --> TLR["TransactionLogRepository"]
-            TPC --> NSR["NettingSetRepository"]
-            TPC --> SIR["SettlementInstructionRepository"]
+        subgraph COMMIT["Atomic commit (2PC)"]
+            TPC --> TVR[(ParticipantVoteRepository)]:::repo
+            TPC --> TLR[(TransactionLogRepository)]:::repo
+            TPC --> NSR[(NettingSetRepository)]:::repo
+            TPC --> SIR[(SettlementInstructionRepository)]:::repo
             TPC --> MTR
             TPC --> TR
         end
 
-        subgraph Settlement["Settlement Component"]
-            SQ["settlementQueue"] --> SI["SettlementInstructor"]
+        subgraph SET["Settlement (optional queue path)"]
+            SQ[settlementQueue]:::queue --> SI[SettlementInstructor]:::service
             SI --> NSR
             SI --> SIR
         end
 
-        subgraph Observability["Read/API Surface"]
-            SC["StatusController\nGET /api/status + entity endpoints"] --> TR
+        subgraph OBS["Status & reads"]
+            SC["StatusController<br/>GET /api/status, entities, votes, log"]:::read
+            SC --> TR
             SC --> MTR
             SC --> NSR
             SC --> SIR
@@ -69,14 +80,11 @@ flowchart LR
         end
     end
 
-    subgraph DB["H2 Persistence Layer"]
-        TR
-        MTR
-        NSR
-        SIR
-        TLR
-        TVR
+    subgraph H2L["H2 persistence"]
+        H2[(./data/coredb)]:::storage
     end
+
+    TR & MTR & NSR & SIR & TLR & TVR -.->|JPA| H2
 ```
 
 ## Processing Flow
