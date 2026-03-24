@@ -1,0 +1,54 @@
+spring:
+  datasource:
+    url: jdbc:h2:file:./data/coredb;DB_CLOSE_ON_EXIT=FALSE;AUTO_RECONNECT=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+  h2:
+    console:
+      enabled: true
+
+server:
+  port: 8080
+
+clsnet:
+  threads:
+    ingestion: 4
+    matching: 4
+    netting: 4
+    settlement: 2
+  currencies:
+    supported:
+      - USD
+      - EUR
+      - GBP
+      - JPY
+      - CHF
+      - CAD
+      - AUD
+      - NZD
+      - SEK
+      - NOK
+      - DKK
+      - SGD
+      - HKD
+      - KRW
+      - ZAR
+      - MXN
+      - BRL
+      - INR
+      - CNY
+      - THB
+  netting-cutoffs:
+    default: "16:00"
+    USD: "12:00"
+    EUR: "11:00"
+    GBP: "11:00"
+    JPY: "06:00"

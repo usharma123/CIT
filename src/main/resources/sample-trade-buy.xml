@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tradeMessage>
+  <header>
+    <messageId>MSG-20260324-001</messageId>
+    <creationTimestamp>2026-03-24T10:00:00Z</creationTimestamp>
+  </header>
+  <trade>
+    <tradeId>TRD-001</tradeId>
+    <tradeType>SPOT</tradeType>
+    <party1>
+      <partyId>BANK_A</partyId>
+      <role>BUYER</role>
+    </party1>
+    <party2>
+      <partyId>BANK_B</partyId>
+      <role>SELLER</role>
+    </party2>
+    <currencyPair>
+      <currency1>USD</currency1>
+      <amount1>1000000.00</amount1>
+      <currency2>EUR</currency2>
+      <amount2>920000.00</amount2>
+      <exchangeRate>1.0869565</exchangeRate>
+    </currencyPair>
+    <valueDate>2026-03-26</valueDate>
+  </trade>
+</tradeMessage>
