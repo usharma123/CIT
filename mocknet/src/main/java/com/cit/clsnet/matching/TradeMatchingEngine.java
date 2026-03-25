@@ -1,0 +1,198 @@
+package com.cit.clsnet.matching;
+
+import com.cit.clsnet.config.ClsNetProperties;
+import com.cit.clsnet.matching.util.MatchedTradeFactory;
+import com.cit.clsnet.matching.util.MatchingMessageParser;
+import com.cit.clsnet.model.MatchedTrade;
+import com.cit.clsnet.model.QueueMessage;
+import com.cit.clsnet.model.QueueName;
+import com.cit.clsnet.model.Trade;
+import com.cit.clsnet.model.TradeStatus;
+import com.cit.clsnet.queue.QueueBroker;
+import com.cit.clsnet.queue.QueueMessageTracing;
+import com.cit.clsnet.repository.MatchedTradeRepository;
+import com.cit.clsnet.repository.TradeRepository;
+import com.cit.clsnet.shared.failure.FailureClassifier;
+import com.cit.clsnet.shared.failure.FailureContext;
+import com.cit.clsnet.shared.failure.FailureReason;
+import com.cit.clsnet.shared.failure.QueueFailureDisposition;
+import com.cit.clsnet.shared.failure.QueueProcessingException;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
+
+import java.time.Instant;
+import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+
+@Service
+public class TradeMatchingEngine {
+
+    private static final Logger log = LoggerFactory.getLogger(TradeMatchingEngine.class);
+
+    private final QueueBroker queueBroker;
+    private final TradeRepository tradeRepository;
+    private final MatchedTradeRepository matchedTradeRepository;
+    private final TransactionTemplate transactionTemplate;
+    private final QueueMessageTracing queueMessageTracing;
+    private final FailureClassifier failureClassifier;
+    private final TradeMatchingEngine self;
+    private final ExecutorService executor;
+    private final int threadCount;
+    private final MatchingMessageParser matchingMessageParser;
+    private final MatchedTradeFactory matchedTradeFactory;
+    private volatile boolean running = true;
+
+    public TradeMatchingEngine(
+            @Qualifier("matchingExecutor") ExecutorService executor,
+            QueueBroker queueBroker,
+            TradeRepository tradeRepository,
+            MatchedTradeRepository matchedTradeRepository,
+            TransactionTemplate transactionTemplate,
+            QueueMessageTracing queueMessageTracing,
+            FailureClassifier failureClassifier,
+            MatchingMessageParser matchingMessageParser,
+            MatchedTradeFactory matchedTradeFactory,
+            @Lazy TradeMatchingEngine self,
+            ClsNetProperties properties) {
+        this.queueBroker = queueBroker;
+        this.executor = executor;
+        this.tradeRepository = tradeRepository;
+        this.matchedTradeRepository = matchedTradeRepository;
+        this.transactionTemplate = transactionTemplate;
+        this.queueMessageTracing = queueMessageTracing;
+        this.failureClassifier = failureClassifier;
+        this.matchingMessageParser = matchingMessageParser;
+        this.matchedTradeFactory = matchedTradeFactory;
+        this.self = self;
+        this.threadCount = properties.getThreads().getMatching();
+    }
+
+    @PostConstruct
+    public void startConsumers() {
+        for (int i = 0; i < threadCount; i++) {
+            executor.submit(this::processLoop);
+        }
+        log.info("Trade Matching Engine started with {} consumer threads (pessimistic locking enabled)", threadCount);
+    }
+
+    @PreDestroy
+    public void stopConsumers() {
+        running = false;
+        executor.shutdownNow();
+    }
+
+    private void processLoop() {
+        while (running && !Thread.currentThread().isInterrupted()) {
+            try {
+                QueueMessage message = queueBroker.claimNext(QueueName.MATCHING, Thread.currentThread().getName())
+                        .orElse(null);
+                if (message == null) {
+                    sleepForPollInterval();
+                    continue;
+                }
+
+                Span processingSpan = queueMessageTracing.startProcessingSpan(message);
+                try (Scope ignored = processingSpan.makeCurrent()) {
+                    try {
+                        self.processMatchingMessage(message.getPayload());
+                        queueBroker.complete(message);
+                        queueMessageTracing.markOutcome(processingSpan, "completed");
+                    } catch (QueueProcessingException e) {
+                        processingSpan.recordException(e);
+                        FailureContext failureContext = e.getFailureContext();
+                        QueueFailureDisposition disposition = queueBroker.fail(message, failureContext);
+                        queueMessageTracing.markFailure(processingSpan, failureContext, disposition);
+                    } catch (Exception e) {
+                        processingSpan.recordException(e);
+                        FailureContext failureContext = failureClassifier.classify(
+                                e,
+                                FailureReason.PROCESSING_ERROR,
+                                "Failed to process matching message");
+                        QueueFailureDisposition disposition = queueBroker.fail(message, failureContext);
+                        queueMessageTracing.markFailure(processingSpan, failureContext, disposition);
+                    }
+                } finally {
+                    processingSpan.end();
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            } catch (Exception e) {
+                log.error("Error in matching engine", e);
+            }
+        }
+    }
+
+    public void processMatchingMessage(String message) {
+        String result = tryMatch(matchingMessageParser.parseTradeId(message));
+        if (result == null) {
+            return;
+        }
+        queueBroker.publish(QueueName.NETTING, result);
+    }
+
+    private String tryMatch(long tradeId) {
+        try {
+            return transactionTemplate.execute(status -> {
+                Trade incomingTrade = tradeRepository.findById(tradeId)
+                        .orElseThrow(() -> new QueueProcessingException("Trade not found: " + tradeId, FailureReason.TRADE_NOT_FOUND, false));
+
+                if (incomingTrade.getStatus() != TradeStatus.VALIDATED) {
+                    log.debug("Trade {} already in status {}, skipping",
+                            incomingTrade.getTradeId(), incomingTrade.getStatus());
+                    return null;
+                }
+
+                Optional<Trade> matchOpt = tradeRepository.findMatchCandidate(
+                        incomingTrade.getCounterparty1(),
+                        incomingTrade.getCounterparty2(),
+                        incomingTrade.getCurrency1(),
+                        incomingTrade.getCurrency2(),
+                        incomingTrade.getValueDate(),
+                        TradeStatus.VALIDATED,
+                        incomingTrade.getId());
+
+                if (matchOpt.isEmpty()) {
+                    log.debug("No match found yet for trade {}.", incomingTrade.getTradeId());
+                    return null;
+                }
+
+                Trade matchedWith = matchOpt.get();
+                log.debug("Match found! {} <-> {}", incomingTrade.getTradeId(), matchedWith.getTradeId());
+
+                MatchedTrade matched = matchedTradeRepository.save(matchedTradeFactory.create(incomingTrade, matchedWith));
+
+                incomingTrade.setStatus(TradeStatus.MATCHED);
+                matchedWith.setStatus(TradeStatus.MATCHED);
+                tradeRepository.save(incomingTrade);
+                tradeRepository.save(matchedWith);
+
+                log.debug("MatchedTrade id={} created for {} and {}",
+                        matched.getId(), incomingTrade.getTradeId(), matchedWith.getTradeId());
+
+                return String.format("{\"matchedTradeId\": %d}", matched.getId());
+            });
+        } catch (QueueProcessingException e) {
+            throw e;
+        } catch (Exception e) {
+            FailureContext failureContext = failureClassifier.classify(
+                    e,
+                    FailureReason.PROCESSING_ERROR,
+                    "Failed to process matching message");
+            throw new QueueProcessingException(failureContext, e);
+        }
+    }
+
+    private void sleepForPollInterval() throws InterruptedException {
+        TimeUnit.MILLISECONDS.sleep(queueBroker.getPollInterval().toMillis());
+    }
+}

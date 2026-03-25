@@ -20,6 +20,11 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.aop.support.AopUtils;
+import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.data.repository.Repository;
+import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.stereotype.Component;
 
 import java.util.Iterator;
@@ -57,15 +62,21 @@ public class ComponentTracingAspect {
     }
 
     @Around(
-            "execution(public * com.cit.clsnet.controller..*.*(..))"
-                    + " || execution(public * com.cit.clsnet.service..*.*(..))"
-                    + " || execution(public * com.cit.clsnet.repository..*.*(..))"
+            "execution(public * com.cit.clsnet..*.*(..))"
+                    + " && !within(com.cit.clsnet.config..*)"
+                    + " && !@within(org.springframework.context.annotation.Configuration)"
+                    + " && !@within(org.springframework.boot.test.context.TestConfiguration)"
+                    + " && !execution(@org.springframework.context.annotation.Bean * *(..))"
     )
     public Object traceComponent(ProceedingJoinPoint joinPoint) throws Throwable {
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Class<?> declaringType = signature.getDeclaringType();
-        String componentKind = resolveComponentKind(declaringType);
-        String stage = resolveStage(declaringType);
+        Class<?> targetType = resolveTargetType(joinPoint, declaringType);
+        String componentKind = resolveComponentKind(declaringType, targetType);
+        if (componentKind == null) {
+            return joinPoint.proceed();
+        }
+        String stage = resolveStage(declaringType, targetType, componentKind);
         String componentClass = declaringType.getSimpleName();
         String methodName = signature.getName();
 
@@ -298,24 +309,56 @@ public class ComponentTracingAspect {
         return value.chars().anyMatch(Character::isLetter);
     }
 
-    private String resolveComponentKind(Class<?> declaringType) {
-        String name = declaringType.getPackageName();
-        if (name.contains(".controller")) {
-            return "controller";
+    private Class<?> resolveTargetType(ProceedingJoinPoint joinPoint, Class<?> declaringType) {
+        Object target = joinPoint.getTarget();
+        if (target == null) {
+            return declaringType;
         }
-        if (name.contains(".repository")) {
-            return "repository";
-        }
-        return "service";
+        return AopUtils.getTargetClass(target);
     }
 
-    private String resolveStage(Class<?> declaringType) {
-        String typeName = declaringType.getName().toLowerCase();
-        if (typeName.contains(".controller.")) {
+    private String resolveComponentKind(Class<?> declaringType, Class<?> targetType) {
+        if (AnnotatedElementUtils.hasAnnotation(declaringType, RestController.class)
+                || AnnotatedElementUtils.hasAnnotation(targetType, RestController.class)) {
+            return "controller";
+        }
+        if (isRepository(declaringType) || isRepository(targetType)) {
+            return "repository";
+        }
+        if (AnnotatedElementUtils.hasAnnotation(declaringType, Service.class)
+                || AnnotatedElementUtils.hasAnnotation(targetType, Service.class)
+                || AnnotatedElementUtils.hasAnnotation(declaringType, Component.class)
+                || AnnotatedElementUtils.hasAnnotation(targetType, Component.class)) {
+            return "service";
+        }
+        return null;
+    }
+
+    private boolean isRepository(Class<?> type) {
+        if (type == null) {
+            return false;
+        }
+        if (Repository.class.isAssignableFrom(type)) {
+            return true;
+        }
+        for (Class<?> implemented : type.getInterfaces()) {
+            if (isRepository(implemented)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String resolveStage(Class<?> declaringType, Class<?> targetType, String componentKind) {
+        if ("controller".equals(componentKind)) {
             return "HTTP";
         }
-        if (typeName.contains(".repository.")) {
+        if ("repository".equals(componentKind)) {
             return "DATABASE";
+        }
+        String typeName = (declaringType.getName() + " " + targetType.getName()).toLowerCase();
+        if (typeName.contains("settlement") || typeName.contains("twophase")) {
+            return "SETTLEMENT";
         }
         if (typeName.contains("ingestion")) {
             return "INGESTION";
@@ -325,9 +368,6 @@ public class ComponentTracingAspect {
         }
         if (typeName.contains("netting")) {
             return "NETTING";
-        }
-        if (typeName.contains("settlement") || typeName.contains("twophase")) {
-            return "SETTLEMENT";
         }
         return "OTHER";
     }
