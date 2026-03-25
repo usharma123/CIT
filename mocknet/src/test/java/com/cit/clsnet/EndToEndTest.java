@@ -2,9 +2,14 @@ package com.cit.clsnet;
 
 import com.cit.clsnet.model.QueueMessage;
 import com.cit.clsnet.model.QueueName;
+import com.cit.clsnet.model.QueueMessageStatus;
 import com.cit.clsnet.model.SettlementInstruction;
 import com.cit.clsnet.model.Trade;
+import com.cit.clsnet.service.FailureContext;
+import com.cit.clsnet.service.FailureReason;
 import com.cit.clsnet.service.QueueBroker;
+import com.cit.clsnet.service.QueueFailureDisposition;
+import com.cit.clsnet.repository.QueueMessageRepository;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.sdk.testing.exporter.InMemorySpanExporter;
 import io.opentelemetry.sdk.trace.data.SpanData;
@@ -49,6 +54,9 @@ class EndToEndTest {
 
     @Autowired
     private QueueBroker queueBroker;
+
+    @Autowired
+    private QueueMessageRepository queueMessageRepository;
 
     @Autowired
     private InMemorySpanExporter spanExporter;
@@ -133,6 +141,7 @@ class EndToEndTest {
         assertQueueTerminalCounts("MATCHING", 2, 0);
         assertQueueTerminalCounts("NETTING", 1, 0);
         assertQueueTerminalCounts("SETTLEMENT", 0, 0);
+        assertQueueTerminalCounts("DEAD_LETTER", 0, 0);
 
         List<Trade> trades = allTrades();
         assertEquals(2, trades.size());
@@ -179,6 +188,23 @@ class EndToEndTest {
         assertTrue(spanNames.contains("NettingCalculator.processNettingMessage"));
         assertTrue(spanNames.contains("TwoPhaseCommitCoordinator.executeTransaction"));
 
+        assertSpanCountAtLeast("TradeSubmissionController.submitTrade", 2);
+        assertSpanCountAtLeast("TradeIngestionService.processTradeXml", 2);
+        assertSpanCountAtLeast("TradeMatchingEngine.processMatchingMessage", 1);
+        assertSpanCountAtLeast("NettingCalculator.processNettingMessage", 1);
+        assertSpanCountAtLeast("TwoPhaseCommitCoordinator.executeTransaction", 1);
+
+        assertHasStageTaggedSpan("TradeSubmissionController.submitTrade", "HTTP", "controller");
+        assertHasStageTaggedSpan("TradeIngestionService.processTradeXml", "INGESTION", "service");
+        assertHasStageTaggedSpan("TradeMatchingEngine.processMatchingMessage", "MATCHING", "service");
+        assertHasStageTaggedSpan("NettingCalculator.processNettingMessage", "NETTING", "service");
+        assertHasStageTaggedSpan("TwoPhaseCommitCoordinator.executeTransaction", "SETTLEMENT", "service");
+
+        assertHasCorrelatedSpan("TradeSubmissionController.submitTrade", "TRD-TEST-001", "MSG-TEST-001");
+        assertHasCorrelatedSpan("TradeSubmissionController.submitTrade", "TRD-TEST-002", "MSG-TEST-002");
+        assertHasCorrelatedSpan("TradeIngestionService.processTradeXml", "TRD-TEST-001", "MSG-TEST-001");
+        assertHasCorrelatedSpan("TradeIngestionService.processTradeXml", "TRD-TEST-002", "MSG-TEST-002");
+
         assertTrue(spans.stream().anyMatch(span ->
                 "TradeIngestionService.processTradeXml".equals(span.getName())
                         && "INGESTION".equals(span.getAttributes().get(AttributeKey.stringKey("cls.stage")))
@@ -204,6 +230,7 @@ class EndToEndTest {
 
         assertQueueTerminalCounts("INGESTION", 1, 0);
         assertQueueTerminalCounts("MATCHING", 0, 0);
+        assertQueueTerminalCounts("DEAD_LETTER", 0, 0);
         assertTrue(queueMessages("MATCHING", null, 10).isEmpty());
 
         Trade rejectedTrade = allTrades().stream()
@@ -211,6 +238,64 @@ class EndToEndTest {
                 .findFirst()
                 .orElseThrow();
         assertEquals("REJECTED", rejectedTrade.getStatus().name());
+
+        awaitCondition("rejection spans to flush", STATE_TIMEOUT, () -> hasSpan("QueueMessage.process"));
+        assertHasAttribute("TradeIngestionService.processTradeXml", "trade.outcome", "rejected");
+        assertHasAttribute("TradeIngestionService.processTradeXml", "rejection.reason", "unsupported_currency");
+        assertHasAttribute("QueueMessage.process", "processing.outcome", "rejected");
+    }
+
+    @Test
+    void blankTradeId_failsWithoutPersistingTradeAndPublishesToDeadLetter() throws Exception {
+        String invalidTradeXml = buildTradeXml(
+                "MSG-BAD-002", "", "SPOT",
+                "BANK_A", "BUYER", "BANK_B", "SELLER",
+                "USD", "100000.00", "EUR", "80000.00",
+                "0.80", "2026-04-01");
+
+        assertEquals(HttpStatus.ACCEPTED, postTrade(invalidTradeXml).getStatusCode());
+
+        awaitCondition("blank tradeId to fail", STATE_TIMEOUT, () ->
+                queueCount("INGESTION", "FAILED") == 1 && queueCount("DEAD_LETTER", "NEW") == 1);
+
+        assertEquals(0, allTrades().size());
+        assertQueueTerminalCounts("MATCHING", 0, 0);
+
+        QueueMessage deadLetterMessage = queueMessages("DEAD_LETTER", null, 10).get(0);
+        assertTrue(deadLetterMessage.getPayload().contains("\"reasonCode\":\"missing_trade_id\""));
+        assertTrue(deadLetterMessage.getPayload().contains("\"originalQueue\":\"INGESTION\""));
+
+        awaitCondition("failure spans to flush", STATE_TIMEOUT, () -> hasSpan("QueueBroker.fail"));
+        assertHasAttribute("QueueMessage.process", "processing.outcome", "failed");
+        assertHasAttribute("QueueMessage.process", "failure.reason_code", "missing_trade_id");
+        assertSameTraceForMessage("MSG-BAD-002",
+                "QueueMessage.process",
+                "TradeIngestionService.processTradeXml",
+                "QueueBroker.fail");
+    }
+
+    @Test
+    void malformedXml_failsAndPublishesToDeadLetter() throws Exception {
+        String malformedXml = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <tradeMessage>
+                  <header><messageId>MSG-BAD-XML</messageId></header>
+                  <trade><tradeId>TRD-BAD-XML</tradeId><UNCLOSED_TAG>
+                """;
+
+        assertEquals(HttpStatus.ACCEPTED, postTrade(malformedXml).getStatusCode());
+
+        awaitCondition("malformed xml to fail", STATE_TIMEOUT, () ->
+                queueCount("INGESTION", "FAILED") == 1 && queueCount("DEAD_LETTER", "NEW") == 1);
+
+        assertEquals(0, allTrades().size());
+
+        QueueMessage deadLetterMessage = queueMessages("DEAD_LETTER", null, 10).get(0);
+        assertTrue(deadLetterMessage.getPayload().contains("\"reasonCode\":\"invalid_xml\""));
+
+        awaitCondition("malformed spans to flush", STATE_TIMEOUT, () -> hasSpan("QueueMessage.process"));
+        assertHasAttribute("QueueMessage.process", "failure.reason_code", "invalid_xml");
+        assertHasErroredSpan("TradeIngestionService.processTradeXml");
     }
 
     @Test
@@ -230,6 +315,7 @@ class EndToEndTest {
         assertQueueTerminalCounts("INGESTION", 1, 0);
         assertQueueTerminalCounts("MATCHING", 1, 0);
         assertQueueTerminalCounts("NETTING", 0, 0);
+        assertQueueTerminalCounts("DEAD_LETTER", 0, 0);
         assertTrue(queueMessages("NETTING", null, 10).isEmpty());
 
         Trade unmatchedTrade = allTrades().stream()
@@ -241,15 +327,28 @@ class EndToEndTest {
 
     @Test
     void retryableMatchingFailure_retriesThenEndsFailedAfterMaxAttempts() throws Exception {
-        queueBroker.publish(QueueName.MATCHING, "{\"tradeId\":999999}");
+        QueueMessage message = queueBroker.publish(QueueName.MATCHING, "{\"tradeId\":999999}");
+        message = markClaimed(message, 0);
 
-        awaitCondition("retry exhaustion for missing trade", STATE_TIMEOUT,
-                () -> queueCount("MATCHING", "FAILED") == 1);
+        assertEquals(QueueFailureDisposition.RETRIED, queueBroker.fail(
+                message,
+                FailureContext.of("Retry matching due to concurrency conflict", FailureReason.CONCURRENCY_CONFLICT, true)));
+
+        message = markClaimed(message, 1);
+        assertEquals(QueueFailureDisposition.RETRIED, queueBroker.fail(
+                message,
+                FailureContext.of("Retry matching due to concurrency conflict", FailureReason.CONCURRENCY_CONFLICT, true)));
+
+        message = markClaimed(message, 2);
+        assertEquals(QueueFailureDisposition.FAILED, queueBroker.fail(
+                message,
+                FailureContext.of("Retry matching due to concurrency conflict", FailureReason.CONCURRENCY_CONFLICT, true)));
 
         List<QueueMessage> failedMessages = queueMessages("MATCHING", "FAILED", 10);
         assertEquals(1, failedMessages.size());
         assertEquals(3, failedMessages.get(0).getAttempts());
         assertTrue(failedMessages.get(0).getLastError().contains("Retry matching"));
+        assertTrue(queueMessages("DEAD_LETTER", null, 10).get(0).getPayload().contains("\"reasonCode\":\"concurrency_conflict\""));
         assertTrue(queueMessages("NETTING", null, 10).isEmpty());
     }
 
@@ -269,6 +368,63 @@ class EndToEndTest {
                 && spanNames.contains("TradeMatchingEngine.processMatchingMessage")
                 && spanNames.contains("NettingCalculator.processNettingMessage")
                 && spanNames.contains("TwoPhaseCommitCoordinator.executeTransaction");
+    }
+
+    private boolean hasSpan(String spanName) {
+        return spanExporter.getFinishedSpanItems().stream()
+                .anyMatch(span -> spanName.equals(span.getName()));
+    }
+
+    private void assertSpanCountAtLeast(String spanName, long expectedMinimum) {
+        long actual = spanExporter.getFinishedSpanItems().stream()
+                .filter(span -> spanName.equals(span.getName()))
+                .count();
+        assertTrue(actual >= expectedMinimum,
+                () -> "Expected at least " + expectedMinimum + " spans named " + spanName + " but found " + actual);
+    }
+
+    private void assertHasStageTaggedSpan(String spanName, String expectedStage, String expectedComponentKind) {
+        assertTrue(spanExporter.getFinishedSpanItems().stream().anyMatch(span ->
+                        spanName.equals(span.getName())
+                                && expectedStage.equals(span.getAttributes().get(AttributeKey.stringKey("cls.stage")))
+                                && expectedComponentKind.equals(span.getAttributes().get(AttributeKey.stringKey("component.kind")))),
+                () -> "Expected a span named " + spanName + " tagged with cls.stage=" + expectedStage
+                        + " and component.kind=" + expectedComponentKind);
+    }
+
+    private void assertHasCorrelatedSpan(String spanName, String tradeId, String messageId) {
+        assertTrue(spanExporter.getFinishedSpanItems().stream().anyMatch(span ->
+                        spanName.equals(span.getName())
+                                && tradeId.equals(span.getAttributes().get(AttributeKey.stringKey("trade.id")))
+                                && messageId.equals(span.getAttributes().get(AttributeKey.stringKey("message.id")))),
+                () -> "Expected a correlated span named " + spanName + " for trade.id=" + tradeId
+                        + " and message.id=" + messageId);
+    }
+
+    private void assertHasAttribute(String spanName, String attributeName, String expectedValue) {
+        AttributeKey<String> key = AttributeKey.stringKey(attributeName);
+        assertTrue(spanExporter.getFinishedSpanItems().stream().anyMatch(span ->
+                        spanName.equals(span.getName())
+                                && expectedValue.equals(span.getAttributes().get(key))),
+                () -> "Expected span " + spanName + " to have " + attributeName + "=" + expectedValue);
+    }
+
+    private void assertHasErroredSpan(String spanName) {
+        assertTrue(spanExporter.getFinishedSpanItems().stream().anyMatch(span ->
+                        spanName.equals(span.getName())
+                                && "ERROR".equals(span.getStatus().getStatusCode().name())),
+                () -> "Expected an errored span named " + spanName);
+    }
+
+    private void assertSameTraceForMessage(String messageId, String... spanNames) {
+        List<SpanData> spans = spanExporter.getFinishedSpanItems().stream()
+                .filter(span -> messageId.equals(span.getAttributes().get(AttributeKey.stringKey("message.id"))))
+                .filter(span -> List.of(spanNames).contains(span.getName()))
+                .toList();
+        assertEquals(spanNames.length, spans.size());
+        String traceId = spans.get(0).getTraceId();
+        assertTrue(spans.stream().allMatch(span -> traceId.equals(span.getTraceId())),
+                () -> "Expected spans for message " + messageId + " to share a trace");
     }
 
     private ResponseEntity<Map> postTrade(String xml) {
@@ -350,6 +506,16 @@ class EndToEndTest {
             TimeUnit.MILLISECONDS.sleep(50);
         }
         throw new AssertionError("Timed out waiting for " + description);
+    }
+
+    private QueueMessage markClaimed(QueueMessage message, int attempts) {
+        QueueMessage claimed = queueMessageRepository.findById(message.getId()).orElseThrow();
+        claimed.setStatus(QueueMessageStatus.PROCESSING);
+        claimed.setAttempts(attempts);
+        claimed.setWorkerName("retry-worker");
+        claimed.setClaimedAt(Instant.now());
+        claimed.setCompletedAt(null);
+        return queueMessageRepository.save(claimed);
     }
 
     @SuppressWarnings("unchecked")
