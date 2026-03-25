@@ -24,94 +24,55 @@ Trades are submitted as FpML-like XML, written to a durable ingestion queue, val
 | `ComponentTracingAspect` | AOP tracing across controllers, services, and repositories |
 | `StatusController` | Read-only endpoints: pipeline state, queues, transaction log, votes |
 
-## System structure
+## Pipeline
 
-The diagram below shows the four pipeline stages (ingestion → matching → netting → 2PC commit), the error-handling path through the dead-letter queue, and the observability layer.
+Queues (orange) connect each stage. Every queue and repository is backed by the same H2 file database.
 
 ```mermaid
-flowchart TB
-    classDef queue fill:#fff7ed,stroke:#ea580c,stroke-width:2px,color:#0f172a
-    classDef service fill:#ecfdf5,stroke:#059669,stroke-width:1.5px,color:#0f172a
-    classDef repo fill:#fdf2f8,stroke:#db2777,stroke-width:1.5px,color:#0f172a
-    classDef api fill:#eff6ff,stroke:#2563eb,stroke-width:2px,color:#0f172a
-    classDef coord fill:#f5f3ff,stroke:#7c3aed,stroke-width:2px,color:#0f172a
-    classDef read fill:#f8fafc,stroke:#475569,stroke-width:1.5px,color:#0f172a
-    classDef ext fill:#ffffff,stroke:#94a3b8,stroke-width:1.5px,color:#0f172a
-    classDef db fill:#fffbeb,stroke:#d97706,stroke-width:2px,color:#0f172a
-    classDef dlq fill:#fef2f2,stroke:#dc2626,stroke-width:2px,color:#0f172a
-    classDef trace fill:#fefce8,stroke:#ca8a04,stroke-width:1.5px,color:#0f172a
+flowchart LR
+    classDef ext fill:#ffffff,stroke:#94a3b8,stroke-width:1.5px
+    classDef api fill:#eff6ff,stroke:#2563eb,stroke-width:2px
+    classDef queue fill:#fff7ed,stroke:#ea580c,stroke-width:2px
+    classDef svc fill:#ecfdf5,stroke:#059669,stroke-width:1.5px
+    classDef coord fill:#f5f3ff,stroke:#7c3aed,stroke-width:2px
+    classDef dlq fill:#fef2f2,stroke:#dc2626,stroke-width:2px
 
-    Client([Client / upstream]):::ext -->|FpML XML| API["TradeSubmissionController<br/>POST /api/trades"]:::api
+    C([Client]):::ext -->|POST XML| API[TradeSubmission-\nController]:::api
 
-    subgraph APP["Spring Boot — single deployable"]
-        direction TB
+    API --> Q1[/INGESTION\nqueue/]:::queue
+    Q1 --> TIS[TradeIngestion-\nService]:::svc
+    TIS --> Q2[/MATCHING\nqueue/]:::queue
+    Q2 --> TME[TradeMatching-\nEngine]:::svc
+    TME --> Q3[/NETTING\nqueue/]:::queue
+    Q3 --> NC[Netting-\nCalculator]:::svc
+    NC --> TPC[2PC\nCoordinator]:::coord
+    TPC -->|NettingSets +\nSettlementInstructions| DB[(H2 DB)]
 
-        API -->|publish| IQ["INGESTION queue"]:::queue
+    TIS & TME & NC -.->|on failure| FC{Failure-\nClassifier}
+    FC -->|retryable| Q1 & Q2 & Q3
+    FC -->|non-retryable /\nmax attempts| DLQ[/DEAD_LETTER\nqueue/]:::dlq
+```
 
-        subgraph S1["1 · Ingestion"]
-            direction TB
-            IQ -->|claim| TIS[TradeIngestionService]:::service
-            TIS --> CVS[CurrencyValidationService]:::service
-            TIS -->|persist| TR[(TradeRepository)]:::repo
-            TIS -->|publish| MQ["MATCHING queue"]:::queue
-        end
+### Persistence layer
 
-        subgraph S2["2 · Matching"]
-            direction TB
-            MQ -->|claim| TME[TradeMatchingEngine]:::service
-            TME -->|persist| MTR[(MatchedTradeRepository)]:::repo
-            TME -->|update status| TR
-            TME -->|publish| NQ["NETTING queue"]:::queue
-        end
+The 2PC coordinator writes to six repositories, all JPA-managed in the same H2 file database.
 
-        subgraph S3["3 · Netting + 2PC"]
-            direction TB
-            NQ -->|claim| NC[NettingCalculator]:::service
-            NC --> NCS[NettingCutoffService]:::service
-            NC --> TPC[TwoPhaseCommitCoordinator]:::coord
-        end
+```mermaid
+flowchart LR
+    classDef coord fill:#f5f3ff,stroke:#7c3aed,stroke-width:2px
+    classDef repo fill:#fdf2f8,stroke:#db2777,stroke-width:1.5px
+    classDef db fill:#fffbeb,stroke:#d97706,stroke-width:2px
 
-        subgraph S4["4 · Atomic commit"]
-            direction LR
-            TPC -->|votes| TVR[(ParticipantVoteRepository)]:::repo
-            TPC -->|audit| TLR[(TransactionLogRepository)]:::repo
-            TPC -->|create| NSR[(NettingSetRepository)]:::repo
-            TPC -->|create| SIR[(SettlementInstructionRepository)]:::repo
-            TPC -->|update| MTR
-            TPC -->|update| TR
-        end
+    TPC[2PC Coordinator]:::coord
 
-        subgraph S6["Settlement (optional queue path)"]
-            direction TB
-            SQ["SETTLEMENT queue"]:::queue -->|claim| SI[SettlementInstructor]:::service
-            SI --> NSR
-            SI --> SIR
-        end
+    TPC --> TR[(Trade)]:::repo
+    TPC --> MTR[(MatchedTrade)]:::repo
+    TPC --> NSR[(NettingSet)]:::repo
+    TPC --> SIR[(SettlementInstruction)]:::repo
+    TPC --> TLR[(TransactionLog)]:::repo
+    TPC --> TVR[(ParticipantVote)]:::repo
 
-        subgraph ERR["Error handling"]
-            direction LR
-            FC[FailureClassifier]:::service
-            DLQ["DEAD_LETTER queue"]:::dlq
-            FC -->|non-retryable /<br/>max attempts| DLQ
-        end
-
-        subgraph OBS["Observability"]
-            direction TB
-            SC["StatusController<br/>GET /api/status · queues · logs"]:::read
-            QMT[QueueMessageTracing]:::trace
-            CTA[ComponentTracingAspect]:::trace
-        end
-
-        TIS & TME & NC -->|on failure| FC
-        FC -->|retryable| IQ & MQ & NQ
-
-        SC -.->|read| TR & MTR & NSR & SIR & TLR & TVR
-    end
-
-    H2[(H2 file DB<br/>./data/coredb)]:::db
-
-    TR & MTR & NSR & SIR & TLR & TVR -.->|JPA| H2
-    IQ & MQ & NQ & SQ & DLQ -.->|durable broker| H2
+    TR & MTR & NSR & SIR & TLR & TVR --> H2[(H2 file DB\n./data/coredb)]:::db
 ```
 
 ## Data flow
@@ -119,64 +80,47 @@ flowchart TB
 ```mermaid
 sequenceDiagram
     participant C as Client
-    participant API as TradeSubmissionController
-    participant IQ as INGESTION queue
-    participant TIS as TradeIngestionService
-    participant MQ as MATCHING queue
-    participant TME as TradeMatchingEngine
-    participant NQ as NETTING queue
-    participant NC as NettingCalculator
-    participant TPC as TwoPhaseCommitCoordinator
-    participant DB as H2 Database
-    participant DLQ as DEAD_LETTER queue
+    participant Q as Queues
+    participant TIS as Ingestion
+    participant TME as Matching
+    participant TPC as 2PC Coordinator
+    participant DB as H2 DB
 
-    C->>API: POST /api/trades (XML)
-    API->>IQ: publish(payload)
-    API-->>C: 202 Accepted
+    C->>Q: POST XML → INGESTION queue
+    Note right of C: 202 Accepted
 
-    Note over IQ,TIS: Stage 1 — Ingestion
-    IQ->>TIS: claim message
-    TIS->>TIS: parse XML, validate fields & currency
-    alt valid trade
-        TIS->>DB: persist Trade (VALIDATED)
-        TIS->>MQ: publish(tradeId)
-        TIS->>IQ: complete message
-    else soft reject (bad currency/amount)
-        TIS->>DB: persist Trade (REJECTED)
-        TIS->>IQ: complete message
-    else hard fail (invalid XML/missing fields)
-        TIS->>IQ: fail message
-        Note over IQ,DLQ: retry up to 3×, then DLQ
+    rect rgb(236, 253, 245)
+    Note over Q,TIS: Stage 1 — Ingestion
+    Q->>TIS: claim
+    TIS->>TIS: parse XML, validate
+    TIS->>DB: persist Trade (VALIDATED or REJECTED)
+    TIS->>Q: publish tradeId → MATCHING
     end
 
-    Note over MQ,TME: Stage 2 — Matching
-    MQ->>TME: claim message
+    rect rgb(239, 246, 255)
+    Note over Q,TME: Stage 2 — Matching
+    Q->>TME: claim
     TME->>DB: find opposite-side trade (SELECT FOR UPDATE)
-    alt match found
-        TME->>DB: create MatchedTrade, set trades MATCHED
-        TME->>NQ: publish(matchedTradeId)
-        TME->>MQ: complete message
-    else no match yet
-        TME->>MQ: complete message (awaits counterparty)
+    TME->>DB: create MatchedTrade, set trades MATCHED
+    TME->>Q: publish matchedTradeId → NETTING
     end
 
-    Note over NQ,TPC: Stage 3 — Netting + 2PC
-    NQ->>NC: claim message
-    NC->>TPC: executeTransaction(matchedTradeId)
-
-    Note over TPC,DB: Phase 1 — Prepare
-    TPC->>DB: create TransactionLog (INITIATED)
-    TPC->>DB: NettingCalculator vote (COMMIT/ABORT)
-    TPC->>DB: SettlementInstructor vote (COMMIT/ABORT)
-
-    alt all vote COMMIT
-        Note over TPC,DB: Phase 2 — Commit
+    rect rgb(245, 243, 255)
+    Note over Q,TPC: Stage 3 — Netting + 2PC
+    Q->>TPC: claim
+    TPC->>DB: log INITIATED, collect votes
+    alt all COMMIT
         TPC->>DB: create NettingSets + SettlementInstructions
-        TPC->>DB: set trades NETTED, log COMMITTED
-        TPC->>NQ: complete message
-    else any vote ABORT
+        TPC->>DB: trades → NETTED, log COMMITTED
+    else any ABORT
         TPC->>DB: log ABORTED
-        TPC->>NQ: fail message (retryable)
+        TPC->>Q: retry (back to NETTING)
+    end
+    end
+
+    rect rgb(254, 242, 242)
+    Note over Q,DB: Failure path
+    Q-->>Q: retry up to 3×, then → DEAD_LETTER
     end
 ```
 
