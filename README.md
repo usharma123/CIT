@@ -185,6 +185,7 @@ Two complementary OpenTelemetry layers run across the pipeline:
 | [`mocknet/src/main/java/com/cit/clsnet/queue`](./mocknet/src/main/java/com/cit/clsnet/queue) | Durable queue broker, queue tracing, and queue-local correlation utilities |
 | [`mocknet/src/main/java/com/cit/clsnet/status`](./mocknet/src/main/java/com/cit/clsnet/status) | Read-only status endpoints and status assemblers |
 | [`mocknet/src/main/java/com/cit/clsnet/shared/failure`](./mocknet/src/main/java/com/cit/clsnet/shared/failure) | Shared failure classification, queue retry/disposition, and processing exceptions |
+| [`mocknet/src/main/java/com/cit/clsnet/shared/payload`](./mocknet/src/main/java/com/cit/clsnet/shared/payload) | Shared JSON/XML payload parsing and correlation helpers |
 | [`mocknet/src/main/java/com/cit/clsnet/repository`](./mocknet/src/main/java/com/cit/clsnet/repository) | JPA repositories (including `QueueMessageRepository`) |
 | [`mocknet/src/main/java/com/cit/clsnet/model`](./mocknet/src/main/java/com/cit/clsnet/model) | Entities and enums |
 | [`mocknet/src/main/java/com/cit/clsnet/config`](./mocknet/src/main/java/com/cit/clsnet/config) | Queues, threads, `ClsNetProperties` |

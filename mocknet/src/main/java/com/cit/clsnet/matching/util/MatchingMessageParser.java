@@ -1,30 +1,28 @@
 package com.cit.clsnet.matching.util;
 
 import com.cit.clsnet.shared.failure.FailureReason;
-import com.cit.clsnet.shared.failure.QueueProcessingException;
+import com.cit.clsnet.shared.payload.JsonPayloadReader;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 
 @Component
 public class MatchingMessageParser {
 
-    private final ObjectMapper objectMapper;
+    private final JsonPayloadReader jsonPayloadReader;
 
     public MatchingMessageParser() {
-        this.objectMapper = new ObjectMapper();
+        this.jsonPayloadReader = new JsonPayloadReader();
     }
 
     public long parseTradeId(String message) {
-        JsonNode node;
-        try {
-            node = objectMapper.readTree(message);
-        } catch (Exception e) {
-            throw new QueueProcessingException("Invalid matching message payload", e, FailureReason.INVALID_MATCHING_MESSAGE, false);
-        }
-        if (!node.hasNonNull("tradeId")) {
-            throw new QueueProcessingException("Matching message missing tradeId", FailureReason.MISSING_MATCHING_TRADE_ID, false);
-        }
-        return node.get("tradeId").asLong();
+        JsonNode node = jsonPayloadReader.parse(
+                message,
+                "Invalid matching message payload",
+                FailureReason.INVALID_MATCHING_MESSAGE);
+        return jsonPayloadReader.requireLong(
+                node,
+                "tradeId",
+                "Matching message missing tradeId",
+                FailureReason.MISSING_MATCHING_TRADE_ID);
     }
 }

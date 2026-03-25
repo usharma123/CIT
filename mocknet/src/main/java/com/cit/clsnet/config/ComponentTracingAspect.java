@@ -6,10 +6,9 @@ import com.cit.clsnet.model.QueueMessage;
 import com.cit.clsnet.model.QueueName;
 import com.cit.clsnet.model.SettlementInstruction;
 import com.cit.clsnet.model.Trade;
-import com.cit.clsnet.xml.FpmlTradeMessage;
+import com.cit.clsnet.shared.payload.TextPayloadCorrelation;
+import com.cit.clsnet.shared.payload.TextPayloadCorrelationReader;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.trace.Span;
@@ -52,13 +51,11 @@ public class ComponentTracingAspect {
     private static final AttributeKey<String> TRADE_RECORD_ID = AttributeKey.stringKey("trade.record.id");
 
     private final Tracer tracer;
-    private final ObjectMapper objectMapper;
-    private final XmlMapper xmlMapper;
+    private final TextPayloadCorrelationReader textPayloadCorrelationReader;
 
     public ComponentTracingAspect(OpenTelemetry openTelemetry) {
         this.tracer = openTelemetry.getTracer("com.cit.clsnet.component-tracing");
-        this.objectMapper = new ObjectMapper();
-        this.xmlMapper = new XmlMapper();
+        this.textPayloadCorrelationReader = new TextPayloadCorrelationReader();
     }
 
     @Around(
@@ -217,57 +214,26 @@ public class ComponentTracingAspect {
     }
 
     private void collectFromText(CorrelationTags tags, String raw) {
-        String text = raw == null ? "" : raw.trim();
-        if (text.isEmpty()) {
-            return;
-        }
+        TextPayloadCorrelation correlation = textPayloadCorrelationReader.extract(raw);
 
-        if (text.startsWith("<")) {
-            try {
-                FpmlTradeMessage message = xmlMapper.readValue(text, FpmlTradeMessage.class);
-                if (message.getTrade() != null) {
-                    addIfPresent(tags.tradeIds, message.getTrade().getTradeId());
-                }
-                if (message.getHeader() != null) {
-                    addIfPresent(tags.messageIds, message.getHeader().getMessageId());
-                }
-                return;
-            } catch (Exception ignored) {
-                return;
+        if (correlation.tradeId() != null) {
+            if (looksLikeBusinessId(correlation.tradeId())) {
+                addIfPresent(tags.tradeIds, correlation.tradeId());
+            } else {
+                addIfPresent(tags.tradeRecordIds, correlation.tradeId());
             }
         }
-
-        if (text.startsWith("{") || text.startsWith("[")) {
-            try {
-                JsonNode node = objectMapper.readTree(text);
-                collectFromJson(tags, node);
-            } catch (Exception ignored) {
-                return;
-            }
+        if (correlation.messageId() != null) {
+            addIfPresent(tags.messageIds, correlation.messageId());
         }
-    }
-
-    private void collectFromJson(CorrelationTags tags, JsonNode node) {
-        if (node == null || node.isNull()) {
-            return;
+        if (correlation.queueName() != null) {
+            addIfPresent(tags.queueNames, correlation.queueName());
         }
-
-        if (node.isArray()) {
-            for (JsonNode item : node) {
-                collectFromJson(tags, item);
-            }
-            return;
+        if (correlation.matchedTradeId() != null) {
+            addIfPresent(tags.matchedTradeIds, correlation.matchedTradeId());
         }
-
-        if (!node.isObject()) {
-            return;
-        }
-
-        Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
-        while (fields.hasNext()) {
-            Map.Entry<String, JsonNode> field = fields.next();
-            collectJsonField(tags, field.getKey(), field.getValue());
-            collectFromJson(tags, field.getValue());
+        if (correlation.nettingSetId() != null) {
+            addIfPresent(tags.nettingSetIds, correlation.nettingSetId());
         }
     }
 
