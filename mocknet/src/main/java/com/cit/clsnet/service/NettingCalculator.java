@@ -28,6 +28,7 @@ public class NettingCalculator {
     private final QueueBroker queueBroker;
     private final TwoPhaseCommitCoordinator twoPhaseCommitCoordinator;
     private final NettingCutoffService nettingCutoffService;
+    private final FailureClassifier failureClassifier;
     private final NettingCalculator self;
     private final ExecutorService executor;
     private final int threadCount;
@@ -39,12 +40,14 @@ public class NettingCalculator {
             QueueBroker queueBroker,
             TwoPhaseCommitCoordinator twoPhaseCommitCoordinator,
             NettingCutoffService nettingCutoffService,
+            FailureClassifier failureClassifier,
             @Lazy NettingCalculator self,
             ClsNetProperties properties) {
         this.queueBroker = queueBroker;
         this.executor = executor;
         this.twoPhaseCommitCoordinator = twoPhaseCommitCoordinator;
         this.nettingCutoffService = nettingCutoffService;
+        this.failureClassifier = failureClassifier;
         this.self = self;
         this.threadCount = properties.getThreads().getNetting();
         this.objectMapper = new ObjectMapper();
@@ -78,9 +81,9 @@ public class NettingCalculator {
                     self.processNettingMessage(message.getPayload());
                     queueBroker.complete(message);
                 } catch (QueueProcessingException e) {
-                    queueBroker.fail(message, e.getMessage(), e.isRetryable());
+                    queueBroker.fail(message, e.getFailureContext());
                 } catch (Exception e) {
-                    queueBroker.fail(message, e.getMessage(), false);
+                    queueBroker.fail(message, failureClassifier.classify(e, FailureReason.PROCESSING_ERROR, "Failed to process netting message"));
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -94,6 +97,9 @@ public class NettingCalculator {
     public void processNettingMessage(String message) {
         try {
             JsonNode node = objectMapper.readTree(message);
+            if (!node.hasNonNull("matchedTradeId")) {
+                throw new QueueProcessingException("Netting message missing matchedTradeId", FailureReason.INVALID_NETTING_MESSAGE, false);
+            }
             Long matchedTradeId = node.get("matchedTradeId").asLong();
 
             log.debug("Initiating 2-Phase Commit for matchedTradeId={}", matchedTradeId);
@@ -102,6 +108,7 @@ public class NettingCalculator {
             if (!success) {
                 throw new QueueProcessingException(
                         "2PC transaction aborted for matchedTradeId=" + matchedTradeId,
+                        FailureReason.TWO_PHASE_COMMIT_ABORTED,
                         true);
             }
             log.debug("2PC transaction completed successfully for matchedTradeId={}", matchedTradeId);
@@ -109,7 +116,7 @@ public class NettingCalculator {
             if (e instanceof QueueProcessingException queueProcessingException) {
                 throw queueProcessingException;
             }
-            throw new QueueProcessingException("Failed to process netting message", e, false);
+            throw new QueueProcessingException("Failed to process netting message", e, FailureReason.INVALID_NETTING_MESSAGE, false);
         }
     }
 

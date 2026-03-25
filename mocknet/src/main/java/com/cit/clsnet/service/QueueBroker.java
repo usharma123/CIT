@@ -5,6 +5,7 @@ import com.cit.clsnet.model.QueueMessage;
 import com.cit.clsnet.model.QueueMessageStatus;
 import com.cit.clsnet.model.QueueName;
 import com.cit.clsnet.repository.QueueMessageRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.data.domain.PageRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,10 +27,12 @@ public class QueueBroker {
 
     private final QueueMessageRepository queueMessageRepository;
     private final ClsNetProperties properties;
+    private final ObjectMapper objectMapper;
 
     public QueueBroker(QueueMessageRepository queueMessageRepository, ClsNetProperties properties) {
         this.queueMessageRepository = queueMessageRepository;
         this.properties = properties;
+        this.objectMapper = new ObjectMapper();
     }
 
     @Transactional
@@ -84,11 +87,11 @@ public class QueueBroker {
     }
 
     @Transactional
-    public void fail(QueueMessage message, String error, boolean retryable) {
+    public QueueFailureDisposition fail(QueueMessage message, FailureContext failureContext) {
         int nextAttempts = message.getAttempts() + 1;
-        String truncatedError = truncate(error);
+        String truncatedError = truncate(failureContext.getMessage());
 
-        if (retryable && nextAttempts < properties.getBroker().getMaxAttempts()) {
+        if (failureContext.isRetryable() && nextAttempts < properties.getBroker().getMaxAttempts()) {
             int updated = queueMessageRepository.rescheduleClaimedMessage(
                     message.getId(),
                     QueueMessageStatus.PROCESSING,
@@ -101,9 +104,10 @@ public class QueueBroker {
             if (updated == 0) {
                 log.warn("Skipping retry for queue message {} because the claim is no longer owned", message.getId());
             }
-            return;
+            return QueueFailureDisposition.RETRIED;
         }
 
+        Instant failedAt = Instant.now();
         int updated = queueMessageRepository.failClaimedMessage(
                 message.getId(),
                 QueueMessageStatus.PROCESSING,
@@ -111,11 +115,14 @@ public class QueueBroker {
                 message.getWorkerName(),
                 message.getClaimedAt(),
                 nextAttempts,
-                Instant.now(),
+                failedAt,
                 truncatedError);
         if (updated == 0) {
             log.warn("Skipping failure transition for queue message {} because the claim is no longer owned", message.getId());
+            return QueueFailureDisposition.FAILED;
         }
+        publishDeadLetter(message, failureContext, nextAttempts, failedAt);
+        return QueueFailureDisposition.FAILED;
     }
 
     @Transactional(readOnly = true)
@@ -177,5 +184,26 @@ public class QueueBroker {
             return null;
         }
         return error.length() <= 4000 ? error : error.substring(0, 4000);
+    }
+
+    private void publishDeadLetter(QueueMessage message, FailureContext failureContext, int attempts, Instant failedAt) {
+        if (message.getQueueName() == QueueName.DEAD_LETTER) {
+            return;
+        }
+
+        try {
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("originalQueue", message.getQueueName().name());
+            payload.put("originalPayload", message.getPayload());
+            payload.put("attempts", attempts);
+            payload.put("workerName", message.getWorkerName());
+            payload.put("reasonCode", failureContext.getReasonCode());
+            payload.put("errorMessage", truncate(failureContext.getMessage()));
+            payload.put("failedAt", failedAt.toString());
+            payload.put("retryable", failureContext.isRetryable());
+            publish(QueueName.DEAD_LETTER, objectMapper.writeValueAsString(payload));
+        } catch (Exception e) {
+            log.error("Failed to publish DLQ message for queue message {}", message.getId(), e);
+        }
     }
 }

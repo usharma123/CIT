@@ -39,6 +39,7 @@ public class SettlementInstructor {
     private final NettingSetRepository nettingSetRepository;
     private final SettlementInstructionRepository settlementInstructionRepository;
     private final TransactionTemplate transactionTemplate;
+    private final FailureClassifier failureClassifier;
     private final SettlementInstructor self;
     private final ExecutorService executor;
     private final int threadCount;
@@ -51,6 +52,7 @@ public class SettlementInstructor {
             NettingSetRepository nettingSetRepository,
             SettlementInstructionRepository settlementInstructionRepository,
             TransactionTemplate transactionTemplate,
+            FailureClassifier failureClassifier,
             @Lazy SettlementInstructor self,
             ClsNetProperties properties) {
         this.queueBroker = queueBroker;
@@ -58,6 +60,7 @@ public class SettlementInstructor {
         this.nettingSetRepository = nettingSetRepository;
         this.settlementInstructionRepository = settlementInstructionRepository;
         this.transactionTemplate = transactionTemplate;
+        this.failureClassifier = failureClassifier;
         this.self = self;
         this.threadCount = properties.getThreads().getSettlement();
         this.objectMapper = new ObjectMapper();
@@ -91,9 +94,9 @@ public class SettlementInstructor {
                     self.processSettlementMessage(message.getPayload());
                     queueBroker.complete(message);
                 } catch (QueueProcessingException e) {
-                    queueBroker.fail(message, e.getMessage(), e.isRetryable());
+                    queueBroker.fail(message, e.getFailureContext());
                 } catch (Exception e) {
-                    queueBroker.fail(message, e.getMessage(), false);
+                    queueBroker.fail(message, failureClassifier.classify(e, FailureReason.PROCESSING_ERROR, "Failed to process settlement message"));
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -109,11 +112,14 @@ public class SettlementInstructor {
             try {
                 JsonNode node = objectMapper.readTree(message);
                 JsonNode idsNode = node.get("nettingSetIds");
+                if (idsNode == null || !idsNode.isArray()) {
+                    throw new QueueProcessingException("Settlement message missing nettingSetIds", FailureReason.INVALID_SETTLEMENT_MESSAGE, false);
+                }
 
                 for (JsonNode idNode : idsNode) {
                     Long nsId = idNode.asLong();
                     NettingSet ns = nettingSetRepository.findById(nsId)
-                            .orElseThrow(() -> new QueueProcessingException("NettingSet not found: " + nsId, true));
+                            .orElseThrow(() -> new QueueProcessingException("NettingSet not found: " + nsId, FailureReason.TRANSIENT_DATA_ACCESS, true));
 
                     BigDecimal netAmount = ns.getNetAmount();
                     if (netAmount.compareTo(BigDecimal.ZERO) == 0) {
@@ -142,7 +148,7 @@ public class SettlementInstructor {
             } catch (Exception e) {
                 throw e instanceof QueueProcessingException
                         ? (QueueProcessingException) e
-                        : new QueueProcessingException("Failed to process settlement message", e, false);
+                        : new QueueProcessingException("Failed to process settlement message", e, FailureReason.INVALID_SETTLEMENT_MESSAGE, false);
             }
         });
     }

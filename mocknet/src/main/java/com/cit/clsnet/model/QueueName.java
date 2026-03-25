@@ -4,5 +4,6 @@ public enum QueueName {
     INGESTION,
     MATCHING,
     NETTING,
-    SETTLEMENT
+    SETTLEMENT,
+    DEAD_LETTER
 }
