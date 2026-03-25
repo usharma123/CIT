@@ -1,0 +1,37 @@
+Prepare and launch a local CLS trace viewer backed by Jaeger's HTTP API.
+
+Use this when Bootstrap should inspect OpenTelemetry traces for a Java service and render them as a CLS-first component flow in a browser page.
+
+The tool will:
+- query Jaeger for recent traces
+- fetch full trace details
+- normalize spans into CLS stages
+- emit exact span-derived ASCII summaries for terminal use
+- write a local HTML/CSS/JS viewer under the workspace
+- start a localhost-only viewer server
+- optionally open the viewer in the browser
+
+Defaults:
+- Jaeger base URL: `http://localhost:16686`
+- service name: `mocknet`
+- lookback: 15 minutes
+- limit: 50 traces
+- refresh interval: 3 seconds
+- output directory: `${directory}/.bootstrap/traceview/<serviceName>`
+
+The viewer groups traces by:
+1. `trade.id`
+2. `message.id`
+3. `traceId`
+
+When summarizing traces, use exact span operation names.
+Do not rename components, and do not invent missing stages or queue hops.
+
+Canonical CLS stages:
+- `HTTP`
+- `INGESTION`
+- `MATCHING`
+- `NETTING`
+- `SETTLEMENT`
+- `DATABASE`
+- `OTHER`

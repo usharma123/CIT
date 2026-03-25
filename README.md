@@ -1,60 +1,66 @@
-# CLSNet Mock
+# CLSNet Mock (`mocknet/`)
 
-Mock implementation of a CLSNet-style bilateral FX payment netting pipeline built with Spring Boot, H2, and in-process worker queues.
+Mock CLSNet-style bilateral FX payment netting pipeline: Spring Boot, H2, and a durable DB-backed message broker. All code and docs in this README refer to the [`mocknet/`](./mocknet/) Maven module.
 
 ## Overview
 
-This repository models a multi-component post-trade processing system inside a single deployable application. Trades are submitted as FpML-like XML, validated and persisted, asynchronously matched into bilateral pairs, then passed through a two-phase commit step that atomically creates netting sets and settlement instructions.
+Trades are submitted as FpML-like XML, written to a durable ingestion queue, validated and stored, matched into bilateral pairs, then run through a two-phase commit that atomically creates netting sets and settlement instructions. Everything runs in one Spring Boot application.
 
-The system is organized around cooperating components rather than separate microservices:
+Main pieces:
 
-- `TradeSubmissionController` accepts XML trade submissions over HTTP.
-- `TradeIngestionService` parses, validates, and stores incoming trades.
-- `TradeMatchingEngine` pairs compatible buyer/seller trades.
-- `NettingCalculator` drives the netting stage.
-- `TwoPhaseCommitCoordinator` coordinates atomic netting + settlement generation.
-- `SettlementInstructor` exists as a settlement worker for queue-driven or standalone settlement work, while the primary path creates instructions during the 2PC commit.
-- `StatusController` exposes pipeline state, transaction log, and vote history.
+- `TradeSubmissionController` — XML trade submissions over HTTP.
+- `TradeIngestionService` — parse, validate, persist trades; advance the pipeline via queues.
+- `TradeMatchingEngine` — pair compatible buyer/seller trades.
+- `NettingCalculator` — netting stage; delegates to the 2PC coordinator.
+- `TwoPhaseCommitCoordinator` — atomic netting + settlement generation.
+- `SettlementInstructor` — optional settlement worker on `settlementQueue`; primary path creates instructions during commit.
+- `StatusController` — pipeline state, transaction log, vote history, and queue inspection.
 
-## System Structure
+## System structure
 
 ```mermaid
-flowchart LR
-    classDef queue fill:#fff4e6,stroke:#c45c00,stroke-width:2px,color:#1a1a1a
-    classDef service fill:#e8f6ef,stroke:#1b7f4a,stroke-width:1px,color:#1a1a1a
-    classDef repo fill:#fdecef,stroke:#b12a5c,stroke-width:1px,color:#1a1a1a
-    classDef api fill:#e8f1ff,stroke:#1e5a96,stroke-width:2px,color:#1a1a1a
-    classDef coord fill:#f0e8ff,stroke:#5c3d9e,stroke-width:2px,color:#1a1a1a
-    classDef read fill:#f2f4f7,stroke:#4a5568,stroke-width:1px,color:#1a1a1a
-    classDef external fill:#fafafa,stroke:#6b7280,stroke-width:1px,color:#1a1a1a
-    classDef storage fill:#fffdf7,stroke:#9a8b6a,stroke-width:2px,color:#1a1a1a
+flowchart TB
+    classDef queue fill:#fff7ed,stroke:#ea580c,stroke-width:2px,color:#0f172a
+    classDef service fill:#ecfdf5,stroke:#059669,stroke-width:1.5px,color:#0f172a
+    classDef repo fill:#fdf2f8,stroke:#db2777,stroke-width:1.5px,color:#0f172a
+    classDef api fill:#eff6ff,stroke:#2563eb,stroke-width:2px,color:#0f172a
+    classDef coord fill:#f5f3ff,stroke:#7c3aed,stroke-width:2px,color:#0f172a
+    classDef read fill:#f8fafc,stroke:#475569,stroke-width:1.5px,color:#0f172a
+    classDef ext fill:#ffffff,stroke:#94a3b8,stroke-width:1.5px,color:#0f172a
+    classDef db fill:#fffbeb,stroke:#d97706,stroke-width:2px,color:#0f172a
 
-    Client([Client / upstream]):::external --> API["TradeSubmissionController<br/>POST /api/trades"]:::api
+    Client([Client / upstream]):::ext --> API["TradeSubmissionController<br/>POST /api/trades"]:::api
 
-    subgraph APP["Spring Boot (single deployable)"]
-        API --> IQ[ingestionQueue]:::queue
+    subgraph APP["Spring Boot — single deployable"]
+        direction TB
 
-        subgraph ING["Ingestion"]
+        API --> IQ["Ingestion · queue_messages"]:::queue
+
+        subgraph S1["1 · Ingestion"]
+            direction TB
             IQ --> TIS[TradeIngestionService]:::service
             TIS --> CVS[CurrencyValidationService]:::service
             TIS --> TR[(TradeRepository)]:::repo
-            TIS --> MQ[matchingQueue]:::queue
+            TIS --> MQ["Matching · queue_messages"]:::queue
         end
 
-        subgraph MAT["Matching"]
+        subgraph S2["2 · Matching"]
+            direction TB
             MQ --> TME[TradeMatchingEngine]:::service
             TME --> MTR[(MatchedTradeRepository)]:::repo
             TME --> TR
-            TME --> NQ[nettingQueue]:::queue
+            TME --> NQ["Netting · queue_messages"]:::queue
         end
 
-        subgraph NET["Netting"]
+        subgraph S3["3 · Netting and 2PC"]
+            direction TB
             NQ --> NC[NettingCalculator]:::service
             NC --> NCS[NettingCutoffService]:::service
             NC --> TPC[TwoPhaseCommitCoordinator]:::coord
         end
 
-        subgraph COMMIT["Atomic commit (2PC)"]
+        subgraph S4["4 · Atomic commit (2PC)"]
+            direction LR
             TPC --> TVR[(ParticipantVoteRepository)]:::repo
             TPC --> TLR[(TransactionLogRepository)]:::repo
             TPC --> NSR[(NettingSetRepository)]:::repo
@@ -63,64 +69,88 @@ flowchart LR
             TPC --> TR
         end
 
-        subgraph SET["Settlement (optional queue path)"]
-            SQ[settlementQueue]:::queue --> SI[SettlementInstructor]:::service
+        subgraph S5["Reads / observability"]
+            direction TB
+            SC["StatusController<br/>GET /api/status and entity endpoints"]:::read
+        end
+
+        subgraph S6["Settlement (optional queue path)"]
+            direction TB
+            SQ["Settlement · queue_messages"]:::queue --> SI[SettlementInstructor]:::service
             SI --> NSR
             SI --> SIR
         end
 
-        subgraph OBS["Status & reads"]
-            SC["StatusController<br/>GET /api/status, entities, votes, log"]:::read
-            SC --> TR
-            SC --> MTR
-            SC --> NSR
-            SC --> SIR
-            SC --> TLR
-            SC --> TVR
-        end
+        SC -.-> TR & MTR & NSR & SIR & TLR & TVR
+        SC -.-> IQ & MQ & NQ & SQ
     end
 
-    subgraph H2L["H2 persistence"]
-        H2[(./data/coredb)]:::storage
-    end
+    H2[(H2 file DB<br/>./data/coredb)]:::db
 
-    TR & MTR & NSR & SIR & TLR & TVR -.->|JPA| H2
+    TR & MTR & NSR & SIR & TLR & TVR -.->|JPA entities| H2
+    IQ & MQ & NQ & SQ -.->|durable broker| H2
 ```
 
-## Processing Flow
+## Processing flow
 
-1. A client submits an XML trade to `/api/trades`.
-2. The controller places the raw payload on `ingestionQueue`.
-3. `TradeIngestionService` parses the message, validates currencies and amounts, persists the trade, and forwards the internal trade id to `matchingQueue`.
-4. `TradeMatchingEngine` finds the opposite-side trade, marks both records as matched, creates a `MatchedTrade`, and forwards that id to `nettingQueue`.
-5. `NettingCalculator` starts a transaction through `TwoPhaseCommitCoordinator`.
-6. The coordinator runs a prepare phase for the netting and settlement participants, records participant votes, and writes transaction log state.
-7. On commit, the coordinator atomically creates two `NettingSet` records and the corresponding `SettlementInstruction` records, then updates the matched trades to `NETTED`.
+1. Client posts XML to `POST /api/trades`.
+2. The controller stores a `QueueMessage` on the `INGESTION` queue.
+3. `TradeIngestionService` claims the message, parses and validates, persists the trade, enqueues the internal trade id on `MATCHING`, marks ingestion `DONE`.
+4. `TradeMatchingEngine` claims a matching message, pairs trades, creates `MatchedTrade`, enqueues on `NETTING`, marks matching `DONE`.
+5. `NettingCalculator` claims a netting message and opens work through `TwoPhaseCommitCoordinator`.
+6. Prepare phase records participant votes and transaction log state.
+7. On commit, the coordinator creates `NettingSet` and `SettlementInstruction` rows, sets matched trades to `NETTED`, marks the netting message `DONE`.
 
-## Repository Layout
+## Layout under `mocknet/`
 
-- [`src/main/java/com/cit/clsnet/controller`](./src/main/java/com/cit/clsnet/controller): HTTP entry points and status APIs
-- [`src/main/java/com/cit/clsnet/service`](./src/main/java/com/cit/clsnet/service): pipeline workers, validation, cutoff logic, and 2PC coordinator
-- [`src/main/java/com/cit/clsnet/repository`](./src/main/java/com/cit/clsnet/repository): JPA persistence layer
-- [`src/main/java/com/cit/clsnet/model`](./src/main/java/com/cit/clsnet/model): domain entities and enums
-- [`src/main/java/com/cit/clsnet/config`](./src/main/java/com/cit/clsnet/config): queue and thread-pool configuration plus bound properties
-- [`src/main/java/com/cit/clsnet/xml`](./src/main/java/com/cit/clsnet/xml): XML message mapping classes
-- [`src/test/java/com/cit/clsnet`](./src/test/java/com/cit/clsnet): end-to-end and concurrency/load tests
+| Path | Role |
+|------|------|
+| [`mocknet/src/main/java/com/cit/clsnet/controller`](./mocknet/src/main/java/com/cit/clsnet/controller) | HTTP APIs |
+| [`mocknet/src/main/java/com/cit/clsnet/service`](./mocknet/src/main/java/com/cit/clsnet/service) | Workers, `QueueBroker`, 2PC, validation, cutoff |
+| [`mocknet/src/main/java/com/cit/clsnet/repository`](./mocknet/src/main/java/com/cit/clsnet/repository) | JPA repositories (including `QueueMessageRepository`) |
+| [`mocknet/src/main/java/com/cit/clsnet/model`](./mocknet/src/main/java/com/cit/clsnet/model) | Entities and enums |
+| [`mocknet/src/main/java/com/cit/clsnet/config`](./mocknet/src/main/java/com/cit/clsnet/config) | Queues, threads, `ClsNetProperties` |
+| [`mocknet/src/main/java/com/cit/clsnet/xml`](./mocknet/src/main/java/com/cit/clsnet/xml) | FpML-style XML mapping |
+| [`mocknet/src/main/resources`](./mocknet/src/main/resources) | `application.yml`, sample trades |
+| [`mocknet/src/test/java/com/cit/clsnet`](./mocknet/src/test/java/com/cit/clsnet) | End-to-end and load tests |
 
-## Running Locally
+Sample payloads: [`sample-trade-buy.xml`](./mocknet/src/main/resources/sample-trade-buy.xml), [`sample-trade-sell.xml`](./mocknet/src/main/resources/sample-trade-sell.xml).
+
+## Run and test
+
+From the repository root:
 
 ```bash
+cd mocknet
 mvn spring-boot:run
 ```
 
-The default configuration uses:
+```bash
+cd mocknet
+mvn test
+```
 
-- Java 17
-- Spring Boot 3.2.5
-- H2 file-backed database at `./data/coredb`
-- Configurable worker pools for ingestion, matching, netting, and settlement
+From the repository root, Bootstrap can prepare tracing and open a local CLS trace viewer:
 
-## Useful Endpoints
+```bash
+bun install
+bun run dev run "Use oteltrace for mocknet."
+bash .bootstrap/otel/mocknet/start-jaeger.sh
+bash .bootstrap/otel/mocknet/run-with-otel.sh
+bun run dev run "Use traceview for mocknet and open the local viewer."
+```
+
+`traceview` writes local artifacts under `.bootstrap/traceview/mocknet/` and serves a localhost-only HTML viewer that polls Jaeger and renders CLS stages from the traces it finds.
+
+Defaults (see [`mocknet/src/main/resources/application.yml`](./mocknet/src/main/resources/application.yml)):
+
+- Java **17**, Spring Boot **3.2.5** ([`mocknet/pom.xml`](./mocknet/pom.xml))
+- H2 file DB: `./data/coredb` (relative to the process working directory — use `mocknet/` when you run Maven there)
+- Worker pool sizes under `clsnet.threads.*`
+- Durable queues persisted as `queue_messages` via JPA
+- H2 console enabled; HTTP port **8080**
+
+## HTTP endpoints
 
 - `POST /api/trades`
 - `GET /api/status`
@@ -130,3 +160,5 @@ The default configuration uses:
 - `GET /api/settlement-instructions`
 - `GET /api/transaction-log`
 - `GET /api/participant-votes`
+- `GET /api/queues`
+- `GET /api/queues/{queueName}/messages?status=...&limit=...`

@@ -1,0 +1,17 @@
+Prepare OpenTelemetry Java agent tracing assets for a Java project so Bootstrap can trace request and message flow without custom probes.
+
+DEFAULTS:
+- If `projectDir` is omitted, use `${directory}/mocknet` when it exists, otherwise `${directory}`
+- If `command` is omitted, Maven projects default to `mvn spring-boot:run`
+- If `agentJarPath` is omitted, download the official OpenTelemetry Java agent into `.bootstrap/otel/<serviceName>/`
+
+OUTPUTS:
+- `otel.env` with OpenTelemetry environment variables
+- `run-with-otel.sh` launcher for the Java app
+- `start-jaeger.sh` helper for local Jaeger
+- `stop-jaeger.sh` helper to stop Jaeger
+
+USE THIS TOOL WHEN:
+- You need end-to-end trace visibility for a Java service
+- You want Bootstrap to prepare tracing against `mocknet/`
+- You want a repeatable local Jaeger setup with minimal custom code

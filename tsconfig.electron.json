@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js",
+    "types": ["node", "electron", "bun"],
+    "customConditions": []
+  },
+  "include": ["src/electron/**/*.ts", "src/electron/**/*.tsx"]
+}

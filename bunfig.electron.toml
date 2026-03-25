@@ -1,0 +1,6 @@
+preload = []
+
+[test]
+preload = []
+coverage = true
+timeout = 10000
