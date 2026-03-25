@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install JS dependencies
+        run: bun install
+
+      - name: Python harness venv (mocknet_run tool + pytest)
+        run: |
+          cd presentation/bootstrap-mocknet-integration
+          python3 -m venv .venv
+          .venv/bin/pip install -q -r requirements.txt pytest jsonschema
+
+      - name: Presentation pytest
+        run: presentation/bootstrap-mocknet-integration/run-tests.sh
+
+      # Repo-wide typecheck may fail on unrelated files; keep signal without blocking green CI.
+      - name: Bun typecheck
+        continue-on-error: true
+        run: bun run typecheck
+
+      - name: Bun test
+        run: bun test

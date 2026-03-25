@@ -28,6 +28,12 @@ import { QualityTool } from "./quality"
 import { AgentBrowserTool } from "./agent-browser"
 import { OtelTraceTool } from "./otel-trace"
 import { TraceViewTool } from "./traceview"
+import {
+  MocknetContractTool,
+  MocknetRunTool,
+  ScenarioPlanTool,
+  SpecIngestTool,
+} from "./mocknet-harness"
 
 export namespace ToolRegistry {
   const log = Log.create({ service: "tool.registry" })
@@ -112,6 +118,10 @@ export namespace ToolRegistry {
       QualityTool,
       OtelTraceTool,
       TraceViewTool,
+      SpecIngestTool,
+      ScenarioPlanTool,
+      MocknetContractTool,
+      MocknetRunTool,
       AgentBrowserTool,
       ...(Flag.OPENCODE_EXPERIMENTAL_LSP_TOOL ? [LspTool] : []),
       ...(config.experimental?.batch_tool === true ? [BatchTool] : []),
