@@ -10,6 +10,8 @@ import com.cit.clsnet.repository.MatchedTradeRepository;
 import com.cit.clsnet.repository.TradeRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
@@ -33,6 +35,8 @@ public class TradeMatchingEngine {
     private final TradeRepository tradeRepository;
     private final MatchedTradeRepository matchedTradeRepository;
     private final TransactionTemplate transactionTemplate;
+    private final QueueMessageTracing queueMessageTracing;
+    private final FailureClassifier failureClassifier;
     private final TradeMatchingEngine self;
     private final ExecutorService executor;
     private final int threadCount;
@@ -45,6 +49,8 @@ public class TradeMatchingEngine {
             TradeRepository tradeRepository,
             MatchedTradeRepository matchedTradeRepository,
             TransactionTemplate transactionTemplate,
+            QueueMessageTracing queueMessageTracing,
+            FailureClassifier failureClassifier,
             @Lazy TradeMatchingEngine self,
             ClsNetProperties properties) {
         this.queueBroker = queueBroker;
@@ -52,6 +58,8 @@ public class TradeMatchingEngine {
         this.tradeRepository = tradeRepository;
         this.matchedTradeRepository = matchedTradeRepository;
         this.transactionTemplate = transactionTemplate;
+        this.queueMessageTracing = queueMessageTracing;
+        this.failureClassifier = failureClassifier;
         this.self = self;
         this.threadCount = properties.getThreads().getMatching();
         this.objectMapper = new ObjectMapper();
@@ -81,13 +89,28 @@ public class TradeMatchingEngine {
                     continue;
                 }
 
-                try {
-                    self.processMatchingMessage(message.getPayload());
-                    queueBroker.complete(message);
-                } catch (QueueProcessingException e) {
-                    queueBroker.fail(message, e.getMessage(), e.isRetryable());
-                } catch (Exception e) {
-                    queueBroker.fail(message, e.getMessage(), false);
+                Span processingSpan = queueMessageTracing.startProcessingSpan(message);
+                try (Scope ignored = processingSpan.makeCurrent()) {
+                    try {
+                        self.processMatchingMessage(message.getPayload());
+                        queueBroker.complete(message);
+                        queueMessageTracing.markOutcome(processingSpan, "completed");
+                    } catch (QueueProcessingException e) {
+                        processingSpan.recordException(e);
+                        FailureContext failureContext = e.getFailureContext();
+                        QueueFailureDisposition disposition = queueBroker.fail(message, failureContext);
+                        queueMessageTracing.markFailure(processingSpan, failureContext, disposition);
+                    } catch (Exception e) {
+                        processingSpan.recordException(e);
+                        FailureContext failureContext = failureClassifier.classify(
+                                e,
+                                FailureReason.PROCESSING_ERROR,
+                                "Failed to process matching message");
+                        QueueFailureDisposition disposition = queueBroker.fail(message, failureContext);
+                        queueMessageTracing.markFailure(processingSpan, failureContext, disposition);
+                    }
+                } finally {
+                    processingSpan.end();
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -103,106 +126,84 @@ public class TradeMatchingEngine {
         try {
             node = objectMapper.readTree(message);
         } catch (Exception e) {
-            throw new QueueProcessingException("Invalid matching message payload", e, false);
+            throw new QueueProcessingException("Invalid matching message payload", e, FailureReason.INVALID_MATCHING_MESSAGE, false);
         }
         if (!node.hasNonNull("tradeId")) {
-            throw new QueueProcessingException("Matching message missing tradeId", false);
+            throw new QueueProcessingException("Matching message missing tradeId", FailureReason.MISSING_MATCHING_TRADE_ID, false);
         }
 
         String result = tryMatch(node);
         if (result == null) {
             return;
         }
-        if ("RETRY".equals(result)) {
-            throw new QueueProcessingException("Retry matching due to concurrency conflict", true);
-        }
         queueBroker.publish(QueueName.NETTING, result);
     }
 
-    /**
-     * Attempts to match a trade. Returns:
-     * - null: no match found or trade already matched (done)
-     * - "RETRY": optimistic lock conflict, should retry
-     * - JSON string: successful match, enqueue this for netting
-     */
     private String tryMatch(JsonNode node) {
-        String[] outMessage = {null};
-        boolean[] shouldRetry = {false};
-
         try {
-            transactionTemplate.executeWithoutResult(status -> {
-                try {
-                    Long tradeId = node.get("tradeId").asLong();
+            return transactionTemplate.execute(status -> {
+                Long tradeId = node.get("tradeId").asLong();
 
-                    Trade incomingTrade = tradeRepository.findById(tradeId)
-                            .orElseThrow(() -> new RuntimeException("Trade not found: " + tradeId));
+                Trade incomingTrade = tradeRepository.findById(tradeId)
+                        .orElseThrow(() -> new QueueProcessingException("Trade not found: " + tradeId, FailureReason.TRADE_NOT_FOUND, false));
 
-                    // Skip if already matched (another thread got there first)
-                    if (incomingTrade.getStatus() != TradeStatus.VALIDATED) {
-                        log.debug("Trade {} already in status {}, skipping",
-                                incomingTrade.getTradeId(), incomingTrade.getStatus());
-                        return;
-                    }
-
-                    Optional<Trade> matchOpt = tradeRepository.findMatchCandidate(
-                            incomingTrade.getCounterparty1(),
-                            incomingTrade.getCounterparty2(),
-                            incomingTrade.getCurrency1(),
-                            incomingTrade.getCurrency2(),
-                            incomingTrade.getValueDate(),
-                            TradeStatus.VALIDATED,
-                            incomingTrade.getId());
-
-                    if (matchOpt.isEmpty()) {
-                        log.debug("No match found yet for trade {}.", incomingTrade.getTradeId());
-                        return;
-                    }
-
-                    Trade matchedWith = matchOpt.get();
-                    log.debug("Match found! {} <-> {}", incomingTrade.getTradeId(), matchedWith.getTradeId());
-
-                    Trade buyerTrade = "BUYER".equals(incomingTrade.getRole1()) ? incomingTrade : matchedWith;
-                    Trade sellerTrade = "SELLER".equals(incomingTrade.getRole1()) ? incomingTrade : matchedWith;
-
-                    MatchedTrade matched = new MatchedTrade();
-                    matched.setTrade1Id(buyerTrade.getId());
-                    matched.setTrade2Id(sellerTrade.getId());
-                    matched.setCounterparty1(buyerTrade.getCounterparty1());
-                    matched.setCounterparty2(sellerTrade.getCounterparty1());
-                    matched.setCurrency1(buyerTrade.getCurrency1());
-                    matched.setCurrency2(buyerTrade.getCurrency2());
-                    matched.setValueDate(buyerTrade.getValueDate());
-                    matched.setStatus(TradeStatus.MATCHED);
-                    matched.setMatchedAt(Instant.now());
-                    matched = matchedTradeRepository.save(matched);
-
-                    // @Version on Trade will throw OptimisticLockException if stale
-                    incomingTrade.setStatus(TradeStatus.MATCHED);
-                    matchedWith.setStatus(TradeStatus.MATCHED);
-                    tradeRepository.save(incomingTrade);
-                    tradeRepository.save(matchedWith);
-
-                    log.debug("MatchedTrade id={} created for {} and {}",
-                            matched.getId(), buyerTrade.getTradeId(), sellerTrade.getTradeId());
-
-                    outMessage[0] = String.format("{\"matchedTradeId\": %d}", matched.getId());
-
-                } catch (Exception e) {
-                    log.debug("Match attempt failed: {}", e.getMessage());
-                    status.setRollbackOnly();
-                    shouldRetry[0] = true;
+                if (incomingTrade.getStatus() != TradeStatus.VALIDATED) {
+                    log.debug("Trade {} already in status {}, skipping",
+                            incomingTrade.getTradeId(), incomingTrade.getStatus());
+                    return null;
                 }
-            });
-        } catch (Exception e) {
-            // Transaction rollback from optimistic lock — retry
-            log.debug("Transaction rolled back: {}", e.getMessage());
-            return "RETRY";
-        }
 
-        if (shouldRetry[0]) {
-            return "RETRY";
+                Optional<Trade> matchOpt = tradeRepository.findMatchCandidate(
+                        incomingTrade.getCounterparty1(),
+                        incomingTrade.getCounterparty2(),
+                        incomingTrade.getCurrency1(),
+                        incomingTrade.getCurrency2(),
+                        incomingTrade.getValueDate(),
+                        TradeStatus.VALIDATED,
+                        incomingTrade.getId());
+
+                if (matchOpt.isEmpty()) {
+                    log.debug("No match found yet for trade {}.", incomingTrade.getTradeId());
+                    return null;
+                }
+
+                Trade matchedWith = matchOpt.get();
+                log.debug("Match found! {} <-> {}", incomingTrade.getTradeId(), matchedWith.getTradeId());
+
+                Trade buyerTrade = "BUYER".equals(incomingTrade.getRole1()) ? incomingTrade : matchedWith;
+                Trade sellerTrade = "SELLER".equals(incomingTrade.getRole1()) ? incomingTrade : matchedWith;
+
+                MatchedTrade matched = new MatchedTrade();
+                matched.setTrade1Id(buyerTrade.getId());
+                matched.setTrade2Id(sellerTrade.getId());
+                matched.setCounterparty1(buyerTrade.getCounterparty1());
+                matched.setCounterparty2(sellerTrade.getCounterparty1());
+                matched.setCurrency1(buyerTrade.getCurrency1());
+                matched.setCurrency2(buyerTrade.getCurrency2());
+                matched.setValueDate(buyerTrade.getValueDate());
+                matched.setStatus(TradeStatus.MATCHED);
+                matched.setMatchedAt(Instant.now());
+                matched = matchedTradeRepository.save(matched);
+
+                incomingTrade.setStatus(TradeStatus.MATCHED);
+                matchedWith.setStatus(TradeStatus.MATCHED);
+                tradeRepository.save(incomingTrade);
+                tradeRepository.save(matchedWith);
+
+                log.debug("MatchedTrade id={} created for {} and {}",
+                        matched.getId(), buyerTrade.getTradeId(), sellerTrade.getTradeId());
+
+                return String.format("{\"matchedTradeId\": %d}", matched.getId());
+            });
+        } catch (QueueProcessingException e) {
+            throw e;
+        } catch (Exception e) {
+            FailureContext failureContext = failureClassifier.classify(
+                    e,
+                    FailureReason.PROCESSING_ERROR,
+                    "Failed to process matching message");
+            throw new QueueProcessingException(failureContext, e);
         }
-        return outMessage[0];
     }
 
     private void sleepForPollInterval() throws InterruptedException {
