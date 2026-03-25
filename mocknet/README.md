@@ -103,12 +103,17 @@ flowchart TB
 
 ## Repository Layout
 
-- [`src/main/java/com/cit/clsnet/controller`](./src/main/java/com/cit/clsnet/controller): HTTP entry points and status APIs
-- [`src/main/java/com/cit/clsnet/service`](./src/main/java/com/cit/clsnet/service): pipeline workers, validation, cutoff logic, and 2PC coordinator
+- [`src/main/java/com/cit/clsnet/ingestion`](./src/main/java/com/cit/clsnet/ingestion): trade submission, ingestion worker, and ingestion-local utilities
+- [`src/main/java/com/cit/clsnet/matching`](./src/main/java/com/cit/clsnet/matching): matching worker and matching-local utilities
+- [`src/main/java/com/cit/clsnet/netting`](./src/main/java/com/cit/clsnet/netting): netting worker, cutoff logic, 2PC coordinator, and netting-local factories
+- [`src/main/java/com/cit/clsnet/settlement`](./src/main/java/com/cit/clsnet/settlement): settlement worker and settlement-local utilities
+- [`src/main/java/com/cit/clsnet/queue`](./src/main/java/com/cit/clsnet/queue): durable queue broker, tracing, and queue-local payload correlation
+- [`src/main/java/com/cit/clsnet/status`](./src/main/java/com/cit/clsnet/status): status APIs and response assemblers
+- [`src/main/java/com/cit/clsnet/shared/failure`](./src/main/java/com/cit/clsnet/shared/failure): shared failure classification and queue-processing exceptions
+- [`src/main/java/com/cit/clsnet/shared/payload`](./src/main/java/com/cit/clsnet/shared/payload): shared JSON/XML payload parsing and correlation helpers
 - [`src/main/java/com/cit/clsnet/repository`](./src/main/java/com/cit/clsnet/repository): JPA persistence layer
 - [`src/main/java/com/cit/clsnet/model`](./src/main/java/com/cit/clsnet/model): domain entities and enums
 - [`src/main/java/com/cit/clsnet/config`](./src/main/java/com/cit/clsnet/config): broker and worker-thread configuration plus bound properties
-- [`src/main/java/com/cit/clsnet/repository`](./src/main/java/com/cit/clsnet/repository): JPA persistence layer, including durable queue storage
 - [`src/main/java/com/cit/clsnet/xml`](./src/main/java/com/cit/clsnet/xml): XML message mapping classes
 - [`src/test/java/com/cit/clsnet`](./src/test/java/com/cit/clsnet): end-to-end and concurrency/load tests
 

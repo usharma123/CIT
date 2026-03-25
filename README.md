@@ -162,7 +162,7 @@ Two complementary OpenTelemetry layers run across the pipeline:
 
 1. **QueueMessageTracing** — wraps each queue-message processing cycle in a `QueueMessage.process` span. Records `queue.name`, `worker.name`, correlation IDs (`tradeId`, `matchedTradeId`, `nettingSetId`), and the processing outcome (`completed`, `rejected`, `retried`, `failed` with `failure.reason_code`).
 
-2. **ComponentTracingAspect** (AOP) — intercepts every public method in `controller/`, `service/`, and `repository/` packages. Tags each span with `cls.stage` (HTTP, INGESTION, MATCHING, NETTING, SETTLEMENT, DATABASE), `component.kind`, and any correlation IDs extracted from method arguments and return values.
+2. **ComponentTracingAspect** (AOP) — intercepts every public component/repository bean under `com.cit.clsnet`. Tags each span with `cls.stage` (HTTP, INGESTION, MATCHING, NETTING, SETTLEMENT, DATABASE), `component.kind`, and any correlation IDs extracted from method arguments and return values.
 
 ## Processing flow (summary)
 
@@ -178,8 +178,14 @@ Two complementary OpenTelemetry layers run across the pipeline:
 
 | Path | Role |
 |------|------|
-| [`mocknet/src/main/java/com/cit/clsnet/controller`](./mocknet/src/main/java/com/cit/clsnet/controller) | HTTP APIs |
-| [`mocknet/src/main/java/com/cit/clsnet/service`](./mocknet/src/main/java/com/cit/clsnet/service) | Workers, `QueueBroker`, 2PC, validation, cutoff |
+| [`mocknet/src/main/java/com/cit/clsnet/ingestion`](./mocknet/src/main/java/com/cit/clsnet/ingestion) | Trade submission, ingestion worker, and ingestion-local utilities |
+| [`mocknet/src/main/java/com/cit/clsnet/matching`](./mocknet/src/main/java/com/cit/clsnet/matching) | Matching worker and matching-local utilities |
+| [`mocknet/src/main/java/com/cit/clsnet/netting`](./mocknet/src/main/java/com/cit/clsnet/netting) | Netting worker, cutoff logic, 2PC coordination, and netting-local factories |
+| [`mocknet/src/main/java/com/cit/clsnet/settlement`](./mocknet/src/main/java/com/cit/clsnet/settlement) | Settlement worker and settlement-local utilities |
+| [`mocknet/src/main/java/com/cit/clsnet/queue`](./mocknet/src/main/java/com/cit/clsnet/queue) | Durable queue broker, queue tracing, and queue-local correlation utilities |
+| [`mocknet/src/main/java/com/cit/clsnet/status`](./mocknet/src/main/java/com/cit/clsnet/status) | Read-only status endpoints and status assemblers |
+| [`mocknet/src/main/java/com/cit/clsnet/shared/failure`](./mocknet/src/main/java/com/cit/clsnet/shared/failure) | Shared failure classification, queue retry/disposition, and processing exceptions |
+| [`mocknet/src/main/java/com/cit/clsnet/shared/payload`](./mocknet/src/main/java/com/cit/clsnet/shared/payload) | Shared JSON/XML payload parsing and correlation helpers |
 | [`mocknet/src/main/java/com/cit/clsnet/repository`](./mocknet/src/main/java/com/cit/clsnet/repository) | JPA repositories (including `QueueMessageRepository`) |
 | [`mocknet/src/main/java/com/cit/clsnet/model`](./mocknet/src/main/java/com/cit/clsnet/model) | Entities and enums |
 | [`mocknet/src/main/java/com/cit/clsnet/config`](./mocknet/src/main/java/com/cit/clsnet/config) | Queues, threads, `ClsNetProperties` |

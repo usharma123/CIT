@@ -6,10 +6,9 @@ import com.cit.clsnet.model.QueueMessage;
 import com.cit.clsnet.model.QueueName;
 import com.cit.clsnet.model.SettlementInstruction;
 import com.cit.clsnet.model.Trade;
-import com.cit.clsnet.xml.FpmlTradeMessage;
+import com.cit.clsnet.shared.payload.TextPayloadCorrelation;
+import com.cit.clsnet.shared.payload.TextPayloadCorrelationReader;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.trace.Span;
@@ -20,6 +19,11 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.aop.support.AopUtils;
+import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.data.repository.Repository;
+import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.stereotype.Component;
 
 import java.util.Iterator;
@@ -47,25 +51,29 @@ public class ComponentTracingAspect {
     private static final AttributeKey<String> TRADE_RECORD_ID = AttributeKey.stringKey("trade.record.id");
 
     private final Tracer tracer;
-    private final ObjectMapper objectMapper;
-    private final XmlMapper xmlMapper;
+    private final TextPayloadCorrelationReader textPayloadCorrelationReader;
 
     public ComponentTracingAspect(OpenTelemetry openTelemetry) {
         this.tracer = openTelemetry.getTracer("com.cit.clsnet.component-tracing");
-        this.objectMapper = new ObjectMapper();
-        this.xmlMapper = new XmlMapper();
+        this.textPayloadCorrelationReader = new TextPayloadCorrelationReader();
     }
 
     @Around(
-            "execution(public * com.cit.clsnet.controller..*.*(..))"
-                    + " || execution(public * com.cit.clsnet.service..*.*(..))"
-                    + " || execution(public * com.cit.clsnet.repository..*.*(..))"
+            "execution(public * com.cit.clsnet..*.*(..))"
+                    + " && !within(com.cit.clsnet.config..*)"
+                    + " && !@within(org.springframework.context.annotation.Configuration)"
+                    + " && !@within(org.springframework.boot.test.context.TestConfiguration)"
+                    + " && !execution(@org.springframework.context.annotation.Bean * *(..))"
     )
     public Object traceComponent(ProceedingJoinPoint joinPoint) throws Throwable {
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Class<?> declaringType = signature.getDeclaringType();
-        String componentKind = resolveComponentKind(declaringType);
-        String stage = resolveStage(declaringType);
+        Class<?> targetType = resolveTargetType(joinPoint, declaringType);
+        String componentKind = resolveComponentKind(declaringType, targetType);
+        if (componentKind == null) {
+            return joinPoint.proceed();
+        }
+        String stage = resolveStage(declaringType, targetType, componentKind);
         String componentClass = declaringType.getSimpleName();
         String methodName = signature.getName();
 
@@ -206,57 +214,26 @@ public class ComponentTracingAspect {
     }
 
     private void collectFromText(CorrelationTags tags, String raw) {
-        String text = raw == null ? "" : raw.trim();
-        if (text.isEmpty()) {
-            return;
-        }
+        TextPayloadCorrelation correlation = textPayloadCorrelationReader.extract(raw);
 
-        if (text.startsWith("<")) {
-            try {
-                FpmlTradeMessage message = xmlMapper.readValue(text, FpmlTradeMessage.class);
-                if (message.getTrade() != null) {
-                    addIfPresent(tags.tradeIds, message.getTrade().getTradeId());
-                }
-                if (message.getHeader() != null) {
-                    addIfPresent(tags.messageIds, message.getHeader().getMessageId());
-                }
-                return;
-            } catch (Exception ignored) {
-                return;
+        if (correlation.tradeId() != null) {
+            if (looksLikeBusinessId(correlation.tradeId())) {
+                addIfPresent(tags.tradeIds, correlation.tradeId());
+            } else {
+                addIfPresent(tags.tradeRecordIds, correlation.tradeId());
             }
         }
-
-        if (text.startsWith("{") || text.startsWith("[")) {
-            try {
-                JsonNode node = objectMapper.readTree(text);
-                collectFromJson(tags, node);
-            } catch (Exception ignored) {
-                return;
-            }
+        if (correlation.messageId() != null) {
+            addIfPresent(tags.messageIds, correlation.messageId());
         }
-    }
-
-    private void collectFromJson(CorrelationTags tags, JsonNode node) {
-        if (node == null || node.isNull()) {
-            return;
+        if (correlation.queueName() != null) {
+            addIfPresent(tags.queueNames, correlation.queueName());
         }
-
-        if (node.isArray()) {
-            for (JsonNode item : node) {
-                collectFromJson(tags, item);
-            }
-            return;
+        if (correlation.matchedTradeId() != null) {
+            addIfPresent(tags.matchedTradeIds, correlation.matchedTradeId());
         }
-
-        if (!node.isObject()) {
-            return;
-        }
-
-        Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
-        while (fields.hasNext()) {
-            Map.Entry<String, JsonNode> field = fields.next();
-            collectJsonField(tags, field.getKey(), field.getValue());
-            collectFromJson(tags, field.getValue());
+        if (correlation.nettingSetId() != null) {
+            addIfPresent(tags.nettingSetIds, correlation.nettingSetId());
         }
     }
 
@@ -298,24 +275,56 @@ public class ComponentTracingAspect {
         return value.chars().anyMatch(Character::isLetter);
     }
 
-    private String resolveComponentKind(Class<?> declaringType) {
-        String name = declaringType.getPackageName();
-        if (name.contains(".controller")) {
-            return "controller";
+    private Class<?> resolveTargetType(ProceedingJoinPoint joinPoint, Class<?> declaringType) {
+        Object target = joinPoint.getTarget();
+        if (target == null) {
+            return declaringType;
         }
-        if (name.contains(".repository")) {
-            return "repository";
-        }
-        return "service";
+        return AopUtils.getTargetClass(target);
     }
 
-    private String resolveStage(Class<?> declaringType) {
-        String typeName = declaringType.getName().toLowerCase();
-        if (typeName.contains(".controller.")) {
+    private String resolveComponentKind(Class<?> declaringType, Class<?> targetType) {
+        if (AnnotatedElementUtils.hasAnnotation(declaringType, RestController.class)
+                || AnnotatedElementUtils.hasAnnotation(targetType, RestController.class)) {
+            return "controller";
+        }
+        if (isRepository(declaringType) || isRepository(targetType)) {
+            return "repository";
+        }
+        if (AnnotatedElementUtils.hasAnnotation(declaringType, Service.class)
+                || AnnotatedElementUtils.hasAnnotation(targetType, Service.class)
+                || AnnotatedElementUtils.hasAnnotation(declaringType, Component.class)
+                || AnnotatedElementUtils.hasAnnotation(targetType, Component.class)) {
+            return "service";
+        }
+        return null;
+    }
+
+    private boolean isRepository(Class<?> type) {
+        if (type == null) {
+            return false;
+        }
+        if (Repository.class.isAssignableFrom(type)) {
+            return true;
+        }
+        for (Class<?> implemented : type.getInterfaces()) {
+            if (isRepository(implemented)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String resolveStage(Class<?> declaringType, Class<?> targetType, String componentKind) {
+        if ("controller".equals(componentKind)) {
             return "HTTP";
         }
-        if (typeName.contains(".repository.")) {
+        if ("repository".equals(componentKind)) {
             return "DATABASE";
+        }
+        String typeName = (declaringType.getName() + " " + targetType.getName()).toLowerCase();
+        if (typeName.contains("settlement") || typeName.contains("twophase")) {
+            return "SETTLEMENT";
         }
         if (typeName.contains("ingestion")) {
             return "INGESTION";
@@ -325,9 +334,6 @@ public class ComponentTracingAspect {
         }
         if (typeName.contains("netting")) {
             return "NETTING";
-        }
-        if (typeName.contains("settlement") || typeName.contains("twophase")) {
-            return "SETTLEMENT";
         }
         return "OTHER";
     }
