@@ -8,8 +8,24 @@ DEFAULTS:
 OUTPUTS:
 - `otel.env` with OpenTelemetry environment variables
 - `run-with-otel.sh` launcher for the Java app
+- `stop-app.sh` helper to stop the managed app
+- `app-status.sh` helper to report whether the managed app is running
 - `start-jaeger.sh` helper for local Jaeger
 - `stop-jaeger.sh` helper to stop Jaeger
+
+WHEN PREPARING OR VALIDATING TRACING:
+- Prefer launching the app through `run-with-otel.sh` so the tool-controlled `otel.env` is actually applied.
+- Do not stop at Jaeger or OTLP health alone. Exporter health is necessary but not sufficient.
+- After startup, send known-good application traffic and verify exact business/component span names in Jaeger before declaring success.
+- For `mocknet`, the key business spans are:
+  - `TradeSubmissionController.submitTrade`
+  - `TradeIngestionService.processTradeXml`
+  - `TradeMatchingEngine.processMatchingMessage`
+  - `NettingCalculator.processNettingMessage`
+  - `TwoPhaseCommitCoordinator.executeTransaction`
+- Do not treat `ps` output alone as proof that the Java agent is missing when `JAVA_TOOL_OPTIONS` may be injecting `-javaagent`.
+- Do not treat `span.serviceName` being absent in Jaeger as proof that service attribution is broken; inspect the trace `processes` map.
+- Do not declare tracing healthy if Jaeger only shows queue polling spans, SQL `SELECT` spans, or `Transaction.commit`.
 
 USE THIS TOOL WHEN:
 - You need end-to-end trace visibility for a Java service

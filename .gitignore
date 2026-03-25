@@ -12,5 +12,4 @@ mocknet/target/
 .bootstrap
 .claude
 .harness
-.spring-currency
-
+mocknet/data/

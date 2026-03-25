@@ -24,8 +24,12 @@ The viewer groups traces by:
 2. `message.id`
 3. `traceId`
 
-When summarizing traces, use exact span operation names.
-Do not rename components, and do not invent missing stages or queue hops.
+When summarizing traces:
+- Use exact span operation names.
+- Do not rename components, and do not invent missing stages or queue hops.
+- Treat queue polling traces and infrastructure-only traces as insufficient evidence of healthy business tracing.
+- If async queue stages appear as separate traces, say so explicitly instead of pretending they are one end-to-end distributed trace.
+- Use the Jaeger `processes` map for service attribution when needed; per-span `serviceName` fields may be absent.
 
 Canonical CLS stages:
 - `HTTP`

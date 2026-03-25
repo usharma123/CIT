@@ -30,6 +30,9 @@ describe("tool.traceview", () => {
       directory: tmp.path,
       fn: async () => {
         const tool = await TraceViewTool.init()
+        expect(tool.description).toContain("Treat queue polling traces and infrastructure-only traces as insufficient evidence")
+        expect(tool.description).toContain("If async queue stages appear as separate traces, say so explicitly")
+        expect(tool.description).toContain("Use the Jaeger `processes` map for service attribution")
         const result = await tool.execute(
           {
             jaegerBaseUrl: jaeger.url.origin,

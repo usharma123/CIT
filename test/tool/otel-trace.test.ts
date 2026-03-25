@@ -32,6 +32,11 @@ describe("tool.oteltrace", () => {
       directory: tmp.path,
       fn: async () => {
         const tool = await OtelTraceTool.init()
+        expect(tool.description).toContain("Do not stop at Jaeger or OTLP health alone.")
+        expect(tool.description).toContain("Do not treat `ps` output alone as proof")
+        expect(tool.description).toContain("Do not declare tracing healthy if Jaeger only shows queue polling spans")
+        expect(tool.description).toContain("TradeSubmissionController.submitTrade")
+        expect(tool.description).toContain("app-status.sh")
         const result = await tool.execute({ agentJarPath }, ctx)
 
         expect(result.output).toContain("Prepared OpenTelemetry tracing for mocknet.")
