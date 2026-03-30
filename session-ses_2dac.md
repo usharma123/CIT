@@ -243,7 +243,7 @@ Tool: bash
 ```
 **Output:**
 ```
-utsavsharma      74014   6.2  1.2 419670784 306048   ??  S     9:24AM   0:58.04 /opt/homebrew/Cellar/openjdk/25.0.1/libexec/openjdk.jdk/Contents/Home/bin/java -XX:TieredStopAtLevel=1 -cp /Users/utsavsharma/Documents/GitHub/CIT/mocknet/target/classes:/Users/utsavsharma/.m2/repository/org/springframework/boot/spring-boot/3.2.5/spring-boot-3.2.5.jar:/Users/utsavsharma/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/3.2.5/spring-boot-autoconfigure-3.2.5.jar:/Users/utsavsharma/.m2/repository/ch/qos/logback/logback-classic/1.4.14/logback-classic-1.4.14.jar:/Users/utsavsharma/.m2/repository/ch/qos/logback/logback-core/1.4.14/logback-core-1.4.14.jar:/Users/utsavsharma/.m2/repository/org/apache/logging/log4j/log4j-to-slf4j/2.21.1/log4j-to-slf4j-2.21.1.jar:/Users/utsavsharma/.m2/repository/org/apache/logging/log4j/log4j-api/2.21.1/log4j-api-2.21.1.jar:/Users/utsavsharma/.m2/repository/org/slf4j/jul-to-slf4j/2.0.13/jul-to-slf4j-2.0.13.jar:/Users/utsavsharma/.m2/repository/jakarta/annotation/jakarta.annotation-api/2.1.1/jakarta.annotation-api-2.1.1.jar:/Users/utsavsharma/.m2/repository/org/yaml/snakeyaml/2.2/snakeyaml-2.2.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.15.4/jackson-datatype-jdk8-2.15.4.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/module/jackson-module-parameter-names/2.15.4/jackson-module-parameter-names-2.15.4.jar:/Users/utsavsharma/.m2/repository/org/apache/tomcat/embed/tomcat-embed-core/10.1.20/tomcat-embed-core-10.1.20.jar:/Users/utsavsharma/.m2/repository/org/apache/tomcat/embed/tomcat-embed-el/10.1.20/tomcat-embed-el-10.1.20.jar:/Users/utsavsharma/.m2/repository/org/apache/tomcat/embed/tomcat-embed-websocket/10.1.20/tomcat-embed-websocket-10.1.20.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-web/6.1.6/spring-web-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-beans/6.1.6/spring-beans-6.1.6.jar:/Users/utsavsharma/.m2/repository/io/micrometer/micrometer-observation/1.12.5/micrometer-observation-1.12.5.jar:/Users/utsavsharma/.m2/repository/io/micrometer/micrometer-commons/1.12.5/micrometer-commons-1.12.5.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-webmvc/6.1.6/spring-webmvc-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-context/6.1.6/spring-context-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-expression/6.1.6/spring-expression-6.1.6.jar:/Users/utsavsharma/.m2/repository/com/zaxxer/HikariCP/5.0.1/HikariCP-5.0.1.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-jdbc/6.1.6/spring-jdbc-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/hibernate/orm/hibernate-core/6.4.4.Final/hibernate-core-6.4.4.Final.jar:/Users/utsavsharma/.m2/repository/jakarta/persistence/jakarta.persistence-api/3.1.0/jakarta.persistence-api-3.1.0.jar:/Users/utsavsharma/.m2/repository/jakarta/transaction/jakarta.transaction-api/2.0.1/jakarta.transaction-api-2.0.1.jar:/Users/utsavsharma/.m2/repository/org/jboss/logging/jboss-logging/3.5.3.Final/jboss-logging-3.5.3.Final.jar:/Users/utsavsharma/.m2/repository/org/hibernate/common/hibernate-commons-annotations/6.0.6.Final/hibernate-commons-annotations-6.0.6.Final.jar:/Users/utsavsharma/.m2/repository/io/smallrye/jandex/3.1.2/jandex-3.1.2.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/classmate/1.6.0/classmate-1.6.0.jar:/Users/utsavsharma/.m2/repository/net/bytebuddy/byte-buddy/1.14.13/byte-buddy-1.14.13.jar:/Users/utsavsharma/.m2/repository/org/glassfish/jaxb/jaxb-runtime/4.0.5/jaxb-runtime-4.0.5.jar:/Users/utsavsharma/.m2/repository/org/glassfish/jaxb/jaxb-core/4.0.5/jaxb-core-4.0.5.jar:/Users/utsavsharma/.m2/repository/org/eclipse/angus/angus-activation/2.0.2/angus-activation-2.0.2.jar:/Users/utsavsharma/.m2/repository/org/glassfish/jaxb/txw2/4.0.5/txw2-4.0.5.jar:/Users/utsavsharma/.m2/repository/com/sun/istack/istack-commons-runtime/4.1.2/istack-commons-runtime-4.1.2.jar:/Users/utsavsharma/.m2/repository/jakarta/inject/jakarta.inject-api/2.0.1/jakarta.inject-api-2.0.1.jar:/Users/utsavsharma/.m2/repository/org/antlr/antlr4-runtime/4.13.0/antlr4-runtime-4.13.0.jar:/Users/utsavsharma/.m2/repository/org/springframework/data/spring-data-jpa/3.2.5/spring-data-jpa-3.2.5.jar:/Users/utsavsharma/.m2/repository/org/springframework/data/spring-data-commons/3.2.5/spring-data-commons-3.2.5.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-orm/6.1.6/spring-orm-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-tx/6.1.6/spring-tx-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/slf4j/slf4j-api/2.0.13/slf4j-api-2.0.13.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-aspects/6.1.6/spring-aspects-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-aop/6.1.6/spring-aop-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/aspectj/aspectjweaver/1.9.22/aspectjweaver-1.9.22.jar:/Users/utsavsharma/.m2/repository/io/opentelemetry/opentelemetry-api/1.48.0/opentelemetry-api-1.48.0.jar:/Users/utsavsharma/.m2/repository/io/opentelemetry/opentelemetry-context/1.31.0/opentelemetry-context-1.31.0.jar:/Users/utsavsharma/.m2/repository/com/h2database/h2/2.2.224/h2-2.2.224.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-xml/2.15.4/jackson-dataformat-xml-2.15.4.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.15.4/jackson-core-2.15.4.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.15.4/jackson-annotations-2.15.4.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.15.4/jackson-databind-2.15.4.jar:/Users/utsavsharma/.m2/repository/org/codehaus/woodstox/stax2-api/4.2.1/stax2-api-4.2.1.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/woodstox/woodstox-core/6.5.1/woodstox-core-6.5.1.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.15.4/jackson-datatype-jsr310-2.15.4.jar:/Users/utsavsharma/.m2/repository/jakarta/xml/bind/jakarta.xml.bind-api/4.0.2/jakarta.xml.bind-api-4.0.2.jar:/Users/utsavsharma/.m2/repository/jakarta/activation/jakarta.activation-api/2.1.3/jakarta.activation-api-2.1.3.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-core/6.1.6/spring-core-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-jcl/6.1.6/spring-jcl-6.1.6.jar com.cit.clsnet.ClsNetApplication
+utsavsharma      74014   6.2  1.2 419670784 306048   ??  S     9:24AM   0:58.04 /opt/homebrew/Cellar/openjdk/25.0.1/libexec/openjdk.jdk/Contents/Home/bin/java -XX:TieredStopAtLevel=1 -cp /Users/utsavsharma/Documents/GitHub/CIT/mocknet/target/classes:/Users/utsavsharma/.m2/repository/org/springframework/boot/spring-boot/3.2.5/spring-boot-3.2.5.jar:/Users/utsavsharma/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/3.2.5/spring-boot-autoconfigure-3.2.5.jar:/Users/utsavsharma/.m2/repository/ch/qos/logback/logback-classic/1.4.14/logback-classic-1.4.14.jar:/Users/utsavsharma/.m2/repository/ch/qos/logback/logback-core/1.4.14/logback-core-1.4.14.jar:/Users/utsavsharma/.m2/repository/org/apache/logging/log4j/log4j-to-slf4j/2.21.1/log4j-to-slf4j-2.21.1.jar:/Users/utsavsharma/.m2/repository/org/apache/logging/log4j/log4j-api/2.21.1/log4j-api-2.21.1.jar:/Users/utsavsharma/.m2/repository/org/slf4j/jul-to-slf4j/2.0.13/jul-to-slf4j-2.0.13.jar:/Users/utsavsharma/.m2/repository/jakarta/annotation/jakarta.annotation-api/2.1.1/jakarta.annotation-api-2.1.1.jar:/Users/utsavsharma/.m2/repository/org/yaml/snakeyaml/2.2/snakeyaml-2.2.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.15.4/jackson-datatype-jdk8-2.15.4.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/module/jackson-module-parameter-names/2.15.4/jackson-module-parameter-names-2.15.4.jar:/Users/utsavsharma/.m2/repository/org/apache/tomcat/embed/tomcat-embed-core/10.1.20/tomcat-embed-core-10.1.20.jar:/Users/utsavsharma/.m2/repository/org/apache/tomcat/embed/tomcat-embed-el/10.1.20/tomcat-embed-el-10.1.20.jar:/Users/utsavsharma/.m2/repository/org/apache/tomcat/embed/tomcat-embed-websocket/10.1.20/tomcat-embed-websocket-10.1.20.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-web/6.1.6/spring-web-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-beans/6.1.6/spring-beans-6.1.6.jar:/Users/utsavsharma/.m2/repository/io/micrometer/micrometer-observation/1.12.5/micrometer-observation-1.12.5.jar:/Users/utsavsharma/.m2/repository/io/micrometer/micrometer-commons/1.12.5/micrometer-commons-1.12.5.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-webmvc/6.1.6/spring-webmvc-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-context/6.1.6/spring-context-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-expression/6.1.6/spring-expression-6.1.6.jar:/Users/utsavsharma/.m2/repository/com/zaxxer/HikariCP/5.0.1/HikariCP-5.0.1.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-jdbc/6.1.6/spring-jdbc-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/hibernate/orm/hibernate-core/6.4.4.Final/hibernate-core-6.4.4.Final.jar:/Users/utsavsharma/.m2/repository/jakarta/persistence/jakarta.persistence-api/3.1.0/jakarta.persistence-api-3.1.0.jar:/Users/utsavsharma/.m2/repository/jakarta/transaction/jakarta.transaction-api/2.0.1/jakarta.transaction-api-2.0.1.jar:/Users/utsavsharma/.m2/repository/org/jboss/logging/jboss-logging/3.5.3.Final/jboss-logging-3.5.3.Final.jar:/Users/utsavsharma/.m2/repository/org/hibernate/common/hibernate-commons-annotations/6.0.6.Final/hibernate-commons-annotations-6.0.6.Final.jar:/Users/utsavsharma/.m2/repository/io/smallrye/jandex/3.1.2/jandex-3.1.2.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/classmate/1.6.0/classmate-1.6.0.jar:/Users/utsavsharma/.m2/repository/net/bytebuddy/byte-buddy/1.14.13/byte-buddy-1.14.13.jar:/Users/utsavsharma/.m2/repository/org/glassfish/jaxb/jaxb-runtime/4.0.5/jaxb-runtime-4.0.5.jar:/Users/utsavsharma/.m2/repository/org/glassfish/jaxb/jaxb-core/4.0.5/jaxb-core-4.0.5.jar:/Users/utsavsharma/.m2/repository/org/eclipse/angus/angus-activation/2.0.2/angus-activation-2.0.2.jar:/Users/utsavsharma/.m2/repository/org/glassfish/jaxb/txw2/4.0.5/txw2-4.0.5.jar:/Users/utsavsharma/.m2/repository/com/sun/istack/istack-commons-runtime/4.1.2/istack-commons-runtime-4.1.2.jar:/Users/utsavsharma/.m2/repository/jakarta/inject/jakarta.inject-api/2.0.1/jakarta.inject-api-2.0.1.jar:/Users/utsavsharma/.m2/repository/org/antlr/antlr4-runtime/4.13.0/antlr4-runtime-4.13.0.jar:/Users/utsavsharma/.m2/repository/org/springframework/data/spring-data-jpa/3.2.5/spring-data-jpa-3.2.5.jar:/Users/utsavsharma/.m2/repository/org/springframework/data/spring-data-commons/3.2.5/spring-data-commons-3.2.5.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-orm/6.1.6/spring-orm-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-tx/6.1.6/spring-tx-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/slf4j/slf4j-api/2.0.13/slf4j-api-2.0.13.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-aspects/6.1.6/spring-aspects-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-aop/6.1.6/spring-aop-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/aspectj/aspectjweaver/1.9.22/aspectjweaver-1.9.22.jar:/Users/utsavsharma/.m2/repository/io/opentelemetry/opentelemetry-api/1.48.0/opentelemetry-api-1.48.0.jar:/Users/utsavsharma/.m2/repository/io/opentelemetry/opentelemetry-context/1.31.0/opentelemetry-context-1.31.0.jar:/Users/utsavsharma/.m2/repository/com/h2database/h2/2.2.224/h2-2.2.224.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-xml/2.15.4/jackson-dataformat-xml-2.15.4.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.15.4/jackson-core-2.15.4.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.15.4/jackson-annotations-2.15.4.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.15.4/jackson-databind-2.15.4.jar:/Users/utsavsharma/.m2/repository/org/codehaus/woodstox/stax2-api/4.2.1/stax2-api-4.2.1.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/woodstox/woodstox-core/6.5.1/woodstox-core-6.5.1.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.15.4/jackson-datatype-jsr310-2.15.4.jar:/Users/utsavsharma/.m2/repository/jakarta/xml/bind/jakarta.xml.bind-api/4.0.2/jakarta.xml.bind-api-4.0.2.jar:/Users/utsavsharma/.m2/repository/jakarta/activation/jakarta.activation-api/2.1.3/jakarta.activation-api-2.1.3.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-core/6.1.6/spring-core-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-jcl/6.1.6/spring-jcl-6.1.6.jar com.cit.mocknet.MocknetApplication
 utsavsharma      73984   0.0  0.1 420114752  27616   ??  S     9:24AM   0:04.35 /opt/homebrew/opt/openjdk/libexec/openjdk.jdk/Contents/Home/bin/java --enable-native-access=ALL-UNNAMED -classpath /opt/homebrew/Cellar/maven/3.9.11/libexec/boot/plexus-classworlds-2.9.0.jar -Dclassworlds.conf=/opt/homebrew/Cellar/maven/3.9.11/libexec/bin/m2.conf -Dmaven.home=/opt/homebrew/Cellar/maven/3.9.11/libexec -Dlibrary.jansi.path=/opt/homebrew/Cellar/maven/3.9.11/libexec/lib/jansi-native -Dmaven.multiModuleProjectDirectory=/Users/utsavsharma/Documents/GitHub/CIT/mocknet org.codehaus.plexus.classworlds.launcher.Launcher spring-boot:run
 
 ```
@@ -271,30 +271,30 @@ Tool: read
 00007| WARNING: sun.misc.Unsafe::staticFieldBase will be removed in a future release
 00008| [INFO] Scanning for projects...
 00009| [INFO] 
-00010| [INFO] ------------------------< com.cit:clsnet-mock >-------------------------
-00011| [INFO] Building CLSNet Mock 1.0.0-SNAPSHOT
+00010| [INFO] ------------------------< com.cit:mocknet-mock >-------------------------
+00011| [INFO] Building Mocknet 1.0.0-SNAPSHOT
 00012| [INFO]   from pom.xml
 00013| [INFO] --------------------------------[ jar ]---------------------------------
 00014| [INFO] 
-00015| [INFO] >>> spring-boot:3.2.5:run (default-cli) > test-compile @ clsnet-mock >>>
+00015| [INFO] >>> spring-boot:3.2.5:run (default-cli) > test-compile @ mocknet-mock >>>
 00016| [INFO] 
-00017| [INFO] --- resources:3.3.1:resources (default-resources) @ clsnet-mock ---
+00017| [INFO] --- resources:3.3.1:resources (default-resources) @ mocknet-mock ---
 00018| [INFO] Copying 1 resource from src/main/resources to target/classes
 00019| [INFO] Copying 2 resources from src/main/resources to target/classes
 00020| [INFO] 
-00021| [INFO] --- compiler:3.11.0:compile (default-compile) @ clsnet-mock ---
+00021| [INFO] --- compiler:3.11.0:compile (default-compile) @ mocknet-mock ---
 00022| [INFO] Nothing to compile - all classes are up to date
 00023| [INFO] 
-00024| [INFO] --- resources:3.3.1:testResources (default-testResources) @ clsnet-mock ---
+00024| [INFO] --- resources:3.3.1:testResources (default-testResources) @ mocknet-mock ---
 00025| [INFO] Copying 1 resource from src/test/resources to target/test-classes
 00026| [INFO] 
-00027| [INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ clsnet-mock ---
+00027| [INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ mocknet-mock ---
 00028| [INFO] Nothing to compile - all classes are up to date
 00029| [INFO] 
-00030| [INFO] <<< spring-boot:3.2.5:run (default-cli) < test-compile @ clsnet-mock <<<
+00030| [INFO] <<< spring-boot:3.2.5:run (default-cli) < test-compile @ mocknet-mock <<<
 00031| [INFO] 
 00032| [INFO] 
-00033| [INFO] --- spring-boot:3.2.5:run (default-cli) @ clsnet-mock ---
+00033| [INFO] --- spring-boot:3.2.5:run (default-cli) @ mocknet-mock ---
 00034| [INFO] Attaching agents: []
 00035| Picked up JAVA_TOOL_OPTIONS: -javaagent:/Users/utsavsharma/Documents/GitHub/CIT/.bootstrap/otel/mocknet/opentelemetry-javaagent.jar 
 00036| OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
@@ -309,8 +309,8 @@ Tool: read
 00045|  =========|_|==============|___/=/_/_/_/
 00046|  :: Spring Boot ::                (v3.2.5)
 00047| 
-00048| 2026-03-24T14:48:39.485-04:00  INFO 61091 --- [           main] com.cit.clsnet.ClsNetApplication         : Starting ClsNetApplication using Java 25.0.1 with PID 61091 (/Users/utsavsharma/Documents/GitHub/CIT/mocknet/target/classes started by utsavsharma in /Users/utsavsharma/Documents/GitHub/CIT/mocknet)
-00049| 2026-03-24T14:48:39.485-04:00  INFO 61091 --- [           main] com.cit.clsnet.ClsNetApplication         : No active profile set, falling back to 1 default profile: "default"
+00048| 2026-03-24T14:48:39.485-04:00  INFO 61091 --- [           main] com.cit.mocknet.MocknetApplication         : Starting MocknetApplication using Java 25.0.1 with PID 61091 (/Users/utsavsharma/Documents/GitHub/CIT/mocknet/target/classes started by utsavsharma in /Users/utsavsharma/Documents/GitHub/CIT/mocknet)
+00049| 2026-03-24T14:48:39.485-04:00  INFO 61091 --- [           main] com.cit.mocknet.MocknetApplication         : No active profile set, falling back to 1 default profile: "default"
 00050| 2026-03-24T14:48:39.758-04:00  INFO 61091 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
 00051| 2026-03-24T14:48:39.785-04:00  INFO 61091 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 24 ms. Found 7 JPA repository interfaces.
 00052| WARNING: A restricted method in java.lang.System has been called
@@ -334,13 +334,13 @@ Tool: read
 00070| 2026-03-24T14:48:40.758-04:00  INFO 61091 --- [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
 00071| 2026-03-24T14:48:40.813-04:00  INFO 61091 --- [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
 00072| 2026-03-24T14:48:40.987-04:00  INFO 61091 --- [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
-00073| 2026-03-24T14:48:41.258-04:00  INFO 61091 --- [           main] c.cit.clsnet.service.NettingCalculator   : Netting Calculator started with 4 consumer threads (2PC enabled)
-00074| 2026-03-24T14:48:41.261-04:00  INFO 61091 --- [           main] c.c.clsnet.service.SettlementInstructor  : Settlement Instructor started with 2 consumer threads (standby - primary flow via 2PC)
+00073| 2026-03-24T14:48:41.258-04:00  INFO 61091 --- [           main] c.cit.mocknet.service.NettingCalculator   : Netting Calculator started with 4 consumer threads (2PC enabled)
+00074| 2026-03-24T14:48:41.261-04:00  INFO 61091 --- [           main] c.c.mocknet.service.SettlementInstructor  : Settlement Instructor started with 2 consumer threads (standby - primary flow via 2PC)
 00075| 2026-03-24T14:48:41.266-04:00  INFO 61091 --- [           main] c.c.c.service.TradeIngestionService      : Trade Ingestion Service started with 4 consumer threads
-00076| 2026-03-24T14:48:41.270-04:00  INFO 61091 --- [           main] c.c.clsnet.service.TradeMatchingEngine   : Trade Matching Engine started with 4 consumer threads (pessimistic locking enabled)
+00076| 2026-03-24T14:48:41.270-04:00  INFO 61091 --- [           main] c.c.mocknet.service.TradeMatchingEngine   : Trade Matching Engine started with 4 consumer threads (pessimistic locking enabled)
 00077| 2026-03-24T14:48:41.287-04:00  WARN 61091 --- [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
 00078| 2026-03-24T14:48:41.469-04:00  INFO 61091 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path ''
-00079| 2026-03-24T14:48:41.473-04:00  INFO 61091 --- [           main] com.cit.clsnet.ClsNetApplication         : Started ClsNetApplication in 2.142 seconds (process running for 3.005)
+00079| 2026-03-24T14:48:41.473-04:00  INFO 61091 --- [           main] com.cit.mocknet.MocknetApplication         : Started MocknetApplication in 2.142 seconds (process running for 3.005)
 00080| 2026-03-24T14:48:59.857-04:00  INFO 61091 --- [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
 00081| 2026-03-24T14:48:59.857-04:00  INFO 61091 --- [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
 00082| 2026-03-24T14:48:59.858-04:00  INFO 61091 --- [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
@@ -512,11 +512,11 @@ Total traces: 20
   traceID=5a7000332a86b831d8cb60baafd15245 spans=1
     operationName=QueueBroker.getPollInterval duration=7us
   traceID=9346765c64f472dea5aed5b01d6fea0d spans=9
-    operationName=SELECT com.cit.clsnet.model.QueueMessage duration=41us
+    operationName=SELECT com.cit.mocknet.model.QueueMessage duration=41us
     operationName=QueueMessageRepository.findClaimableNewIds duration=99us
     operationName=QueueBroker.claimNext duration=221us
     operationName=SELECT ./data/coredb.queue_messages duration=11us
-    operationName=SELECT com.cit.clsnet.model.QueueMessage duration=49us
+    operationName=SELECT com.cit.mocknet.model.QueueMessage duration=49us
     operationName=QueueMessageRepository.findStaleProcessingIds duration=89us
     operationName=QueueMessageRepository.findClaimableNewIds duration=107us
     operationName=QueueMessageRepository.findStaleProcessingIds duration=98us
@@ -568,7 +568,7 @@ Tool: bash
             "spanKind": "client"
         },
         {
-            "name": "SELECT com.cit.clsnet.model.QueueMessage",
+            "name": "SELECT com.cit.mocknet.model.QueueMessage",
             "spanKind": "internal"
         }
     ],
@@ -627,7 +627,7 @@ Tool: bash
 **Output:**
 ```
   PID COMMAND
-74014 /opt/homebrew/Cellar/openjdk/25.0.1/libexec/openjdk.jdk/Contents/Home/bin/java -XX:TieredStopAtLevel=1 -cp /Users/utsavsharma/Documents/GitHub/CIT/mocknet/target/classes:/Users/utsavsharma/.m2/repository/org/springframework/boot/spring-boot/3.2.5/spring-boot-3.2.5.jar:/Users/utsavsharma/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/3.2.5/spring-boot-autoconfigure-3.2.5.jar:/Users/utsavsharma/.m2/repository/ch/qos/logback/logback-classic/1.4.14/logback-classic-1.4.14.jar:/Users/utsavsharma/.m2/repository/ch/qos/logback/logback-core/1.4.14/logback-core-1.4.14.jar:/Users/utsavsharma/.m2/repository/org/apache/logging/log4j/log4j-to-slf4j/2.21.1/log4j-to-slf4j-2.21.1.jar:/Users/utsavsharma/.m2/repository/org/apache/logging/log4j/log4j-api/2.21.1/log4j-api-2.21.1.jar:/Users/utsavsharma/.m2/repository/org/slf4j/jul-to-slf4j/2.0.13/jul-to-slf4j-2.0.13.jar:/Users/utsavsharma/.m2/repository/jakarta/annotation/jakarta.annotation-api/2.1.1/jakarta.annotation-api-2.1.1.jar:/Users/utsavsharma/.m2/repository/org/yaml/snakeyaml/2.2/snakeyaml-2.2.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.15.4/jackson-datatype-jdk8-2.15.4.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/module/jackson-module-parameter-names/2.15.4/jackson-module-parameter-names-2.15.4.jar:/Users/utsavsharma/.m2/repository/org/apache/tomcat/embed/tomcat-embed-core/10.1.20/tomcat-embed-core-10.1.20.jar:/Users/utsavsharma/.m2/repository/org/apache/tomcat/embed/tomcat-embed-el/10.1.20/tomcat-embed-el-10.1.20.jar:/Users/utsavsharma/.m2/repository/org/apache/tomcat/embed/tomcat-embed-websocket/10.1.20/tomcat-embed-websocket-10.1.20.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-web/6.1.6/spring-web-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-beans/6.1.6/spring-beans-6.1.6.jar:/Users/utsavsharma/.m2/repository/io/micrometer/micrometer-observation/1.12.5/micrometer-observation-1.12.5.jar:/Users/utsavsharma/.m2/repository/io/micrometer/micrometer-commons/1.12.5/micrometer-commons-1.12.5.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-webmvc/6.1.6/spring-webmvc-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-context/6.1.6/spring-context-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-expression/6.1.6/spring-expression-6.1.6.jar:/Users/utsavsharma/.m2/repository/com/zaxxer/HikariCP/5.0.1/HikariCP-5.0.1.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-jdbc/6.1.6/spring-jdbc-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/hibernate/orm/hibernate-core/6.4.4.Final/hibernate-core-6.4.4.Final.jar:/Users/utsavsharma/.m2/repository/jakarta/persistence/jakarta.persistence-api/3.1.0/jakarta.persistence-api-3.1.0.jar:/Users/utsavsharma/.m2/repository/jakarta/transaction/jakarta.transaction-api/2.0.1/jakarta.transaction-api-2.0.1.jar:/Users/utsavsharma/.m2/repository/org/jboss/logging/jboss-logging/3.5.3.Final/jboss-logging-3.5.3.Final.jar:/Users/utsavsharma/.m2/repository/org/hibernate/common/hibernate-commons-annotations/6.0.6.Final/hibernate-commons-annotations-6.0.6.Final.jar:/Users/utsavsharma/.m2/repository/io/smallrye/jandex/3.1.2/jandex-3.1.2.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/classmate/1.6.0/classmate-1.6.0.jar:/Users/utsavsharma/.m2/repository/net/bytebuddy/byte-buddy/1.14.13/byte-buddy-1.14.13.jar:/Users/utsavsharma/.m2/repository/org/glassfish/jaxb/jaxb-runtime/4.0.5/jaxb-runtime-4.0.5.jar:/Users/utsavsharma/.m2/repository/org/glassfish/jaxb/jaxb-core/4.0.5/jaxb-core-4.0.5.jar:/Users/utsavsharma/.m2/repository/org/eclipse/angus/angus-activation/2.0.2/angus-activation-2.0.2.jar:/Users/utsavsharma/.m2/repository/org/glassfish/jaxb/txw2/4.0.5/txw2-4.0.5.jar:/Users/utsavsharma/.m2/repository/com/sun/istack/istack-commons-runtime/4.1.2/istack-commons-runtime-4.1.2.jar:/Users/utsavsharma/.m2/repository/jakarta/inject/jakarta.inject-api/2.0.1/jakarta.inject-api-2.0.1.jar:/Users/utsavsharma/.m2/repository/org/antlr/antlr4-runtime/4.13.0/antlr4-runtime-4.13.0.jar:/Users/utsavsharma/.m2/repository/org/springframework/data/spring-data-jpa/3.2.5/spring-data-jpa-3.2.5.jar:/Users/utsavsharma/.m2/repository/org/springframework/data/spring-data-commons/3.2.5/spring-data-commons-3.2.5.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-orm/6.1.6/spring-orm-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-tx/6.1.6/spring-tx-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/slf4j/slf4j-api/2.0.13/slf4j-api-2.0.13.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-aspects/6.1.6/spring-aspects-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-aop/6.1.6/spring-aop-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/aspectj/aspectjweaver/1.9.22/aspectjweaver-1.9.22.jar:/Users/utsavsharma/.m2/repository/io/opentelemetry/opentelemetry-api/1.48.0/opentelemetry-api-1.48.0.jar:/Users/utsavsharma/.m2/repository/io/opentelemetry/opentelemetry-context/1.31.0/opentelemetry-context-1.31.0.jar:/Users/utsavsharma/.m2/repository/com/h2database/h2/2.2.224/h2-2.2.224.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-xml/2.15.4/jackson-dataformat-xml-2.15.4.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.15.4/jackson-core-2.15.4.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.15.4/jackson-annotations-2.15.4.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.15.4/jackson-databind-2.15.4.jar:/Users/utsavsharma/.m2/repository/org/codehaus/woodstox/stax2-api/4.2.1/stax2-api-4.2.1.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/woodstox/woodstox-core/6.5.1/woodstox-core-6.5.1.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.15.4/jackson-datatype-jsr310-2.15.4.jar:/Users/utsavsharma/.m2/repository/jakarta/xml/bind/jakarta.xml.bind-api/4.0.2/jakarta.xml.bind-api-4.0.2.jar:/Users/utsavsharma/.m2/repository/jakarta/activation/jakarta.activation-api/2.1.3/jakarta.activation-api-2.1.3.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-core/6.1.6/spring-core-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-jcl/6.1.6/spring-jcl-6.1.6.jar com.cit.clsnet.ClsNetApplication
+74014 /opt/homebrew/Cellar/openjdk/25.0.1/libexec/openjdk.jdk/Contents/Home/bin/java -XX:TieredStopAtLevel=1 -cp /Users/utsavsharma/Documents/GitHub/CIT/mocknet/target/classes:/Users/utsavsharma/.m2/repository/org/springframework/boot/spring-boot/3.2.5/spring-boot-3.2.5.jar:/Users/utsavsharma/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/3.2.5/spring-boot-autoconfigure-3.2.5.jar:/Users/utsavsharma/.m2/repository/ch/qos/logback/logback-classic/1.4.14/logback-classic-1.4.14.jar:/Users/utsavsharma/.m2/repository/ch/qos/logback/logback-core/1.4.14/logback-core-1.4.14.jar:/Users/utsavsharma/.m2/repository/org/apache/logging/log4j/log4j-to-slf4j/2.21.1/log4j-to-slf4j-2.21.1.jar:/Users/utsavsharma/.m2/repository/org/apache/logging/log4j/log4j-api/2.21.1/log4j-api-2.21.1.jar:/Users/utsavsharma/.m2/repository/org/slf4j/jul-to-slf4j/2.0.13/jul-to-slf4j-2.0.13.jar:/Users/utsavsharma/.m2/repository/jakarta/annotation/jakarta.annotation-api/2.1.1/jakarta.annotation-api-2.1.1.jar:/Users/utsavsharma/.m2/repository/org/yaml/snakeyaml/2.2/snakeyaml-2.2.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.15.4/jackson-datatype-jdk8-2.15.4.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/module/jackson-module-parameter-names/2.15.4/jackson-module-parameter-names-2.15.4.jar:/Users/utsavsharma/.m2/repository/org/apache/tomcat/embed/tomcat-embed-core/10.1.20/tomcat-embed-core-10.1.20.jar:/Users/utsavsharma/.m2/repository/org/apache/tomcat/embed/tomcat-embed-el/10.1.20/tomcat-embed-el-10.1.20.jar:/Users/utsavsharma/.m2/repository/org/apache/tomcat/embed/tomcat-embed-websocket/10.1.20/tomcat-embed-websocket-10.1.20.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-web/6.1.6/spring-web-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-beans/6.1.6/spring-beans-6.1.6.jar:/Users/utsavsharma/.m2/repository/io/micrometer/micrometer-observation/1.12.5/micrometer-observation-1.12.5.jar:/Users/utsavsharma/.m2/repository/io/micrometer/micrometer-commons/1.12.5/micrometer-commons-1.12.5.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-webmvc/6.1.6/spring-webmvc-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-context/6.1.6/spring-context-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-expression/6.1.6/spring-expression-6.1.6.jar:/Users/utsavsharma/.m2/repository/com/zaxxer/HikariCP/5.0.1/HikariCP-5.0.1.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-jdbc/6.1.6/spring-jdbc-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/hibernate/orm/hibernate-core/6.4.4.Final/hibernate-core-6.4.4.Final.jar:/Users/utsavsharma/.m2/repository/jakarta/persistence/jakarta.persistence-api/3.1.0/jakarta.persistence-api-3.1.0.jar:/Users/utsavsharma/.m2/repository/jakarta/transaction/jakarta.transaction-api/2.0.1/jakarta.transaction-api-2.0.1.jar:/Users/utsavsharma/.m2/repository/org/jboss/logging/jboss-logging/3.5.3.Final/jboss-logging-3.5.3.Final.jar:/Users/utsavsharma/.m2/repository/org/hibernate/common/hibernate-commons-annotations/6.0.6.Final/hibernate-commons-annotations-6.0.6.Final.jar:/Users/utsavsharma/.m2/repository/io/smallrye/jandex/3.1.2/jandex-3.1.2.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/classmate/1.6.0/classmate-1.6.0.jar:/Users/utsavsharma/.m2/repository/net/bytebuddy/byte-buddy/1.14.13/byte-buddy-1.14.13.jar:/Users/utsavsharma/.m2/repository/org/glassfish/jaxb/jaxb-runtime/4.0.5/jaxb-runtime-4.0.5.jar:/Users/utsavsharma/.m2/repository/org/glassfish/jaxb/jaxb-core/4.0.5/jaxb-core-4.0.5.jar:/Users/utsavsharma/.m2/repository/org/eclipse/angus/angus-activation/2.0.2/angus-activation-2.0.2.jar:/Users/utsavsharma/.m2/repository/org/glassfish/jaxb/txw2/4.0.5/txw2-4.0.5.jar:/Users/utsavsharma/.m2/repository/com/sun/istack/istack-commons-runtime/4.1.2/istack-commons-runtime-4.1.2.jar:/Users/utsavsharma/.m2/repository/jakarta/inject/jakarta.inject-api/2.0.1/jakarta.inject-api-2.0.1.jar:/Users/utsavsharma/.m2/repository/org/antlr/antlr4-runtime/4.13.0/antlr4-runtime-4.13.0.jar:/Users/utsavsharma/.m2/repository/org/springframework/data/spring-data-jpa/3.2.5/spring-data-jpa-3.2.5.jar:/Users/utsavsharma/.m2/repository/org/springframework/data/spring-data-commons/3.2.5/spring-data-commons-3.2.5.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-orm/6.1.6/spring-orm-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-tx/6.1.6/spring-tx-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/slf4j/slf4j-api/2.0.13/slf4j-api-2.0.13.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-aspects/6.1.6/spring-aspects-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-aop/6.1.6/spring-aop-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/aspectj/aspectjweaver/1.9.22/aspectjweaver-1.9.22.jar:/Users/utsavsharma/.m2/repository/io/opentelemetry/opentelemetry-api/1.48.0/opentelemetry-api-1.48.0.jar:/Users/utsavsharma/.m2/repository/io/opentelemetry/opentelemetry-context/1.31.0/opentelemetry-context-1.31.0.jar:/Users/utsavsharma/.m2/repository/com/h2database/h2/2.2.224/h2-2.2.224.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-xml/2.15.4/jackson-dataformat-xml-2.15.4.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.15.4/jackson-core-2.15.4.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.15.4/jackson-annotations-2.15.4.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.15.4/jackson-databind-2.15.4.jar:/Users/utsavsharma/.m2/repository/org/codehaus/woodstox/stax2-api/4.2.1/stax2-api-4.2.1.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/woodstox/woodstox-core/6.5.1/woodstox-core-6.5.1.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.15.4/jackson-datatype-jsr310-2.15.4.jar:/Users/utsavsharma/.m2/repository/jakarta/xml/bind/jakarta.xml.bind-api/4.0.2/jakarta.xml.bind-api-4.0.2.jar:/Users/utsavsharma/.m2/repository/jakarta/activation/jakarta.activation-api/2.1.3/jakarta.activation-api-2.1.3.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-core/6.1.6/spring-core-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-jcl/6.1.6/spring-jcl-6.1.6.jar com.cit.mocknet.MocknetApplication
 
 ```
 ```
@@ -957,30 +957,30 @@ I now have a complete picture of the entire tracing architecture. Here is the fu
 ### Complete `src/main/java` Class File Inventory
 
 **Config package:**
-- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/config/TracingConfiguration.java`
-- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/config/ComponentTracingAspect.java`
-- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/config/ClsNetProperties.java`
-- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/config/QueueConfig.java`
+- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/config/TracingConfiguration.java`
+- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/config/ComponentTracingAspect.java`
+- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/config/MocknetProperties.java`
+- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/config/QueueConfig.java`
 
 **Controller package:**
-- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/controller/TradeSubmissionController.java`
-- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/controller/StatusController.java`
+- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/controller/TradeSubmissionController.java`
+- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/controller/StatusController.java`
 
 **Service package:**
-- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/service/TradeIngestionService.java`
-- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/service/TradeMatchingEngine.java`
-- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/service/NettingCalculator.java`
-- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/service/TwoPhaseCommitCoordinator.java`
-- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/service/SettlementInstructor.java`
-- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/service/QueueBroker.java`
-- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/service/NettingCutoffService.java`
-- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/service/CurrencyValidationService.java`
-- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/service/QueueProcessingException.java`
+- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/service/TradeIngestionService.java`
+- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/service/TradeMatchingEngine.java`
+- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/service/NettingCalculator.java`
+- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/service/TwoPhaseCommitCoordinator.java`
+- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/service/SettlementInstructor.java`
+- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/service/QueueBroker.java`
+- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/service/NettingCutoffService.java`
+- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/service/CurrencyValidationService.java`
+- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/service/QueueProcessingException.java`
 
 **Repository, Model, XML packages:** 10 repositories, 14 model classes, 1 XML mapper — all standard JPA/POJO files with no tracing code.
 
 **Application entry point:**
-- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/ClsNetApplication.java`
+- `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/MocknetApplication.java`
 
 ---
 
@@ -988,7 +988,7 @@ I now have a complete picture of the entire tracing architecture. Here is the fu
 
 **There is no `@WithSpan`, no OpenTelemetry annotation processor, and no manual `tracer.spanBuilder()` calls inside any business class.** All span creation is centralized in a single Spring AOP aspect:
 
-**File:** `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/config/ComponentTracingAspect.java`
+**File:** `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/config/ComponentTracingAspect.java`
 
 This `@Aspect @Component` intercepts every `public` method across all controllers, services, and repositories via a single `@Around` pointcut, then calls `tracer.spanBuilder()` with a name derived from the class and method name at runtime:
 
@@ -996,9 +996,9 @@ This `@Aspect @Component` intercepts every `public` method across all controller
 // ComponentTracingAspect.java — lines 59–98
 
 @Around(
-    "execution(public * com.cit.clsnet.controller..*.*(..))"
-        + " || execution(public * com.cit.clsnet.service..*.*(..))"
-        + " || execution(public * com.cit.clsnet.repository..*.*(..))"
+    "execution(public * com.cit.mocknet.controller..*.*(..))"
+        + " || execution(public * com.cit.mocknet.service..*.*(..))"
+        + " || execution(public * com.cit.mocknet.repository..*.*(..))"
 )
 public Object traceComponent(ProceedingJoinPoint joinPoint) throws Throwable {
     MethodSignature signature = (MethodSignature) joinPoint.getSignature();
@@ -1051,7 +1051,7 @@ The aspect also auto-extracts business correlation IDs from method arguments and
 
 ### Tracer Instantiation
 
-**File:** `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/config/TracingConfiguration.java`
+**File:** `/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/config/TracingConfiguration.java`
 
 ```java
 @Configuration
@@ -1069,7 +1069,7 @@ public class TracingConfiguration {
 The `Tracer` itself is created inside the aspect's constructor:
 ```java
 // ComponentTracingAspect.java — line 54
-this.tracer = openTelemetry.getTracer("com.cit.clsnet.component-tracing");
+this.tracer = openTelemetry.getTracer("com.cit.mocknet.component-tracing");
 ```
 
 ### Is There `@WithSpan` or an Annotation Processor?
@@ -1142,7 +1142,7 @@ Tool: bash
 **Input:**
 ```json
 {
-  "command": "# Kill the current Java app process (no javaagent)\n# Also kill the maven wrapper that spawned it\nkill 74014 2>/dev/null || true\nkill 73984 2>/dev/null || true\n# Wait a moment for ports to free\nsleep 3\necho \"Killed PIDs 74014 and 73984\"\nps aux | grep -E \"mocknet|clsnet\" | grep -v grep || echo \"No mocknet processes running\"",
+  "command": "# Kill the current Java app process (no javaagent)\n# Also kill the maven wrapper that spawned it\nkill 74014 2>/dev/null || true\nkill 73984 2>/dev/null || true\n# Wait a moment for ports to free\nsleep 3\necho \"Killed PIDs 74014 and 73984\"\nps aux | grep mocknet | grep -v grep || echo \"No mocknet processes running\"",
   "description": "Kill existing app processes without javaagent"
 }
 ```
@@ -1208,14 +1208,14 @@ Tool: bash
 **Input:**
 ```json
 {
-  "command": "# Verify the launched process has the javaagent in its JVM args\nps -p 83692 -o pid,command 2>/dev/null | grep -o \"javaagent[^ ]*\" || echo \"checking child process...\"\n# Find the actual java process (child of the nohup bash)\nps aux | grep -E \"clsnet|ClsNet\" | grep java | grep -v grep | head -3",
+  "command": "# Verify the launched process has the javaagent in its JVM args\nps -p 83692 -o pid,command 2>/dev/null | grep -o \"javaagent[^ ]*\" || echo \"checking child process...\"\n# Find the actual java process (child of the nohup bash)\nps aux | grep -E \"mocknet|Mocknet\" | grep java | grep -v grep | head -3",
   "description": "Verify javaagent is present in running process"
 }
 ```
 **Output:**
 ```
 checking child process...
-utsavsharma      83728   8.6  1.5 420054736 390000   ??  S     9:33AM   0:05.25 /opt/homebrew/Cellar/openjdk/25.0.1/libexec/openjdk.jdk/Contents/Home/bin/java -XX:TieredStopAtLevel=1 -cp /Users/utsavsharma/Documents/GitHub/CIT/mocknet/target/classes:/Users/utsavsharma/.m2/repository/org/springframework/boot/spring-boot/3.2.5/spring-boot-3.2.5.jar:/Users/utsavsharma/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/3.2.5/spring-boot-autoconfigure-3.2.5.jar:/Users/utsavsharma/.m2/repository/ch/qos/logback/logback-classic/1.4.14/logback-classic-1.4.14.jar:/Users/utsavsharma/.m2/repository/ch/qos/logback/logback-core/1.4.14/logback-core-1.4.14.jar:/Users/utsavsharma/.m2/repository/org/apache/logging/log4j/log4j-to-slf4j/2.21.1/log4j-to-slf4j-2.21.1.jar:/Users/utsavsharma/.m2/repository/org/apache/logging/log4j/log4j-api/2.21.1/log4j-api-2.21.1.jar:/Users/utsavsharma/.m2/repository/org/slf4j/jul-to-slf4j/2.0.13/jul-to-slf4j-2.0.13.jar:/Users/utsavsharma/.m2/repository/jakarta/annotation/jakarta.annotation-api/2.1.1/jakarta.annotation-api-2.1.1.jar:/Users/utsavsharma/.m2/repository/org/yaml/snakeyaml/2.2/snakeyaml-2.2.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.15.4/jackson-datatype-jdk8-2.15.4.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/module/jackson-module-parameter-names/2.15.4/jackson-module-parameter-names-2.15.4.jar:/Users/utsavsharma/.m2/repository/org/apache/tomcat/embed/tomcat-embed-core/10.1.20/tomcat-embed-core-10.1.20.jar:/Users/utsavsharma/.m2/repository/org/apache/tomcat/embed/tomcat-embed-el/10.1.20/tomcat-embed-el-10.1.20.jar:/Users/utsavsharma/.m2/repository/org/apache/tomcat/embed/tomcat-embed-websocket/10.1.20/tomcat-embed-websocket-10.1.20.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-web/6.1.6/spring-web-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-beans/6.1.6/spring-beans-6.1.6.jar:/Users/utsavsharma/.m2/repository/io/micrometer/micrometer-observation/1.12.5/micrometer-observation-1.12.5.jar:/Users/utsavsharma/.m2/repository/io/micrometer/micrometer-commons/1.12.5/micrometer-commons-1.12.5.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-webmvc/6.1.6/spring-webmvc-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-context/6.1.6/spring-context-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-expression/6.1.6/spring-expression-6.1.6.jar:/Users/utsavsharma/.m2/repository/com/zaxxer/HikariCP/5.0.1/HikariCP-5.0.1.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-jdbc/6.1.6/spring-jdbc-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/hibernate/orm/hibernate-core/6.4.4.Final/hibernate-core-6.4.4.Final.jar:/Users/utsavsharma/.m2/repository/jakarta/persistence/jakarta.persistence-api/3.1.0/jakarta.persistence-api-3.1.0.jar:/Users/utsavsharma/.m2/repository/jakarta/transaction/jakarta.transaction-api/2.0.1/jakarta.transaction-api-2.0.1.jar:/Users/utsavsharma/.m2/repository/org/jboss/logging/jboss-logging/3.5.3.Final/jboss-logging-3.5.3.Final.jar:/Users/utsavsharma/.m2/repository/org/hibernate/common/hibernate-commons-annotations/6.0.6.Final/hibernate-commons-annotations-6.0.6.Final.jar:/Users/utsavsharma/.m2/repository/io/smallrye/jandex/3.1.2/jandex-3.1.2.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/classmate/1.6.0/classmate-1.6.0.jar:/Users/utsavsharma/.m2/repository/net/bytebuddy/byte-buddy/1.14.13/byte-buddy-1.14.13.jar:/Users/utsavsharma/.m2/repository/org/glassfish/jaxb/jaxb-runtime/4.0.5/jaxb-runtime-4.0.5.jar:/Users/utsavsharma/.m2/repository/org/glassfish/jaxb/jaxb-core/4.0.5/jaxb-core-4.0.5.jar:/Users/utsavsharma/.m2/repository/org/eclipse/angus/angus-activation/2.0.2/angus-activation-2.0.2.jar:/Users/utsavsharma/.m2/repository/org/glassfish/jaxb/txw2/4.0.5/txw2-4.0.5.jar:/Users/utsavsharma/.m2/repository/com/sun/istack/istack-commons-runtime/4.1.2/istack-commons-runtime-4.1.2.jar:/Users/utsavsharma/.m2/repository/jakarta/inject/jakarta.inject-api/2.0.1/jakarta.inject-api-2.0.1.jar:/Users/utsavsharma/.m2/repository/org/antlr/antlr4-runtime/4.13.0/antlr4-runtime-4.13.0.jar:/Users/utsavsharma/.m2/repository/org/springframework/data/spring-data-jpa/3.2.5/spring-data-jpa-3.2.5.jar:/Users/utsavsharma/.m2/repository/org/springframework/data/spring-data-commons/3.2.5/spring-data-commons-3.2.5.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-orm/6.1.6/spring-orm-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-tx/6.1.6/spring-tx-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/slf4j/slf4j-api/2.0.13/slf4j-api-2.0.13.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-aspects/6.1.6/spring-aspects-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-aop/6.1.6/spring-aop-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/aspectj/aspectjweaver/1.9.22/aspectjweaver-1.9.22.jar:/Users/utsavsharma/.m2/repository/io/opentelemetry/opentelemetry-api/1.48.0/opentelemetry-api-1.48.0.jar:/Users/utsavsharma/.m2/repository/io/opentelemetry/opentelemetry-context/1.31.0/opentelemetry-context-1.31.0.jar:/Users/utsavsharma/.m2/repository/com/h2database/h2/2.2.224/h2-2.2.224.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-xml/2.15.4/jackson-dataformat-xml-2.15.4.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.15.4/jackson-core-2.15.4.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.15.4/jackson-annotations-2.15.4.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.15.4/jackson-databind-2.15.4.jar:/Users/utsavsharma/.m2/repository/org/codehaus/woodstox/stax2-api/4.2.1/stax2-api-4.2.1.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/woodstox/woodstox-core/6.5.1/woodstox-core-6.5.1.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.15.4/jackson-datatype-jsr310-2.15.4.jar:/Users/utsavsharma/.m2/repository/jakarta/xml/bind/jakarta.xml.bind-api/4.0.2/jakarta.xml.bind-api-4.0.2.jar:/Users/utsavsharma/.m2/repository/jakarta/activation/jakarta.activation-api/2.1.3/jakarta.activation-api-2.1.3.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-core/6.1.6/spring-core-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-jcl/6.1.6/spring-jcl-6.1.6.jar com.cit.clsnet.ClsNetApplication
+utsavsharma      83728   8.6  1.5 420054736 390000   ??  S     9:33AM   0:05.25 /opt/homebrew/Cellar/openjdk/25.0.1/libexec/openjdk.jdk/Contents/Home/bin/java -XX:TieredStopAtLevel=1 -cp /Users/utsavsharma/Documents/GitHub/CIT/mocknet/target/classes:/Users/utsavsharma/.m2/repository/org/springframework/boot/spring-boot/3.2.5/spring-boot-3.2.5.jar:/Users/utsavsharma/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/3.2.5/spring-boot-autoconfigure-3.2.5.jar:/Users/utsavsharma/.m2/repository/ch/qos/logback/logback-classic/1.4.14/logback-classic-1.4.14.jar:/Users/utsavsharma/.m2/repository/ch/qos/logback/logback-core/1.4.14/logback-core-1.4.14.jar:/Users/utsavsharma/.m2/repository/org/apache/logging/log4j/log4j-to-slf4j/2.21.1/log4j-to-slf4j-2.21.1.jar:/Users/utsavsharma/.m2/repository/org/apache/logging/log4j/log4j-api/2.21.1/log4j-api-2.21.1.jar:/Users/utsavsharma/.m2/repository/org/slf4j/jul-to-slf4j/2.0.13/jul-to-slf4j-2.0.13.jar:/Users/utsavsharma/.m2/repository/jakarta/annotation/jakarta.annotation-api/2.1.1/jakarta.annotation-api-2.1.1.jar:/Users/utsavsharma/.m2/repository/org/yaml/snakeyaml/2.2/snakeyaml-2.2.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.15.4/jackson-datatype-jdk8-2.15.4.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/module/jackson-module-parameter-names/2.15.4/jackson-module-parameter-names-2.15.4.jar:/Users/utsavsharma/.m2/repository/org/apache/tomcat/embed/tomcat-embed-core/10.1.20/tomcat-embed-core-10.1.20.jar:/Users/utsavsharma/.m2/repository/org/apache/tomcat/embed/tomcat-embed-el/10.1.20/tomcat-embed-el-10.1.20.jar:/Users/utsavsharma/.m2/repository/org/apache/tomcat/embed/tomcat-embed-websocket/10.1.20/tomcat-embed-websocket-10.1.20.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-web/6.1.6/spring-web-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-beans/6.1.6/spring-beans-6.1.6.jar:/Users/utsavsharma/.m2/repository/io/micrometer/micrometer-observation/1.12.5/micrometer-observation-1.12.5.jar:/Users/utsavsharma/.m2/repository/io/micrometer/micrometer-commons/1.12.5/micrometer-commons-1.12.5.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-webmvc/6.1.6/spring-webmvc-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-context/6.1.6/spring-context-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-expression/6.1.6/spring-expression-6.1.6.jar:/Users/utsavsharma/.m2/repository/com/zaxxer/HikariCP/5.0.1/HikariCP-5.0.1.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-jdbc/6.1.6/spring-jdbc-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/hibernate/orm/hibernate-core/6.4.4.Final/hibernate-core-6.4.4.Final.jar:/Users/utsavsharma/.m2/repository/jakarta/persistence/jakarta.persistence-api/3.1.0/jakarta.persistence-api-3.1.0.jar:/Users/utsavsharma/.m2/repository/jakarta/transaction/jakarta.transaction-api/2.0.1/jakarta.transaction-api-2.0.1.jar:/Users/utsavsharma/.m2/repository/org/jboss/logging/jboss-logging/3.5.3.Final/jboss-logging-3.5.3.Final.jar:/Users/utsavsharma/.m2/repository/org/hibernate/common/hibernate-commons-annotations/6.0.6.Final/hibernate-commons-annotations-6.0.6.Final.jar:/Users/utsavsharma/.m2/repository/io/smallrye/jandex/3.1.2/jandex-3.1.2.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/classmate/1.6.0/classmate-1.6.0.jar:/Users/utsavsharma/.m2/repository/net/bytebuddy/byte-buddy/1.14.13/byte-buddy-1.14.13.jar:/Users/utsavsharma/.m2/repository/org/glassfish/jaxb/jaxb-runtime/4.0.5/jaxb-runtime-4.0.5.jar:/Users/utsavsharma/.m2/repository/org/glassfish/jaxb/jaxb-core/4.0.5/jaxb-core-4.0.5.jar:/Users/utsavsharma/.m2/repository/org/eclipse/angus/angus-activation/2.0.2/angus-activation-2.0.2.jar:/Users/utsavsharma/.m2/repository/org/glassfish/jaxb/txw2/4.0.5/txw2-4.0.5.jar:/Users/utsavsharma/.m2/repository/com/sun/istack/istack-commons-runtime/4.1.2/istack-commons-runtime-4.1.2.jar:/Users/utsavsharma/.m2/repository/jakarta/inject/jakarta.inject-api/2.0.1/jakarta.inject-api-2.0.1.jar:/Users/utsavsharma/.m2/repository/org/antlr/antlr4-runtime/4.13.0/antlr4-runtime-4.13.0.jar:/Users/utsavsharma/.m2/repository/org/springframework/data/spring-data-jpa/3.2.5/spring-data-jpa-3.2.5.jar:/Users/utsavsharma/.m2/repository/org/springframework/data/spring-data-commons/3.2.5/spring-data-commons-3.2.5.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-orm/6.1.6/spring-orm-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-tx/6.1.6/spring-tx-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/slf4j/slf4j-api/2.0.13/slf4j-api-2.0.13.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-aspects/6.1.6/spring-aspects-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-aop/6.1.6/spring-aop-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/aspectj/aspectjweaver/1.9.22/aspectjweaver-1.9.22.jar:/Users/utsavsharma/.m2/repository/io/opentelemetry/opentelemetry-api/1.48.0/opentelemetry-api-1.48.0.jar:/Users/utsavsharma/.m2/repository/io/opentelemetry/opentelemetry-context/1.31.0/opentelemetry-context-1.31.0.jar:/Users/utsavsharma/.m2/repository/com/h2database/h2/2.2.224/h2-2.2.224.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/dataformat/jackson-dataformat-xml/2.15.4/jackson-dataformat-xml-2.15.4.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.15.4/jackson-core-2.15.4.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.15.4/jackson-annotations-2.15.4.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.15.4/jackson-databind-2.15.4.jar:/Users/utsavsharma/.m2/repository/org/codehaus/woodstox/stax2-api/4.2.1/stax2-api-4.2.1.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/woodstox/woodstox-core/6.5.1/woodstox-core-6.5.1.jar:/Users/utsavsharma/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.15.4/jackson-datatype-jsr310-2.15.4.jar:/Users/utsavsharma/.m2/repository/jakarta/xml/bind/jakarta.xml.bind-api/4.0.2/jakarta.xml.bind-api-4.0.2.jar:/Users/utsavsharma/.m2/repository/jakarta/activation/jakarta.activation-api/2.1.3/jakarta.activation-api-2.1.3.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-core/6.1.6/spring-core-6.1.6.jar:/Users/utsavsharma/.m2/repository/org/springframework/spring-jcl/6.1.6/spring-jcl-6.1.6.jar com.cit.mocknet.MocknetApplication
 
 ```
 ```
@@ -1256,14 +1256,14 @@ Tool: bash
 **Input:**
 ```json
 {
-  "command": "grep -E \"Tomcat started|Started ClsNet|ERROR|WARN.*export\" /Users/utsavsharma/Documents/GitHub/CIT/.bootstrap/otel/mocknet/app.log | tail -20",
+  "command": "grep -E \"Tomcat started|Started Mocknet|ERROR|WARN.*export\" /Users/utsavsharma/Documents/GitHub/CIT/.bootstrap/otel/mocknet/app.log | tail -20",
   "description": "Confirm Spring Boot started and no OTLP export errors"
 }
 ```
 **Output:**
 ```
 2026-03-25T09:33:49.206-04:00  INFO 83728 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path ''
-2026-03-25T09:33:49.209-04:00  INFO 83728 --- [           main] com.cit.clsnet.ClsNetApplication         : Started ClsNetApplication in 1.991 seconds (process running for 2.83)
+2026-03-25T09:33:49.209-04:00  INFO 83728 --- [           main] com.cit.mocknet.MocknetApplication         : Started MocknetApplication in 1.991 seconds (process running for 2.83)
 
 ```
 ```
@@ -1432,24 +1432,24 @@ Tool: bash
 ```
 **Output:**
 ```
-/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/controller/StatusController.java:import org.springframework.web.bind.annotation.GetMapping;
-/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/controller/StatusController.java:import org.springframework.web.bind.annotation.RequestMapping;
-/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/controller/StatusController.java:@RequestMapping("/api")
-/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/controller/StatusController.java:    @GetMapping("/trades")
-/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/controller/StatusController.java:    @GetMapping("/trades/{id}")
-/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/controller/StatusController.java:    @GetMapping("/matched-trades")
-/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/controller/StatusController.java:    @GetMapping("/netting-sets")
-/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/controller/StatusController.java:    @GetMapping("/settlement-instructions")
-/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/controller/StatusController.java:    @GetMapping("/transaction-log")
-/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/controller/StatusController.java:    @GetMapping("/participant-votes")
-/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/controller/StatusController.java:    @GetMapping("/queues")
-/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/controller/StatusController.java:    @GetMapping("/queues/{queueName}/messages")
-/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/controller/StatusController.java:    @GetMapping("/status")
-/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/controller/TradeSubmissionController.java:import org.springframework.web.bind.annotation.PostMapping;
-/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/controller/TradeSubmissionController.java:import org.springframework.web.bind.annotation.RequestMapping;
-/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/controller/TradeSubmissionController.java:@RequestMapping("/api/trades")
-/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/controller/TradeSubmissionController.java:    @PostMapping(consumes = {MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_XML_VALUE})
-/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/clsnet/controller/TradeSubmissionController.java:    public ResponseEntity<Map<String, String>> submitTrade(@RequestBody String xmlPayload) {
+/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/controller/StatusController.java:import org.springframework.web.bind.annotation.GetMapping;
+/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/controller/StatusController.java:import org.springframework.web.bind.annotation.RequestMapping;
+/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/controller/StatusController.java:@RequestMapping("/api")
+/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/controller/StatusController.java:    @GetMapping("/trades")
+/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/controller/StatusController.java:    @GetMapping("/trades/{id}")
+/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/controller/StatusController.java:    @GetMapping("/matched-trades")
+/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/controller/StatusController.java:    @GetMapping("/netting-sets")
+/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/controller/StatusController.java:    @GetMapping("/settlement-instructions")
+/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/controller/StatusController.java:    @GetMapping("/transaction-log")
+/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/controller/StatusController.java:    @GetMapping("/participant-votes")
+/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/controller/StatusController.java:    @GetMapping("/queues")
+/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/controller/StatusController.java:    @GetMapping("/queues/{queueName}/messages")
+/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/controller/StatusController.java:    @GetMapping("/status")
+/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/controller/TradeSubmissionController.java:import org.springframework.web.bind.annotation.PostMapping;
+/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/controller/TradeSubmissionController.java:import org.springframework.web.bind.annotation.RequestMapping;
+/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/controller/TradeSubmissionController.java:@RequestMapping("/api/trades")
+/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/controller/TradeSubmissionController.java:    @PostMapping(consumes = {MediaType.APPLICATION_XML_VALUE, MediaType.TEXT_XML_VALUE})
+/Users/utsavsharma/Documents/GitHub/CIT/mocknet/src/main/java/com/cit/mocknet/controller/TradeSubmissionController.java:    public ResponseEntity<Map<String, String>> submitTrade(@RequestBody String xmlPayload) {
 
 ```
 ```
@@ -1502,10 +1502,10 @@ Tool: bash
 ```
 **Output:**
 ```
-2026-03-25T09:33:49.010-04:00  INFO 83728 --- [           main] c.cit.clsnet.service.NettingCalculator   : Netting Calculator started with 4 consumer threads (2PC enabled)
-2026-03-25T09:33:49.014-04:00  INFO 83728 --- [           main] c.c.clsnet.service.SettlementInstructor  : Settlement Instructor started with 2 consumer threads (standby - primary flow via 2PC)
+2026-03-25T09:33:49.010-04:00  INFO 83728 --- [           main] c.cit.mocknet.service.NettingCalculator   : Netting Calculator started with 4 consumer threads (2PC enabled)
+2026-03-25T09:33:49.014-04:00  INFO 83728 --- [           main] c.c.mocknet.service.SettlementInstructor  : Settlement Instructor started with 2 consumer threads (standby - primary flow via 2PC)
 2026-03-25T09:33:49.019-04:00  INFO 83728 --- [           main] c.c.c.service.TradeIngestionService      : Trade Ingestion Service started with 4 consumer threads
-2026-03-25T09:33:49.025-04:00  INFO 83728 --- [           main] c.c.clsnet.service.TradeMatchingEngine   : Trade Matching Engine started with 4 consumer threads (pessimistic locking enabled)
+2026-03-25T09:33:49.025-04:00  INFO 83728 --- [           main] c.c.mocknet.service.TradeMatchingEngine   : Trade Matching Engine started with 4 consumer threads (pessimistic locking enabled)
 2026-03-25T09:34:35.781-04:00  INFO 83728 --- [nio-8080-exec-5] c.c.c.c.TradeSubmissionController        : Received trade submission (686 bytes)
 2026-03-25T09:34:35.810-04:00  INFO 83728 --- [nio-8080-exec-7] c.c.c.c.TradeSubmissionController        : Received trade submission (686 bytes)
 2026-03-25T09:34:35.968-04:00  INFO 83728 --- [etting-worker-4] c.c.c.service.TwoPhaseCommitCoordinator  : [2PC:2PC-29442159] Transaction initiated for matchedTradeId=5
@@ -1577,22 +1577,22 @@ Total operations: 69
   SELECT ./data/coredb.trades
   SELECT ./data/coredb.transaction_log
   SELECT INFORMATION_SCHEMA.SEQUENCES
-  SELECT com.cit.clsnet.model.QueueMessage
-  SELECT com.cit.clsnet.model.Trade
-  SELECT com.cit.clsnet.model.TransactionLog
-  Session.find com.cit.clsnet.model.MatchedTrade
-  Session.find com.cit.clsnet.model.QueueMessage
-  Session.find com.cit.clsnet.model.Trade
-  Session.merge com.cit.clsnet.model.MatchedTrade
-  Session.merge com.cit.clsnet.model.Trade
-  Session.merge com.cit.clsnet.model.TransactionLog
-  Session.persist com.cit.clsnet.model.MatchedTrade
-  Session.persist com.cit.clsnet.model.NettingSet
-  Session.persist com.cit.clsnet.model.ParticipantVote
-  Session.persist com.cit.clsnet.model.QueueMessage
-  Session.persist com.cit.clsnet.model.SettlementInstruction
-  Session.persist com.cit.clsnet.model.Trade
-  Session.persist com.cit.clsnet.model.TransactionLog
+  SELECT com.cit.mocknet.model.QueueMessage
+  SELECT com.cit.mocknet.model.Trade
+  SELECT com.cit.mocknet.model.TransactionLog
+  Session.find com.cit.mocknet.model.MatchedTrade
+  Session.find com.cit.mocknet.model.QueueMessage
+  Session.find com.cit.mocknet.model.Trade
+  Session.merge com.cit.mocknet.model.MatchedTrade
+  Session.merge com.cit.mocknet.model.Trade
+  Session.merge com.cit.mocknet.model.TransactionLog
+  Session.persist com.cit.mocknet.model.MatchedTrade
+  Session.persist com.cit.mocknet.model.NettingSet
+  Session.persist com.cit.mocknet.model.ParticipantVote
+  Session.persist com.cit.mocknet.model.QueueMessage
+  Session.persist com.cit.mocknet.model.SettlementInstruction
+  Session.persist com.cit.mocknet.model.Trade
+  Session.persist com.cit.mocknet.model.TransactionLog
   SettlementInstructionRepository.save
   TradeIngestionService.processTradeXml
   TradeMatchingEngine.processMatchingMessage
@@ -1608,7 +1608,7 @@ Total operations: 69
   UPDATE ./data/coredb.queue_messages
   UPDATE ./data/coredb.trades
   UPDATE ./data/coredb.transaction_log
-  UPDATE com.cit.clsnet.model.QueueMessage
+  UPDATE com.cit.mocknet.model.QueueMessage
 
 ```
 ```
@@ -1639,7 +1639,7 @@ Traces with TradeSubmissionController.submitTrade root: 2
     [mocknet] QueueBroker.publish  parent=cca7d60440fc521b
     [mocknet] CrudRepository.save  parent=48b757535412bc66
     [mocknet] QueueMessageRepository.save  parent=581412587dbebc64
-    [mocknet] Session.persist com.cit.clsnet.model.QueueMessage  parent=5b65363e252f4e2d
+    [mocknet] Session.persist com.cit.mocknet.model.QueueMessage  parent=5b65363e252f4e2d
     [mocknet] INSERT ./data/coredb.queue_messages  parent=3a9bab51bdd697a1
     [mocknet] Transaction.commit  parent=cca7d60440fc521b
 
@@ -1649,7 +1649,7 @@ Traces with TradeSubmissionController.submitTrade root: 2
     [mocknet] QueueBroker.publish  parent=f2009e87d8136bc0
     [mocknet] CrudRepository.save  parent=80564f0c276b4e27
     [mocknet] QueueMessageRepository.save  parent=0dcb62f75c7252f0
-    [mocknet] Session.persist com.cit.clsnet.model.QueueMessage  parent=9ef569a6b98c3e79
+    [mocknet] Session.persist com.cit.mocknet.model.QueueMessage  parent=9ef569a6b98c3e79
     [mocknet] INSERT ./data/coredb.queue_messages  parent=be0f6d85dd256928
     [mocknet] Transaction.commit  parent=f2009e87d8136bc0
 
@@ -1705,98 +1705,98 @@ traceID=9836b5385446e4682b8ae8aa5203b347  total_spans=110
   [mocknet/SETTLEMENT] TwoPhaseCommitCoordinator.executeTransaction  18274us
   [mocknet/DATABASE] CrudRepository.save  572us
   [mocknet/] TransactionLogRepository.save  553us
-  [mocknet/] Session.persist com.cit.clsnet.model.TransactionLog  435us
+  [mocknet/] Session.persist com.cit.mocknet.model.TransactionLog  435us
   [mocknet/] INSERT ./data/coredb.transaction_log  123us
   [mocknet/] Transaction.commit  106us
   [mocknet/DATABASE] TransactionLogRepository.findByTransactionId  7374us
   [mocknet/] TransactionLogRepository.findByTransactionId  7347us
-  [mocknet/] SELECT com.cit.clsnet.model.TransactionLog  1861us
+  [mocknet/] SELECT com.cit.mocknet.model.TransactionLog  1861us
   [mocknet/] SELECT ./data/coredb.transaction_log  29us
   [mocknet/DATABASE] CrudRepository.save  68us
   [mocknet/] TransactionLogRepository.save  58us
-  [mocknet/] Session.merge com.cit.clsnet.model.TransactionLog  23us
+  [mocknet/] Session.merge com.cit.mocknet.model.TransactionLog  23us
   [mocknet/] Transaction.commit  394us
   [mocknet/] UPDATE ./data/coredb.transaction_log  84us
   [mocknet/DATABASE] CrudRepository.findById  375us
   [mocknet/] MatchedTradeRepository.findById  359us
-  [mocknet/] Session.find com.cit.clsnet.model.MatchedTrade  254us
+  [mocknet/] Session.find com.cit.mocknet.model.MatchedTrade  254us
   [mocknet/] SELECT ./data/coredb.matched_trades  14us
   [mocknet/DATABASE] CrudRepository.findById  338us
   [mocknet/] TradeRepository.findById  326us
-  [mocknet/] Session.find com.cit.clsnet.model.Trade  301us
+  [mocknet/] Session.find com.cit.mocknet.model.Trade  301us
   [mocknet/] SELECT ./data/coredb.trades  31us
   [mocknet/DATABASE] CrudRepository.findById  188us
   [mocknet/] TradeRepository.findById  181us
-  [mocknet/] Session.find com.cit.clsnet.model.Trade  159us
+  [mocknet/] Session.find com.cit.mocknet.model.Trade  159us
   [mocknet/] SELECT ./data/coredb.trades  24us
   [mocknet/DATABASE] CrudRepository.save  392us
   [mocknet/] ParticipantVoteRepository.save  378us
-  [mocknet/] Session.persist com.cit.clsnet.model.ParticipantVote  303us
+  [mocknet/] Session.persist com.cit.mocknet.model.ParticipantVote  303us
   [mocknet/] INSERT ./data/coredb.participant_votes  98us
   [mocknet/] Transaction.commit  98us
   [mocknet/DATABASE] CrudRepository.findById  166us
   [mocknet/] MatchedTradeRepository.findById  159us
-  [mocknet/] Session.find com.cit.clsnet.model.MatchedTrade  137us
+  [mocknet/] Session.find com.cit.mocknet.model.MatchedTrade  137us
   [mocknet/] SELECT ./data/coredb.matched_trades  24us
   [mocknet/DATABASE] CrudRepository.save  142us
   [mocknet/] ParticipantVoteRepository.save  137us
-  [mocknet/] Session.persist com.cit.clsnet.model.ParticipantVote  119us
+  [mocknet/] Session.persist com.cit.mocknet.model.ParticipantVote  119us
   [mocknet/] INSERT ./data/coredb.participant_votes  34us
   [mocknet/] Transaction.commit  72us
   [mocknet/DATABASE] TransactionLogRepository.findByTransactionId  420us
   [mocknet/] TransactionLogRepository.findByTransactionId  413us
-  [mocknet/] SELECT com.cit.clsnet.model.TransactionLog  284us
+  [mocknet/] SELECT com.cit.mocknet.model.TransactionLog  284us
   [mocknet/] SELECT ./data/coredb.transaction_log  16us
   [mocknet/DATABASE] CrudRepository.save  36us
   [mocknet/] TransactionLogRepository.save  31us
-  [mocknet/] Session.merge com.cit.clsnet.model.TransactionLog  14us
+  [mocknet/] Session.merge com.cit.mocknet.model.TransactionLog  14us
   [mocknet/] Transaction.commit  239us
   [mocknet/] UPDATE ./data/coredb.transaction_log  67us
   [mocknet/DATABASE] TransactionLogRepository.findByTransactionId  372us
   [mocknet/] TransactionLogRepository.findByTransactionId  366us
-  [mocknet/] SELECT com.cit.clsnet.model.TransactionLog  256us
+  [mocknet/] SELECT com.cit.mocknet.model.TransactionLog  256us
   [mocknet/] SELECT ./data/coredb.transaction_log  23us
   [mocknet/DATABASE] CrudRepository.save  39us
   [mocknet/] TransactionLogRepository.save  34us
-  [mocknet/] Session.merge com.cit.clsnet.model.TransactionLog  14us
+  [mocknet/] Session.merge com.cit.mocknet.model.TransactionLog  14us
   [mocknet/] Transaction.commit  251us
   [mocknet/] UPDATE ./data/coredb.transaction_log  77us
   [mocknet/DATABASE] CrudRepository.findById  152us
   [mocknet/] MatchedTradeRepository.findById  145us
-  [mocknet/] Session.find com.cit.clsnet.model.MatchedTrade  121us
+  [mocknet/] Session.find com.cit.mocknet.model.MatchedTrade  121us
   [mocknet/] SELECT ./data/coredb.matched_trades  9us
   [mocknet/DATABASE] CrudRepository.findById  198us
   [mocknet/] TradeRepository.findById  189us
-  [mocknet/] Session.find com.cit.clsnet.model.Trade  168us
+  [mocknet/] Session.find com.cit.mocknet.model.Trade  168us
   [mocknet/] SELECT ./data/coredb.trades  24us
   [mocknet/DATABASE] CrudRepository.findById  183us
   [mocknet/] TradeRepository.findById  175us
-  [mocknet/] Session.find com.cit.clsnet.model.Trade  155us
+  [mocknet/] Session.find com.cit.mocknet.model.Trade  155us
   [mocknet/] SELECT ./data/coredb.trades  20us
   [mocknet/DATABASE] CrudRepository.save  484us
   [mocknet/] NettingSetRepository.save  422us
-  [mocknet/] Session.persist com.cit.clsnet.model.NettingSet  340us
+  [mocknet/] Session.persist com.cit.mocknet.model.NettingSet  340us
   [mocknet/] INSERT ./data/coredb.netting_sets  84us
   [mocknet/DATABASE] CrudRepository.save  154us
   [mocknet/] NettingSetRepository.save  148us
-  [mocknet/] Session.persist com.cit.clsnet.model.NettingSet  131us
+  [mocknet/] Session.persist com.cit.mocknet.model.NettingSet  131us
   [mocknet/] INSERT ./data/coredb.netting_sets  26us
   [mocknet/DATABASE] CrudRepository.save  35us
   [mocknet/] MatchedTradeRepository.save  30us
-  [mocknet/] Session.merge com.cit.clsnet.model.MatchedTrade  14us
+  [mocknet/] Session.merge com.cit.mocknet.model.MatchedTrade  14us
   [mocknet/DATABASE] CrudRepository.save  52us
   [mocknet/] TradeRepository.save  42us
-  [mocknet/] Session.merge com.cit.clsnet.model.Trade  15us
+  [mocknet/] Session.merge com.cit.mocknet.model.Trade  15us
   [mocknet/DATABASE] CrudRepository.save  36us
   [mocknet/] TradeRepository.save  28us
-  [mocknet/] Session.merge com.cit.clsnet.model.Trade  11us
+  [mocknet/] Session.merge com.cit.mocknet.model.Trade  11us
   [mocknet/DATABASE] CrudRepository.save  351us
   [mocknet/] SettlementInstructionRepository.save  324us
-  [mocknet/] Session.persist com.cit.clsnet.model.SettlementInstruction  263us
+  [mocknet/] Session.persist com.cit.mocknet.model.SettlementInstruction  263us
   [mocknet/] INSERT ./data/coredb.settlement_instructions  68us
   [mocknet/DATABASE] CrudRepository.save  149us
   [mocknet/] SettlementInstructionRepository.save  143us
-  [mocknet/] Session.persist com.cit.clsnet.model.SettlementInstruction  125us
+  [mocknet/] Session.persist com.cit.mocknet.model.SettlementInstruction  125us
   [mocknet/] INSERT ./data/coredb.settlement_instructions  30us
   [mocknet/] Transaction.commit  945us
   [mocknet/] UPDATE ./data/coredb.matched_trades  42us
@@ -1804,11 +1804,11 @@ traceID=9836b5385446e4682b8ae8aa5203b347  total_spans=110
   [mocknet/] UPDATE ./data/coredb.trades  88us
   [mocknet/DATABASE] TransactionLogRepository.findByTransactionId  429us
   [mocknet/] TransactionLogRepository.findByTransactionId  423us
-  [mocknet/] SELECT com.cit.clsnet.model.TransactionLog  316us
+  [mocknet/] SELECT com.cit.mocknet.model.TransactionLog  316us
   [mocknet/] SELECT ./data/coredb.transaction_log  35us
   [mocknet/DATABASE] CrudRepository.save  61us
   [mocknet/] TransactionLogRepository.save  56us
-  [mocknet/] Session.merge com.cit.clsnet.model.TransactionLog  21us
+  [mocknet/] Session.merge com.cit.mocknet.model.TransactionLog  21us
   [mocknet/] Transaction.commit  251us
   [mocknet/] UPDATE ./data/coredb.transaction_log  48us
 
@@ -1837,13 +1837,13 @@ traceID=7aab5124082ebe927d134daacbc90785  total_spans=14
   [mocknet/OTHER] CurrencyValidationService.isSupported  3us
   [mocknet/DATABASE] CrudRepository.save  2423us
   [mocknet/] TradeRepository.save  2324us
-  [mocknet/] Session.persist com.cit.clsnet.model.Trade  2083us
+  [mocknet/] Session.persist com.cit.mocknet.model.Trade  2083us
   [mocknet/] INSERT ./data/coredb.trades  1223us
   [mocknet/] Transaction.commit  98us
   [mocknet/OTHER] QueueBroker.publish  2957us
   [mocknet/DATABASE] CrudRepository.save  375us
   [mocknet/] QueueMessageRepository.save  319us
-  [mocknet/] Session.persist com.cit.clsnet.model.QueueMessage  279us
+  [mocknet/] Session.persist com.cit.mocknet.model.QueueMessage  279us
   [mocknet/] INSERT ./data/coredb.queue_messages  79us
   [mocknet/] Transaction.commit  88us
 
@@ -1870,29 +1870,29 @@ traceID=056bcdd4d32f9ad9545696bc4b6e0469  total_spans=28
   [mocknet/MATCHING] TradeMatchingEngine.processMatchingMessage  14526us
   [mocknet/DATABASE] CrudRepository.findById  675us
   [mocknet/] TradeRepository.findById  655us
-  [mocknet/] Session.find com.cit.clsnet.model.Trade  531us
+  [mocknet/] Session.find com.cit.mocknet.model.Trade  531us
   [mocknet/] SELECT ./data/coredb.trades  32us
   [mocknet/DATABASE] TradeRepository.findMatchCandidate  5830us
   [mocknet/] TradeRepository.findMatchCandidate  5255us
-  [mocknet/] SELECT com.cit.clsnet.model.Trade  4789us
+  [mocknet/] SELECT com.cit.mocknet.model.Trade  4789us
   [mocknet/] SELECT ./data/coredb.trades  70us
   [mocknet/DATABASE] CrudRepository.save  1020us
   [mocknet/] MatchedTradeRepository.save  971us
-  [mocknet/] Session.persist com.cit.clsnet.model.MatchedTrade  408us
+  [mocknet/] Session.persist com.cit.mocknet.model.MatchedTrade  408us
   [mocknet/] INSERT ./data/coredb.matched_trades  68us
   [mocknet/DATABASE] CrudRepository.save  707us
   [mocknet/] TradeRepository.save  692us
-  [mocknet/] Session.merge com.cit.clsnet.model.Trade  636us
+  [mocknet/] Session.merge com.cit.mocknet.model.Trade  636us
   [mocknet/DATABASE] CrudRepository.save  59us
   [mocknet/] TradeRepository.save  49us
-  [mocknet/] Session.merge com.cit.clsnet.model.Trade  23us
+  [mocknet/] Session.merge com.cit.mocknet.model.Trade  23us
   [mocknet/] Transaction.commit  4675us
   [mocknet/] UPDATE ./data/coredb.trades  173us
   [mocknet/] UPDATE ./data/coredb.trades  521us
   [mocknet/OTHER] QueueBroker.publish  492us
   [mocknet/DATABASE] CrudRepository.save  410us
   [mocknet/] QueueMessageRepository.save  363us
-  [mocknet/] Session.persist com.cit.clsnet.model.QueueMessage  322us
+  [mocknet/] Session.persist com.cit.mocknet.model.QueueMessage  322us
   [mocknet/] INSERT ./data/coredb.queue_messages  65us
   [mocknet/] Transaction.commit  84us
 

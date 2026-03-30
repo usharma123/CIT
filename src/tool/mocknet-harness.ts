@@ -201,12 +201,12 @@ export const MocknetContractTool = Tool.define("mocknet_contract", {
       .string()
       .optional()
       .describe(
-        "Path to FpmlTradeMessage.java (default: mocknet/src/main/java/com/cit/clsnet/xml/FpmlTradeMessage.java)",
+        "Path to FpmlTradeMessage.java (default: mocknet/src/main/java/com/cit/mocknet/xml/FpmlTradeMessage.java)",
       ),
   }),
   async execute(params, ctx) {
     const rel =
-      params.javaPath ?? path.join("mocknet", "src", "main", "java", "com", "cit", "clsnet", "xml", "FpmlTradeMessage.java")
+      params.javaPath ?? path.join("mocknet", "src", "main", "java", "com", "cit", "mocknet", "xml", "FpmlTradeMessage.java")
     const filepath = resolveProjectPath(rel)
     await ctx.ask({
       permission: "read",

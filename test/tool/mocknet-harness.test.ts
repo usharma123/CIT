@@ -91,7 +91,7 @@ describe("mocknet-harness tools", () => {
 
   test("mocknet_contract reads default FpmlTradeMessage", async () => {
     const repoRoot = new URL("../..", import.meta.url).pathname
-    const fpml = path.join(repoRoot, "mocknet/src/main/java/com/cit/clsnet/xml/FpmlTradeMessage.java")
+    const fpml = path.join(repoRoot, "mocknet/src/main/java/com/cit/mocknet/xml/FpmlTradeMessage.java")
     if (!(await Bun.file(fpml).exists())) {
       console.warn("skip mocknet_contract: FpmlTradeMessage.java not found")
       return

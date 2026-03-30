@@ -1,8 +1,6 @@
-import { afterEach, describe, expect, test } from "bun:test"
-import fs from "fs/promises"
+import { describe, expect, test } from "bun:test"
 import path from "path"
 import { Instance } from "../../src/project/instance"
-import { TraceViewServer } from "../../src/server/traceview"
 import { normalizeTrace } from "../../src/tool/traceview-lib"
 import { TraceViewTool } from "../../src/tool/traceview"
 import { tmpdir } from "../fixture/fixture"
@@ -17,12 +15,8 @@ const ctx = {
   ask: async () => {},
 }
 
-afterEach(async () => {
-  await TraceViewServer.stopAll()
-})
-
 describe("tool.traceview", () => {
-  test("builds viewer assets and serves normalized traces from Jaeger", async () => {
+  test("builds terminal flow diagrams from Jaeger queries", async () => {
     using jaeger = createJaegerFixtureServer()
     await using tmp = await tmpdir({ git: true })
 
@@ -39,52 +33,30 @@ describe("tool.traceview", () => {
             serviceName: "mocknet",
             lookbackMinutes: 15,
             limit: 10,
+            ensureRunning: false,
             refreshSeconds: 2,
             open: false,
+            ascii: true,
+            asciiFlowLimit: 3,
           },
           ctx,
         )
 
-        expect(result.output).toContain("Prepared CLS trace viewer for mocknet.")
+        expect(result.output).toContain("Prepared terminal trace flow for mocknet.")
+        expect(result.output).toContain("Jaeger Query Summary")
+        expect(result.output).toContain("Component Flow (terminal ASCII, span-derived only)")
+        expect(result.output).toContain("HTTP Flow (terminal ASCII, span-derived only)")
+        expect(result.output).toContain("[HTTP] TradeSubmissionController.submitTrade")
+        expect(result.output).toContain("[HTTP] POST /api/trades")
+        expect(result.output).toContain("[INGESTION] TradeIngestionService.processTradeXml")
+        expect(result.output).toContain("[SETTLEMENT] TwoPhaseCommitCoordinator.executeTransaction")
         const outputDir = path.join(tmp.path, ".bootstrap", "traceview", "mocknet")
-
-        const indexHtml = await fs.readFile(path.join(outputDir, "index.html"), "utf8")
-        const appJs = await fs.readFile(path.join(outputDir, "app.js"), "utf8")
-        const traceData = JSON.parse(await fs.readFile(path.join(outputDir, "trace-data.json"), "utf8"))
-
-        expect(indexHtml).toContain("CLS Trace Viewer")
-        expect(indexHtml).toContain("Refresh every 2s")
-        expect(appJs).toContain("const REFRESH_SECONDS = 2;")
-        expect(traceData.flows).toHaveLength(2)
-        const tradeFlow = traceData.flows.find((flow: { tradeId?: string }) => flow.tradeId === "TRD-100")
-        expect(tradeFlow).toBeDefined()
-        expect(result.output).toContain("Exact Traced Component Interactions")
-        expect(result.output).toContain("TradeSubmissionController.submitTrade")
-        expect(result.output).toContain("Do not rename components or invent stages")
-        expect(result.output).toContain("Exact Traced HTTP Interactions")
-        expect(result.output).toContain("POST /api/trades")
-        expect(tradeFlow.stages.map((stage: { name: string }) => stage.name)).toEqual([
-          "HTTP",
-          "INGESTION",
-          "MATCHING",
-          "NETTING",
-          "SETTLEMENT",
-          "DATABASE",
-        ])
-        expect(tradeFlow.rawSpans.some((span: { operationName: string }) => span.operationName === "TradeIngestionService.processTradeXml")).toBe(true)
-        expect(tradeFlow.rawSpans.some((span: { operationName: string }) => span.operationName === "TradeRepository.save")).toBe(true)
-
-        const viewerUrl = result.metadata.viewerUrl as string
-        const page = await fetch(viewerUrl).then((response) => response.text())
-        expect(page).toContain("CLS Trace Viewer")
-
-        const apiData = await fetch(new URL("/api/traces", viewerUrl)).then((response) => response.json())
-        expect(apiData.service).toBe("mocknet")
-        expect(apiData.flows.some((flow: { grouping: string; traceId: string }) => flow.grouping === "traceId" && flow.traceId === "trace-raw")).toBe(true)
-
-        const traceDetail = await fetch(new URL("/api/traces/trace-raw", viewerUrl)).then((response) => response.json())
-        expect(traceDetail.traceId).toBe("trace-raw")
-        expect(traceDetail.stages.some((stage: { name: string }) => stage.name === "MATCHING")).toBe(true)
+        expect(result.metadata.viewerUrl).toBeUndefined()
+        expect(result.metadata.querySummary).toBeDefined()
+        expect(result.metadata.querySummary.componentOperations).toContain("TradeSubmissionController.submitTrade")
+        expect(result.metadata.querySummary.httpOperations).toContain("POST /api/trades")
+        expect(result.metadata.flowCount).toBe(2)
+        expect(await Bun.file(outputDir).exists()).toBe(false)
       },
     })
   })
@@ -120,17 +92,16 @@ describe("tool.traceview", () => {
             serviceName: "mocknet",
             lookbackMinutes: 15,
             limit: 10,
+            ensureRunning: false,
             refreshSeconds: 2,
             open: false,
+            ascii: true,
+            asciiFlowLimit: 3,
           },
           ctx,
         )
-
-        const viewerUrl = result.metadata.viewerUrl as string
-        const apiData = await fetch(new URL("/api/traces", viewerUrl)).then((response) => response.json())
-
-        expect(apiData.flows.some((flow: { traceId: string }) => flow.traceId === "trace-poll")).toBe(false)
-        expect(apiData.traces.some((trace: { traceId: string }) => trace.traceId === "trace-poll")).toBe(false)
+        expect(result.metadata.flowCount).toBe(2)
+        expect(result.output).not.toContain("trace-poll")
       },
     })
   })
@@ -145,6 +116,19 @@ function createJaegerFixtureServer() {
     port: 0,
     fetch(req) {
       const url = new URL(req.url)
+      if (url.pathname === "/api/operations") {
+        return Response.json({
+          data: [
+            "POST /api/trades",
+            "TradeSubmissionController.submitTrade",
+            "TradeIngestionService.processTradeXml",
+            "TradeMatchingEngine.processMatchingMessage",
+            "NettingCalculator.processNettingMessage",
+            "TwoPhaseCommitCoordinator.executeTransaction",
+            "QueueBroker.claimNext",
+          ],
+        })
+      }
       if (url.pathname === "/api/traces") {
         return Response.json(searchPayload)
       }

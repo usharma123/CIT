@@ -1,6 +1,6 @@
-# CLSNet Mock (`mocknet/`)
+# Mocknet (`mocknet/`)
 
-Mock CLSNet-style bilateral FX payment netting pipeline: Spring Boot, H2, and a durable DB-backed message broker. All code and docs in this README refer to the [`mocknet/`](./mocknet/) Maven module.
+Mock bilateral FX payment netting pipeline: Spring Boot, H2, and a durable DB-backed message broker. All code and docs in this README refer to the [`mocknet/`](./mocknet/) Maven module.
 
 ## Overview
 
@@ -162,7 +162,7 @@ Two complementary OpenTelemetry layers run across the pipeline:
 
 1. **QueueMessageTracing** — wraps each queue-message processing cycle in a `QueueMessage.process` span. Records `queue.name`, `worker.name`, correlation IDs (`tradeId`, `matchedTradeId`, `nettingSetId`), and the processing outcome (`completed`, `rejected`, `retried`, `failed` with `failure.reason_code`).
 
-2. **ComponentTracingAspect** (AOP) — intercepts every public component/repository bean under `com.cit.clsnet`. Tags each span with `cls.stage` (HTTP, INGESTION, MATCHING, NETTING, SETTLEMENT, DATABASE), `component.kind`, and any correlation IDs extracted from method arguments and return values.
+2. **ComponentTracingAspect** (AOP) — intercepts every public component/repository bean under `com.cit.mocknet`. Tags each span with `cls.stage` (HTTP, INGESTION, MATCHING, NETTING, SETTLEMENT, DATABASE), `component.kind`, and any correlation IDs extracted from method arguments and return values.
 
 ## Processing flow (summary)
 
@@ -178,20 +178,20 @@ Two complementary OpenTelemetry layers run across the pipeline:
 
 | Path | Role |
 |------|------|
-| [`mocknet/src/main/java/com/cit/clsnet/ingestion`](./mocknet/src/main/java/com/cit/clsnet/ingestion) | Trade submission, ingestion worker, and ingestion-local utilities |
-| [`mocknet/src/main/java/com/cit/clsnet/matching`](./mocknet/src/main/java/com/cit/clsnet/matching) | Matching worker and matching-local utilities |
-| [`mocknet/src/main/java/com/cit/clsnet/netting`](./mocknet/src/main/java/com/cit/clsnet/netting) | Netting worker, cutoff logic, 2PC coordination, and netting-local factories |
-| [`mocknet/src/main/java/com/cit/clsnet/settlement`](./mocknet/src/main/java/com/cit/clsnet/settlement) | Settlement worker and settlement-local utilities |
-| [`mocknet/src/main/java/com/cit/clsnet/queue`](./mocknet/src/main/java/com/cit/clsnet/queue) | Durable queue broker, queue tracing, and queue-local correlation utilities |
-| [`mocknet/src/main/java/com/cit/clsnet/status`](./mocknet/src/main/java/com/cit/clsnet/status) | Read-only status endpoints and status assemblers |
-| [`mocknet/src/main/java/com/cit/clsnet/shared/failure`](./mocknet/src/main/java/com/cit/clsnet/shared/failure) | Shared failure classification, queue retry/disposition, and processing exceptions |
-| [`mocknet/src/main/java/com/cit/clsnet/shared/payload`](./mocknet/src/main/java/com/cit/clsnet/shared/payload) | Shared JSON/XML payload parsing and correlation helpers |
-| [`mocknet/src/main/java/com/cit/clsnet/repository`](./mocknet/src/main/java/com/cit/clsnet/repository) | JPA repositories (including `QueueMessageRepository`) |
-| [`mocknet/src/main/java/com/cit/clsnet/model`](./mocknet/src/main/java/com/cit/clsnet/model) | Entities and enums |
-| [`mocknet/src/main/java/com/cit/clsnet/config`](./mocknet/src/main/java/com/cit/clsnet/config) | Queues, threads, `ClsNetProperties` |
-| [`mocknet/src/main/java/com/cit/clsnet/xml`](./mocknet/src/main/java/com/cit/clsnet/xml) | FpML-style XML mapping |
+| [`mocknet/src/main/java/com/cit/mocknet/ingestion`](./mocknet/src/main/java/com/cit/mocknet/ingestion) | Trade submission, ingestion worker, and ingestion-local utilities |
+| [`mocknet/src/main/java/com/cit/mocknet/matching`](./mocknet/src/main/java/com/cit/mocknet/matching) | Matching worker and matching-local utilities |
+| [`mocknet/src/main/java/com/cit/mocknet/netting`](./mocknet/src/main/java/com/cit/mocknet/netting) | Netting worker, cutoff logic, 2PC coordination, and netting-local factories |
+| [`mocknet/src/main/java/com/cit/mocknet/settlement`](./mocknet/src/main/java/com/cit/mocknet/settlement) | Settlement worker and settlement-local utilities |
+| [`mocknet/src/main/java/com/cit/mocknet/queue`](./mocknet/src/main/java/com/cit/mocknet/queue) | Durable queue broker, queue tracing, and queue-local correlation utilities |
+| [`mocknet/src/main/java/com/cit/mocknet/status`](./mocknet/src/main/java/com/cit/mocknet/status) | Read-only status endpoints and status assemblers |
+| [`mocknet/src/main/java/com/cit/mocknet/shared/failure`](./mocknet/src/main/java/com/cit/mocknet/shared/failure) | Shared failure classification, queue retry/disposition, and processing exceptions |
+| [`mocknet/src/main/java/com/cit/mocknet/shared/payload`](./mocknet/src/main/java/com/cit/mocknet/shared/payload) | Shared JSON/XML payload parsing and correlation helpers |
+| [`mocknet/src/main/java/com/cit/mocknet/repository`](./mocknet/src/main/java/com/cit/mocknet/repository) | JPA repositories (including `QueueMessageRepository`) |
+| [`mocknet/src/main/java/com/cit/mocknet/model`](./mocknet/src/main/java/com/cit/mocknet/model) | Entities and enums |
+| [`mocknet/src/main/java/com/cit/mocknet/config`](./mocknet/src/main/java/com/cit/mocknet/config) | Queues, threads, `MocknetProperties` |
+| [`mocknet/src/main/java/com/cit/mocknet/xml`](./mocknet/src/main/java/com/cit/mocknet/xml) | FpML-style XML mapping |
 | [`mocknet/src/main/resources`](./mocknet/src/main/resources) | `application.yml`, sample trades |
-| [`mocknet/src/test/java/com/cit/clsnet`](./mocknet/src/test/java/com/cit/clsnet) | End-to-end and load tests |
+| [`mocknet/src/test/java/com/cit/mocknet`](./mocknet/src/test/java/com/cit/mocknet) | End-to-end and load tests |
 
 Sample payloads: [`sample-trade-buy.xml`](./mocknet/src/main/resources/sample-trade-buy.xml), [`sample-trade-sell.xml`](./mocknet/src/main/resources/sample-trade-sell.xml).
 
@@ -209,23 +209,29 @@ cd mocknet
 mvn test
 ```
 
-From the repository root, Bootstrap can prepare tracing and open a local CLS trace viewer:
+From the repository root, Bootstrap can prepare tracing and render terminal CLS flow diagrams:
 
 ```bash
 bun install
-bun run dev run "Use oteltrace for mocknet."
-bash .bootstrap/otel/mocknet/start-jaeger.sh
-bash .bootstrap/otel/mocknet/run-with-otel.sh
-bun run dev run "Use traceview for mocknet and open the local viewer."
+bun run mocknet:otel start
+bun run dev run "Use traceview for mocknet and show the terminal component and HTTP flow diagrams."
 ```
 
-`traceview` writes local artifacts under `.bootstrap/traceview/mocknet/` and serves a localhost-only HTML viewer that polls Jaeger and renders CLS stages from the traces it finds.
+`traceview` now defaults to a terminal-first workflow: start the full tracing stack, query Jaeger for recent and operation-focused traces, correlate them by business IDs, and print ASCII component and HTTP flow diagrams. The browser viewer is optional instead of the default.
+
+The all-in-one launcher lives at [`script/mocknet-otel.sh`](./script/mocknet-otel.sh). It downloads the OpenTelemetry Java agent into `.bootstrap/otel/mocknet/` if needed, starts Jaeger with OTLP enabled, and launches `mocknet` via `mvn spring-boot:run` with the Java agent attached. It also supports `stop`, `restart`, `status`, and `logs`:
+
+```bash
+bun run mocknet:otel status
+bun run mocknet:otel logs
+bun run mocknet:otel stop
+```
 
 Defaults (see [`mocknet/src/main/resources/application.yml`](./mocknet/src/main/resources/application.yml)):
 
 - Java **17**, Spring Boot **3.2.5** ([`mocknet/pom.xml`](./mocknet/pom.xml))
 - H2 file DB: `./data/coredb` (relative to the process working directory — use `mocknet/` when you run Maven there)
-- Worker pool sizes under `clsnet.threads.*`
+- Worker pool sizes under `mocknet.threads.*`
 - Durable queues persisted as `queue_messages` via JPA
 - H2 console enabled; HTTP port **8080**
 

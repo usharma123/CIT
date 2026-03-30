@@ -120,6 +120,14 @@ export interface TraceViewData {
   generatedAt: string
   flows: TraceFlow[]
   traces: NormalizedTrace[]
+  querySummary: TraceQuerySummary
+}
+
+export interface TraceQuerySummary {
+  usedTargetedQueries: boolean
+  httpOperations: string[]
+  componentOperations: string[]
+  searchedOperations: string[]
 }
 
 const TRADE_ID_KEYS = ["trade.id", "tradeId", "trade_id", "cls.trade.id"]
@@ -137,11 +145,21 @@ const LOW_SIGNAL_OPERATION_PATTERNS = [
   "queuemessagerepository.findclaimablenewids",
   "queuemessagerepository.findstaleprocessingids",
   "select ./data/coredb.queue_messages",
-  "select com.cit.clsnet.model.queuemessage",
+  "select com.cit.mocknet.model.queuemessage",
 ]
+const PREFERRED_COMPONENT_OPERATIONS = [
+  "TradeSubmissionController.submitTrade",
+  "TradeIngestionService.processTradeXml",
+  "TradeMatchingEngine.processMatchingMessage",
+  "NettingCalculator.processNettingMessage",
+  "TwoPhaseCommitCoordinator.executeTransaction",
+]
+const HTTP_OPERATION_PATTERN = /^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+/i
 
 export async function fetchTraceViewData(params: TraceViewParams): Promise<TraceViewData> {
-  const traces = await fetchJaegerTraces(params)
+  const operations = await fetchJaegerOperations(params.jaegerBaseUrl, params.serviceName).catch(() => [])
+  const querySummary = buildTraceQuerySummary(operations)
+  const traces = await fetchJaegerTraces(params, querySummary)
   const normalizedTraces = traces.map(normalizeTrace).filter((trace): trace is NormalizedTrace => Boolean(trace))
   const filteredTraces = normalizedTraces
     .filter((trace) => matchesFilters(trace, params))
@@ -154,31 +172,21 @@ export async function fetchTraceViewData(params: TraceViewParams): Promise<Trace
     generatedAt: new Date().toISOString(),
     flows,
     traces: filteredTraces.sort(compareTraces),
+    querySummary,
   }
 }
 
-async function fetchJaegerTraces(params: TraceViewParams): Promise<JaegerTrace[]> {
+async function fetchJaegerTraces(params: TraceViewParams, querySummary: TraceQuerySummary): Promise<JaegerTrace[]> {
   if (params.traceId) {
     const trace = await fetchTraceById(params.jaegerBaseUrl, params.traceId)
     return trace ? [trace] : []
   }
 
-  const endMicros = Date.now() * 1000
-  const startMicros = endMicros - params.lookbackMinutes * 60 * 1000 * 1000
-  const searchUrl = new URL("/api/traces", params.jaegerBaseUrl)
-  searchUrl.searchParams.set("service", params.serviceName)
-  searchUrl.searchParams.set("lookback", "custom")
-  searchUrl.searchParams.set("start", String(startMicros))
-  searchUrl.searchParams.set("end", String(endMicros))
-  searchUrl.searchParams.set("limit", String(params.limit))
-
-  const response = await fetch(searchUrl)
-  if (!response.ok) {
-    throw new Error(`Failed to query Jaeger search API: ${response.status} ${response.statusText}`)
-  }
-
-  const body = (await response.json()) as JaegerResponse<JaegerTrace[]>
-  const searchEntries = Array.isArray(body.data) ? body.data : []
+  const searchResponses = await Promise.all([
+    searchJaegerTraces(params),
+    ...querySummary.searchedOperations.map((operation) => searchJaegerTraces(params, operation)),
+  ])
+  const searchEntries = dedupeTraceEntries(searchResponses.flat())
   const traceIds = unique(searchEntries.map(extractTraceId).filter(Boolean))
   const entryMap = new Map(searchEntries.map((entry) => [extractTraceId(entry), entry]))
 
@@ -190,6 +198,70 @@ async function fetchJaegerTraces(params: TraceViewParams): Promise<JaegerTrace[]
   )
 
   return traces.filter((trace): trace is JaegerTrace => Boolean(trace))
+}
+
+async function searchJaegerTraces(params: TraceViewParams, operation?: string): Promise<JaegerTrace[]> {
+  const endMicros = Date.now() * 1000
+  const startMicros = endMicros - params.lookbackMinutes * 60 * 1000 * 1000
+  const searchUrl = new URL("/api/traces", params.jaegerBaseUrl)
+  searchUrl.searchParams.set("service", params.serviceName)
+  searchUrl.searchParams.set("lookback", "custom")
+  searchUrl.searchParams.set("start", String(startMicros))
+  searchUrl.searchParams.set("end", String(endMicros))
+  searchUrl.searchParams.set("limit", String(params.limit))
+  if (operation) {
+    searchUrl.searchParams.set("operation", operation)
+  }
+
+  const response = await fetch(searchUrl)
+  if (!response.ok) {
+    throw new Error(`Failed to query Jaeger search API: ${response.status} ${response.statusText}`)
+  }
+
+  const body = (await response.json()) as JaegerResponse<JaegerTrace[]>
+  return Array.isArray(body.data) ? body.data : []
+}
+
+async function fetchJaegerOperations(jaegerBaseUrl: string, serviceName: string): Promise<string[]> {
+  const url = new URL("/api/operations", jaegerBaseUrl)
+  url.searchParams.set("service", serviceName)
+  const response = await fetch(url)
+  if (!response.ok) {
+    throw new Error(`Failed to query Jaeger operations API: ${response.status} ${response.statusText}`)
+  }
+
+  const body = (await response.json()) as JaegerResponse<Array<string | { name?: string }>>
+  return unique(
+    (Array.isArray(body.data) ? body.data : [])
+      .map((entry) => (typeof entry === "string" ? entry : entry?.name ?? ""))
+      .filter((entry) => entry.trim().length > 0),
+  )
+}
+
+function buildTraceQuerySummary(operations: string[]): TraceQuerySummary {
+  const httpOperations = operations.filter((operation) => isHttpOperation(operation)).slice(0, 8)
+  const componentOperations = unique([
+    ...PREFERRED_COMPONENT_OPERATIONS.filter((operation) => operations.includes(operation)),
+    ...operations.filter((operation) => isInterestingComponentOperation(operation)).slice(0, 12),
+  ]).slice(0, 12)
+  const searchedOperations = unique([...httpOperations, ...componentOperations])
+
+  return {
+    usedTargetedQueries: searchedOperations.length > 0,
+    httpOperations,
+    componentOperations,
+    searchedOperations,
+  }
+}
+
+function dedupeTraceEntries(entries: JaegerTrace[]) {
+  const byId = new Map<string, JaegerTrace>()
+  for (const entry of entries) {
+    const traceId = extractTraceId(entry)
+    if (!traceId) continue
+    byId.set(traceId, entry)
+  }
+  return [...byId.values()]
 }
 
 async function fetchTraceById(jaegerBaseUrl: string, traceId: string): Promise<JaegerTrace | null> {
@@ -332,47 +404,76 @@ function summarizeStage(name: ClsStageName, spans: TraceSpan[]): TraceStage {
 }
 
 function groupNormalizedTraces(traces: NormalizedTrace[]): TraceFlow[] {
-  const grouped = new Map<string, TraceFlow>()
+  const grouped = new Map<string, Array<NormalizedTrace>>()
 
   for (const trace of [...traces].sort(compareTraces)) {
     const grouping = trace.tradeId ? "tradeId" : trace.messageId ? "messageId" : "traceId"
     const groupKey = trace.tradeId ?? trace.messageId ?? trace.traceId
-    const existing = grouped.get(groupKey)
-
-    if (!existing) {
-      grouped.set(groupKey, {
-        ...trace,
-        groupKey,
-        grouping,
-        traceIds: [trace.traceId],
-        relatedTraceIds: [],
-        attempts: 1,
-      })
-      continue
-    }
-
-    const allTraceIds = unique([trace.traceId, ...existing.traceIds])
-    grouped.set(
-      groupKey,
-      trace.startTime > existing.startTime
-        ? {
-            ...trace,
-            groupKey,
-            grouping,
-            traceIds: allTraceIds,
-            relatedTraceIds: unique(existing.traceIds),
-            attempts: existing.attempts + 1,
-          }
-        : {
-            ...existing,
-            traceIds: allTraceIds,
-            relatedTraceIds: unique([trace.traceId, ...existing.relatedTraceIds]),
-            attempts: existing.attempts + 1,
-          },
-    )
+    const existing = grouped.get(groupKey) ?? []
+    existing.push(trace)
+    grouped.set(groupKey, existing)
   }
 
-  return [...grouped.values()].sort(compareTraces)
+  return [...grouped.entries()]
+    .map(([groupKey, groupedTraces]) => summarizeGroupedFlow(groupKey, groupedTraces))
+    .sort(compareTraces)
+}
+
+function summarizeGroupedFlow(groupKey: string, traces: NormalizedTrace[]): TraceFlow {
+  const sortedByStart = [...traces].sort((a, b) => a.startTime - b.startTime)
+  const representative = [...traces].sort(compareTraces)[0] ?? sortedByStart[0]
+  const grouping = representative.tradeId ? "tradeId" : representative.messageId ? "messageId" : "traceId"
+  const rawSpans = dedupeGroupedSpans(sortedByStart.flatMap((trace) => trace.rawSpans)).sort((a, b) => a.startTime - b.startTime)
+  const stageMap = new Map<ClsStageName, TraceSpan[]>()
+
+  for (const span of rawSpans) {
+    const existing = stageMap.get(span.stage) ?? []
+    existing.push(span)
+    stageMap.set(span.stage, existing)
+  }
+
+  const stages = Array.from(stageMap.entries())
+    .map(([name, spansForStage]) => summarizeStage(name, spansForStage))
+    .sort((a, b) => {
+      const orderDiff = CLS_STAGE_ORDER.indexOf(a.name) - CLS_STAGE_ORDER.indexOf(b.name)
+      if (orderDiff !== 0) return orderDiff
+      return a.startTime - b.startTime
+    })
+
+  const startTime = rawSpans[0]?.startTime ?? representative.startTime
+  const endTime = rawSpans.reduce((max, span) => Math.max(max, span.startTime + span.durationMs), startTime)
+  const tradeId = representative.tradeId ?? firstNonEmpty(sortedByStart.map((trace) => trace.tradeId))
+  const messageId = representative.messageId ?? firstNonEmpty(sortedByStart.map((trace) => trace.messageId))
+
+  return {
+    traceId: representative.traceId,
+    rootSpan: representative.rootSpan,
+    startTime,
+    durationMs: Math.max(1, endTime - startTime),
+    status: traces.some((trace) => trace.status === "error")
+      ? "error"
+      : traces.some((trace) => trace.status === "partial")
+        ? "partial"
+        : "ok",
+    tradeId,
+    messageId,
+    stages,
+    rawSpans,
+    inferred: traces.some((trace) => trace.inferred),
+    groupKey,
+    grouping,
+    traceIds: unique(sortedByStart.map((trace) => trace.traceId)),
+    relatedTraceIds: unique(sortedByStart.slice(1).map((trace) => trace.traceId)),
+    attempts: sortedByStart.length,
+  }
+}
+
+function dedupeGroupedSpans(spans: TraceSpan[]) {
+  const byId = new Map<string, TraceSpan>()
+  for (const span of spans) {
+    byId.set(`${span.traceId}:${span.spanId}`, span)
+  }
+  return [...byId.values()]
 }
 
 function matchesFilters(trace: NormalizedTrace, params: Pick<TraceViewParams, "traceId" | "tradeId" | "messageId">) {
@@ -540,60 +641,66 @@ export function renderTraceViewAscii(
 ) {
   const maxFlows = Math.max(1, options.maxFlows ?? 3)
   const flows = data.flows.slice(0, maxFlows)
+  const queryLines = [
+    "Jaeger Query Summary",
+    `  targeted queries: ${data.querySummary.usedTargetedQueries ? "yes" : "no"}`,
+    `  component operations: ${formatQueryList(data.querySummary.componentOperations)}`,
+    `  http operations: ${formatQueryList(data.querySummary.httpOperations)}`,
+  ]
 
   if (!flows.length) {
     return [
-      "Exact Traced Component Interactions (span-derived only)",
+      ...queryLines,
+      "",
+      "Component Flow (terminal ASCII, span-derived only)",
       "  (no correlated flows found)",
       "",
-      "Exact Traced HTTP Interactions (span-derived only)",
+      "HTTP Flow (terminal ASCII, span-derived only)",
       "  (no HTTP spans found)",
     ].join("\n")
   }
 
   const componentLines = [
-    "Exact Traced Component Interactions (span-derived only)",
-    "Do not rename components or invent stages that are not present in spans.",
+    "Component Flow (terminal ASCII, span-derived only)",
+    "Built from exact Jaeger span queries plus grouped trace correlation.",
     "",
   ]
   const httpLines = [
-    "Exact Traced HTTP Interactions (span-derived only)",
-    "If a request or stage is absent from spans, treat it as absent.",
+    "HTTP Flow (terminal ASCII, span-derived only)",
+    "Only exact HTTP spans are rendered here.",
     "",
   ]
 
   for (const flow of flows) {
-    const label = flow.tradeId ?? flow.messageId ?? flow.traceId
-    const componentOps = unique(
-      flow.rawSpans
-        .filter((span) => isRelevantComponentSpan(span))
-        .map((span) => span.operationName),
-    )
-    const httpOps = unique(
-      flow.rawSpans
-        .map((span) => formatHttpInteraction(span))
-        .filter((value): value is string => Boolean(value)),
-    )
+    const label = formatFlowLabel(flow)
+    const componentOps = buildComponentFlow(flow)
+    const httpOps = buildHttpFlow(flow)
 
-    componentLines.push(`${label}`)
+    componentLines.push(label)
     if (componentOps.length === 0) {
       componentLines.push("  (no component spans)")
     } else {
-      componentLines.push(`  ${componentOps.join("\n  -> ")}`)
+      componentLines.push(...renderAsciiRail(componentOps))
     }
 
-    httpLines.push(`${label}`)
+    httpLines.push(label)
     if (httpOps.length === 0) {
       httpLines.push("  (no HTTP spans)")
     } else {
-      httpLines.push(`  ${httpOps.join("\n  -> ")}`)
+      httpLines.push(...renderAsciiRail(httpOps))
     }
 
     componentLines.push("")
     httpLines.push("")
   }
 
-  return [...trimTrailingBlankLines(componentLines), "", ...trimTrailingBlankLines(httpLines)].join("\n")
+  return [
+    ...trimTrailingBlankLines(queryLines),
+    "",
+    ...trimTrailingBlankLines(componentLines),
+    "",
+    ...trimTrailingBlankLines(httpLines),
+  ].join("\n")
 }
 
 function isRelevantComponentSpan(span: TraceSpan) {
@@ -610,6 +717,15 @@ function isRelevantComponentSpan(span: TraceSpan) {
   return span.stage !== "OTHER" || Boolean(span.tags["cls.stage"])
 }
 
+function buildComponentFlow(flow: TraceFlow) {
+  return uniqueBy(
+    flow.rawSpans
+      .filter((span) => isRelevantComponentSpan(span))
+      .sort((a, b) => a.startTime - b.startTime)
+      .map((span) => `[${span.stage}] ${span.operationName}`),
+  )
+}
+
 function formatHttpInteraction(span: TraceSpan) {
   const method = firstNonEmpty([span.tags["http.request.method"], span.tags["http.method"]])
   const route = firstNonEmpty([span.tags["url.path"], span.tags["http.route"], span.tags["http.target"]])
@@ -620,6 +736,59 @@ function formatHttpInteraction(span: TraceSpan) {
   const endpoint = [method, route].filter(Boolean).join(" ").trim() || span.operationName
   const component = span.operationName !== endpoint ? ` -> ${span.operationName}` : ""
   return `${endpoint}${component}`
+}
+
+function buildHttpFlow(flow: TraceFlow) {
+  return uniqueBy(
+    flow.rawSpans
+      .sort((a, b) => a.startTime - b.startTime)
+      .map((span) => formatHttpInteraction(span))
+      .filter((value): value is string => Boolean(value))
+      .map((value) => `[HTTP] ${value}`),
+  )
+}
+
+function renderAsciiRail(items: string[]) {
+  const lines: string[] = []
+  items.forEach((item, index) => {
+    lines.push(`  ${item}`)
+    if (index < items.length - 1) {
+      lines.push("    |")
+    }
+  })
+  return lines
+}
+
+function formatFlowLabel(flow: TraceFlow) {
+  const id = flow.tradeId ?? flow.messageId ?? flow.traceId
+  return `${id}  [${flow.grouping}; traces=${flow.traceIds.length}]`
+}
+
+function formatQueryList(items: string[]) {
+  return items.length ? items.join(", ") : "(none)"
+}
+
+function uniqueBy(values: string[]) {
+  return [...new Set(values)]
+}
+
+function isInterestingComponentOperation(operation: string) {
+  const lower = operation.toLowerCase()
+  if (LOW_SIGNAL_OPERATION_PATTERNS.some((pattern) => lower.includes(pattern))) {
+    return false
+  }
+  return (
+    lower.includes("controller.") ||
+    lower.includes("service.") ||
+    lower.includes("engine.") ||
+    lower.includes("calculator.") ||
+    lower.includes("coordinator.") ||
+    lower.includes("process")
+  )
+}
+
+function isHttpOperation(operation: string) {
+  return HTTP_OPERATION_PATTERN.test(operation) || operation.includes("/api/")
 }
 
 function trimTrailingBlankLines(lines: string[]) {

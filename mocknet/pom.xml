@@ -12,10 +12,10 @@
     </parent>
 
     <groupId>com.cit</groupId>
-    <artifactId>clsnet-mock</artifactId>
+    <artifactId>mocknet-mock</artifactId>
     <version>1.0.0-SNAPSHOT</version>
-    <name>CLSNet Mock</name>
-    <description>Mock implementation of CLSNet bilateral FX payment netting system</description>
+    <name>Mocknet</name>
+    <description>Mock bilateral FX payment netting system (Spring Boot module)</description>
 
     <properties>
         <java.version>17</java.version>

@@ -1,22 +1,31 @@
-Prepare and launch a local CLS trace viewer backed by Jaeger's HTTP API.
+Prepare terminal-first CLS trace flow diagrams backed by Jaeger's HTTP API.
 
-Use this when Bootstrap should inspect OpenTelemetry traces for a Java service and render them as a CLS-first component flow in a browser page.
+Use this when Bootstrap should inspect OpenTelemetry traces for a Java service after starting the full tracing stack and then render exact span-derived component and HTTP flows directly in the terminal.
+
+Preferred workflow:
+1. Run the overall tracing launcher first.
+   For `mocknet`, prefer `bun run mocknet:otel start`.
+2. Query Jaeger for recent traces plus operation-focused traces.
+3. Correlate traces by `trade.id`, `message.id`, or `traceId`.
+4. Render terminal ASCII diagrams for:
+   - component flow
+   - HTTP flow
 
 The tool will:
+- optionally run the tracing launcher before querying Jaeger
 - query Jaeger for recent traces
+- query Jaeger operations and targeted business spans when available
 - fetch full trace details
-- normalize spans into CLS stages
+- correlate async traces into one flow when shared business IDs are present
 - emit exact span-derived ASCII summaries for terminal use
-- write a local HTML/CSS/JS viewer under the workspace
-- start a localhost-only viewer server
-- optionally open the viewer in the browser
+- optionally write a local HTML/CSS/JS viewer and open it in the browser
 
 Defaults:
 - Jaeger base URL: `http://localhost:16686`
 - service name: `mocknet`
 - lookback: 15 minutes
 - limit: 50 traces
-- refresh interval: 3 seconds
+- refresh interval: 3 seconds when the optional viewer is enabled
 - output directory: `${directory}/.bootstrap/traceview/<serviceName>`
 
 The viewer groups traces by:
@@ -30,6 +39,7 @@ When summarizing traces:
 - Treat queue polling traces and infrastructure-only traces as insufficient evidence of healthy business tracing.
 - If async queue stages appear as separate traces, say so explicitly instead of pretending they are one end-to-end distributed trace.
 - Use the Jaeger `processes` map for service attribution when needed; per-span `serviceName` fields may be absent.
+- Prefer terminal ASCII diagrams over browser output unless the user explicitly asks for the viewer.
 
 Canonical CLS stages:
 - `HTTP`

@@ -10,6 +10,7 @@
     "test": "bun test",
     "build": "bun run script/build.ts",
     "dev": "bun run --conditions=browser ./src/index.ts",
+    "mocknet:otel": "bash ./script/mocknet-otel.sh",
     "clean": "rm -rf node_modules dist dist-electron",
     "electron:build:main": "bun build ./src/electron/main.ts ./src/electron/preload.ts --outdir ./dist-electron --target=node --external electron",
     "electron:build:renderer": "bunx vite build --config vite.electron.renderer.config.ts --base ./",

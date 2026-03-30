@@ -1,0 +1,234 @@
+
+  MOCKNET COMPONENT INTEGRATION FLOW — OTEL TRACE 1fcee533764e9b258777f9cf5781ac95
+  Trade Pair: TRD-CIT-A30 / TRD-CIT-B30  |  195 spans  |  165ms end-to-end
+  ═══════════════════════════════════════════════════════════════════════════════════
+
+  EXTERNAL CLIENT
+  ───────────────
+       │
+       │  POST /api/trades
+       │  Content-Type: application/xml
+       │
+       │  ┌─────────────────────────────────────────────────────┐
+       │  │  <tradeMessage>                                     │
+       │  │    <header>                                         │
+       │  │      <messageId>MSG-CIT-A30</messageId>             │
+       │  │      <creationTimestamp>2026-03-30T14:00:00Z</...>  │
+       │  │    </header>                                        │
+       │  │    <trade>                                          │
+       │  │      <tradeId>TRD-CIT-A30</tradeId>                 │
+       │  │      <tradeType>SPOT</tradeType>                    │
+       │  │      <party1>BANK_A / BUYER</party1>                │
+       │  │      <party2>BANK_B / SELLER</party2>               │
+       │  │      <currencyPair>USD 1,000,000 / EUR 920,000</..> │
+       │  │      <valueDate>2026-04-01</valueDate>              │
+       │  │    </trade>                                         │
+       │  │  </tradeMessage>                                    │
+       │  └─────────────────────────────────────────────────────┘
+       │
+       ▼
+  ╔═══════════════════════════════════════════════╗
+  ║  HTTP LAYER                          t+0ms    ║
+  ║  TradeSubmissionController.submitTrade        ║
+  ║  thread: http-nio-8080-exec-1      5.4ms      ║
+  ╚══════════════════════╤════════════════════════╝
+                         │
+                         │  QueueBroker.publish(queue=INGESTION)
+                         │  Injects W3C traceparent into QueueMessage.traceContext
+                         │  Persists QueueMessage to DB           2.8ms
+                         │
+                         ▼
+  ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ - - ┐
+  │         INGESTION QUEUE (H2 table)            │
+  │                                               │
+  │  payload: raw FpML XML                        │
+  │  ┌──────────────────────────────────────────┐ │
+  │  │ <tradeMessage>                           │ │
+  │  │   <header>                               │ │
+  │  │     <messageId>MSG-CIT-A30</messageId>   │ │
+  │  │   </header>                              │ │
+  │  │   <trade>                                │ │
+  │  │     <tradeId>TRD-CIT-A30</tradeId>       │ │
+  │  │     ...full FpML body...                 │ │
+  │  │   </trade>                               │ │
+  │  │ </tradeMessage>                          │ │
+  │  └──────────────────────────────────────────┘ │
+  │  traceContext: "00-1fcee533...-<spanId>-01"   │
+  └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┬ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ - - ┘
+                        │
+                        │  ingestion-worker-1 claims message
+                        │  Extracts parent context from traceContext
+                        ▼
+  ╔═══════════════════════════════════════════════╗
+  ║  INGESTION STAGE                    t+26ms    ║
+  ║  TradeIngestionService.processTradeXml        ║
+  ║  thread: ingestion-worker-1        2.7ms      ║
+  ║                                               ║ 
+  ║  ┌─ TradeXmlParser.parse ──────── 0.3ms ──┐   ║
+  ║  │  Deserializes XML → ParsedTradeMessage  │  ║
+  ║  └────────────────────────────────────────┘   ║
+  ║  ┌─ TradeValidator.validate ───── 0.0ms ──┐   ║
+  ║  │  CurrencyValidationService.isSupported  │  ║
+  ║  │    → USD ✓                              │  ║
+  ║  │    → EUR ✓                              │  ║
+  ║  └────────────────────────────────────────┘   ║
+  ║  │  ParsedTradeMessage → Trade entity      │  ║
+  ║  └────────────────────────────────────────┘   ║
+  ║  ┌─ TradeRepository.save ──────── 0.9ms ──┐   ║
+  ║  │  INSERT INTO trades → PK 3565           │  ║
+  ║  └────────────────────────────────────────┘   ║
+  ╚══════════════════════╤════════════════════════╝
+                         │
+                         │  QueueBroker.publish(queue=MATCHING)
+                         │  Persists QueueMessage to DB           0.7ms
+                         │
+                         ▼
+  ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ - - ┐
+  │         MATCHING QUEUE (H2 table)             │
+  │                                               │
+  │  payload: JSON                                │
+  │  ┌──────────────────────────────────────────┐ │
+  │  │ { "tradeId": 3565 }                      │ │
+  │  └──────────────────────────────────────────┘ │
+  │  traceContext: "00-1fcee533...-<spanId>-01"   │
+  └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┬ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ - - ┘
+                        │
+                        │  matching-worker claims message
+                        ▼
+  ╔═══════════════════════════════════════════════╗
+  ║  MATCHING STAGE                     t+31ms    ║
+  ║  TradeMatchingEngine.processMatchingMessage   ║
+  ║  thread: matching-worker           64.5ms     ║
+  ║                                               ║
+  ║  ┌─ MatchingMessageParser ──────── 2.2ms ─┐   ║
+  ║  │  Parses {"tradeId":3565} → Long        │   ║
+  ║  └────────────────────────────────────────┘   ║
+  ║  ┌─ TradeRepository.findMatchCandidate ───┐   ║
+  ║  │  Searches for mirror trade     35.6ms   │  ║
+  ║  │  Found: TRD-CIT-001 (prior run match)   │  ║
+  ║  └────────────────────────────────────────┘   ║
+  ║  ┌─ MatchedTradeFactory.create ─── 0.8ms ─┐   ║
+  ║  │  Creates MatchedTrade entity           │   ║
+  ║  │  Links TRD-CIT-A30 ↔ counterparty      │   ║
+  ║  └────────────────────────────────────────┘   ║
+  ║  ┌─ MatchedTradeRepository.save ── 2.9ms ─┐   ║
+  ║  │  INSERT INTO matched_trades → PK 657   │   ║
+  ║  └────────────────────────────────────────┘   ║
+  ║  ┌─ Trade status updates ──────── 3.2ms ──┐   ║
+  ║  │  TRD-CIT-A30 → MATCHED                 │   ║
+  ║  │  counterparty → MATCHED                │   ║
+  ║  └────────────────────────────────────────┘   ║
+  ╚══════════════════════╤════════════════════════╝
+                         │
+                         │  QueueBroker.publish(queue=NETTING)
+                         │  Persists QueueMessage to DB           0.6ms
+                         │
+                         ▼
+  ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ - - ┐
+  │          NETTING QUEUE (H2 table)             │
+  │                                               │
+  │  payload: JSON                                │
+  │  ┌──────────────────────────────────────────┐ │
+  │  │ { "matchedTradeId": 657 }                │ │
+  │  └──────────────────────────────────────────┘ │
+  │  traceContext: "00-1fcee533...-<spanId>-01"   │
+  └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┬ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ - - ┘
+                        │
+                        │  netting-worker claims message
+                        ▼
+  ╔═══════════════════════════════════════════════╗
+  ║  NETTING STAGE                     t+130ms    ║
+  ║  NettingCalculator.processNettingMessage      ║
+  ║  thread: netting-worker            33.5ms     ║
+  ║                                               ║
+  ║  ┌─ NettingMessageParser ──────── 0.1ms ──┐   ║
+  ║  │  Parses {"matchedTradeId":657} → Long  │   ║
+  ║  └────────────────────────────────────────┘   ║
+  ║                                               ║
+  ║  ┌────────────────────────────────────────┐   ║
+  ║  │  TwoPhaseCommitCoordinator     33.2ms  │   ║
+  ║  │                                        │   ║
+  ║  │  PHASE 1 — PREPARE & VOTE              │   ║
+  ║  │  ┌──────────────────────────────────┐  │   ║
+  ║  │  │ TransactionLog.create   1.2ms    │  │   ║
+  ║  │  │ Load MatchedTrade #657           │  │   ║
+  ║  │  │ Load Trade TRD-CIT-A30           │  │   ║
+  ║  │  │ Load Trade counterparty          │  │   ║
+  ║  │  │                                  │  │   ║
+  ║  │  │ ParticipantVote(BANK_A) → COMMIT │  │   ║
+  ║  │  │ ParticipantVote(BANK_B) → COMMIT │  │   ║
+  ║  │  └──────────────────────────────────┘  │   ║
+  ║  │                                        │   ║
+  ║  │  PHASE 2 — COMMIT & SETTLE             │   ║
+  ║  │  ┌──────────────────────────────────┐  │   ║
+  ║  │  │ NettingSetFactory.create  0.8ms  │  │   ║
+  ║  │  │  → NettingSet #1151 (USD leg)    │  │   ║
+  ║  │  │  → NettingSet #1152 (EUR leg)    │  │   ║
+  ║  │  │                                  │  │   ║
+  ║  │  │ Trade statuses → SETTLED         │  │   ║
+  ║  │  │ MatchedTrade → SETTLED           │  │   ║
+  ║  │  └──────────────────────────────────┘  │   ║
+  ║  └────────────────────────────────────────┘   ║
+  ╚══════════════════════╤════════════════════════╝
+                         │
+                         │  (inline — no queue boundary)
+                         ▼
+  ╔═══════════════════════════════════════════════╗
+  ║  SETTLEMENT STAGE                  t+160ms    ║
+  ║  SettlementInstructionFactory.create          ║
+  ║                                               ║
+  ║  ┌─ SettlementInstruction ─────── 0.1ms ──┐   ║
+  ║  │  NettingSet #1151 (USD leg)            │   ║
+  ║  │  BANK_A pays USD 1,000,000 → BANK_B    │   ║
+  ║  │  INSERT INTO settlement_instructions   │   ║
+  ║  └────────────────────────────────────────┘   ║
+  ║  ┌─ SettlementInstruction ─────── 0.0ms ──┐   ║
+  ║  │  NettingSet #1152 (EUR leg)            │   ║
+  ║  │  BANK_B pays EUR 920,000 → BANK_A      │   ║
+  ║  │  INSERT INTO settlement_instructions   │   ║
+  ║  └────────────────────────────────────────┘   ║
+  ║                                               ║
+  ║  TransactionLog → COMMITTED        0.0ms      ║
+  ╚══════════════════════╤════════════════════════╝
+                         │
+                         │  QueueBroker.complete(queue=NETTING)   0.8ms
+                         │  QueueMessage status → COMPLETED
+                         ▼
+                        ✓ DONE  (t+165ms)
+
+
+  ═══════════════════════════════════════════════════════════════════════════════════
+  TRACE CONTEXT PROPAGATION
+  ═══════════════════════════════════════════════════════════════════════════════════
+
+  All spans share traceID: 1fcee533764e9b258777f9cf5781ac95
+
+  HTTP request                  INGESTION queue              MATCHING queue               NETTING queue
+  ────────────                  ───────────────              ──────────────               ─────────────
+  ┌──────────┐   traceparent   ┌──────────────┐ traceparent ┌─────────────┐  traceparent ┌────────────┐
+  │ Tomcat   │ ──────────────▶ │ QueueMessage │ ──────────▶ │ QueueMessage│ ───────────▶ │QueueMessage│
+  │ span     │   via publish() │ .traceContext│  via publish │ .traceCtx  │  via publish │ .traceCtx  │
+  └──────────┘                 └──────────────┘             └─────────────┘              └────────────┘
+
+  Format: W3C traceparent = "00-<traceId>-<parentSpanId>-01"
+  Each queue worker extracts the parent context and continues the same trace.
+
+
+  ═══════════════════════════════════════════════════════════════════════════════════
+  TIMING WATERFALL
+  ═══════════════════════════════════════════════════════════════════════════════════
+
+  0ms         26ms        31ms                              96ms   130ms                     165ms
+  │           │           │                                  │      │                          │
+  │──HTTP────▶│           │                                  │      │                          │
+  │  5.4ms    │           │                                  │      │                          │
+  │           │─INGEST───▶│                                  │      │                          │
+  │           │  2.7ms    │                                  │      │                          │
+  │           │           │──────────MATCHING───────────────▶│      │                          │
+  │           │           │            64.5ms                │      │                          │
+  │           │           │                                  │      │──────NETTING+SETTLE─────▶│
+  │           │           │                                  │      │         33.5ms           │
+  │           │           │                                  │      │                          │
+  ├───────────┴───────────┴──────────────────────────────────┴──────┴──────────────────────────┤
+  │                           Total: ~165ms end-to-end                                         │ 
+

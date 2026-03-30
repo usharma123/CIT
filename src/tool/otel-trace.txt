@@ -14,6 +14,8 @@ OUTPUTS:
 - `stop-jaeger.sh` helper to stop Jaeger
 
 WHEN PREPARING OR VALIDATING TRACING:
+- If the repository already provides an all-in-one launcher, prefer that launcher first.
+- For this repo's `mocknet`, prefer `bun run mocknet:otel start` over manually invoking the generated helpers.
 - Prefer launching the app through `run-with-otel.sh` so the tool-controlled `otel.env` is actually applied.
 - Do not stop at Jaeger or OTLP health alone. Exporter health is necessary but not sufficient.
 - After startup, send known-good application traffic and verify exact business/component span names in Jaeger before declaring success.
