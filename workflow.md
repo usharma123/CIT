@@ -100,16 +100,16 @@ Replace the tag value to search by stage (`INGESTION`, `MATCHING`, `NETTING`, `S
 
 ```bash
 # Ingestion traces
-curl -s 'http://localhost:16686/api/traces?service=mocknet&limit=10&lookback=1h&tags=%7B%22cls.stage%22%3A%22INGESTION%22%7D'
+curl -s 'http://localhost:16686/api/traces?service=mocknet&limit=10&lookback=1h&tags=%7B%22component.stage%22%3A%22INGESTION%22%7D'
 
 # Matching traces
-curl -s 'http://localhost:16686/api/traces?service=mocknet&limit=10&lookback=1h&tags=%7B%22cls.stage%22%3A%22MATCHING%22%7D'
+curl -s 'http://localhost:16686/api/traces?service=mocknet&limit=10&lookback=1h&tags=%7B%22component.stage%22%3A%22MATCHING%22%7D'
 
 # Netting traces
-curl -s 'http://localhost:16686/api/traces?service=mocknet&limit=10&lookback=1h&tags=%7B%22cls.stage%22%3A%22NETTING%22%7D'
+curl -s 'http://localhost:16686/api/traces?service=mocknet&limit=10&lookback=1h&tags=%7B%22component.stage%22%3A%22NETTING%22%7D'
 ```
 
-The `tags` param is URL-encoded JSON. `%7B%22cls.stage%22%3A%22INGESTION%22%7D` decodes to `{"cls.stage":"INGESTION"}`.
+The `tags` param is URL-encoded JSON. `%7B%22component.stage%22%3A%22INGESTION%22%7D` decodes to `{"component.stage":"INGESTION"}`.
 
 ### Find traces by correlation ID
 
@@ -144,7 +144,7 @@ for t in data.get('data', []):
     corrs = {}
     for s in spans:
         tags = {tag['key']: tag['value'] for tag in s['tags']}
-        if 'cls.stage' in tags: stages.add(tags['cls.stage'])
+        if 'component.stage' in tags: stages.add(tags['component.stage'])
         for k in ['trade.id','message.id','matched.trade.id','netting.set.id']:
             if k in tags: corrs[k] = tags[k]
     print(f'traceID: {t[\"traceID\"]}  spans: {len(spans)}  stages: {sorted(stages)}  correlations: {corrs}')
@@ -178,7 +178,7 @@ for s in spans:
 
 def print_tree(span, depth=0):
     tags = {t['key']: t['value'] for t in span['tags']}
-    stage = tags.get('cls.stage', '')
+    stage = tags.get('component.stage', '')
     thread = tags.get('thread.name', '')
     dur_ms = span['duration'] / 1000
     corr = []
@@ -211,7 +211,7 @@ spans = sorted(trace['spans'], key=lambda s: s['startTime'])
 
 for s in spans:
     tags = {t['key']: t['value'] for t in s['tags']}
-    stage = tags.get('cls.stage', tags.get('db.operation', ''))
+    stage = tags.get('component.stage', tags.get('db.operation', ''))
     kind = tags.get('component.kind', tags.get('span.kind', ''))
     thread = tags.get('thread.name', '')
     corr = []
@@ -231,7 +231,7 @@ Quick check after submitting a trade pair:
 
 ```bash
 # Find traces that hit INGESTION stage and check if they also contain other stages
-curl -s 'http://localhost:16686/api/traces?service=mocknet&limit=5&lookback=1h&tags=%7B%22cls.stage%22%3A%22INGESTION%22%7D' | python3 -c "
+curl -s 'http://localhost:16686/api/traces?service=mocknet&limit=5&lookback=1h&tags=%7B%22component.stage%22%3A%22INGESTION%22%7D' | python3 -c "
 import json, sys
 data = json.load(sys.stdin)
 for t in data.get('data', []):
@@ -239,7 +239,7 @@ for t in data.get('data', []):
     stages = set()
     for s in spans:
         tags = {tag['key']: tag['value'] for tag in s['tags']}
-        if 'cls.stage' in tags: stages.add(tags['cls.stage'])
+        if 'component.stage' in tags: stages.add(tags['component.stage'])
     full = 'INGESTION' in stages and 'MATCHING' in stages and 'NETTING' in stages
     status = 'FULL E2E' if full else 'PARTIAL'
     print(f'{status}  traceID: {t[\"traceID\"]}  spans: {len(spans)}  stages: {sorted(stages)}')
@@ -265,7 +265,7 @@ These are the attributes you can search/filter by in Jaeger:
 
 | Attribute | Description | Example Values |
 |-----------|-------------|----------------|
-| `cls.stage` | Processing stage | `HTTP`, `INGESTION`, `MATCHING`, `NETTING`, `SETTLEMENT`, `DATABASE`, `OTHER` |
+| `component.stage` | Processing stage | `HTTP`, `INGESTION`, `MATCHING`, `NETTING`, `SETTLEMENT`, `DATABASE`, `OTHER` |
 | `trade.id` | Trade business ID | `TRD-TEST-001` |
 | `trade.record.id` | Trade DB primary key | `3550` |
 | `message.id` | FpML message ID | `MSG-TEST-001` |

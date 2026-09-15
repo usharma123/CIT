@@ -1,6 +1,10 @@
 package com.cit.mocknet.queue;
 
 import com.cit.mocknet.config.MocknetProperties;
+import com.cit.mocknet.observability.OperationalTelemetry;
+import com.cit.mocknet.observability.ProcessingContext;
+import com.cit.mocknet.shared.payload.TextPayloadCorrelationReader;
+import java.util.UUID;
 import com.cit.mocknet.model.QueueMessage;
 import com.cit.mocknet.model.QueueMessageStatus;
 import com.cit.mocknet.model.QueueName;
@@ -8,8 +12,7 @@ import com.cit.mocknet.repository.QueueMessageRepository;
 import com.cit.mocknet.shared.failure.FailureContext;
 import com.cit.mocknet.shared.failure.QueueFailureDisposition;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanContext;
+import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.context.Context;
 import org.springframework.data.domain.PageRequest;
 import org.slf4j.Logger;
@@ -33,8 +36,10 @@ public class QueueBroker {
     private final QueueMessageRepository queueMessageRepository;
     private final MocknetProperties properties;
     private final ObjectMapper objectMapper;
+    private final OperationalTelemetry telemetry;
 
-    public QueueBroker(QueueMessageRepository queueMessageRepository, MocknetProperties properties) {
+    public QueueBroker(QueueMessageRepository queueMessageRepository, MocknetProperties properties, OperationalTelemetry telemetry) {
+        this.telemetry = telemetry;
         this.queueMessageRepository = queueMessageRepository;
         this.properties = properties;
         this.objectMapper = new ObjectMapper();
@@ -45,29 +50,26 @@ public class QueueBroker {
         QueueMessage message = new QueueMessage();
         Instant now = Instant.now();
         message.setQueueName(queueName);
+        QueueMessage parent = ProcessingContext.current();
+        message.setOperationId(parent == null ? UUID.randomUUID().toString() : parent.getOperationId());
+        String businessId = parent == null ? new TextPayloadCorrelationReader().extract(payload.length() > 65536 ? "" : payload).tradeId() : parent.getBusinessId();
+        message.setBusinessId(businessId == null ? null : businessId.substring(0, Math.min(256, businessId.length())));
         message.setPayload(payload);
         message.setStatus(QueueMessageStatus.NEW);
         message.setAttempts(0);
         message.setCreatedAt(now);
         message.setAvailableAt(now);
-        message.setTraceContext(captureTraceContext());
+        W3CTraceContextPropagator.getInstance().inject(Context.current(), message, (carrier, key, value) -> {
+            if ("traceparent".equals(key)) carrier.setTraceContext(value);
+            if ("tracestate".equals(key)) carrier.setTraceState(value);
+        });
         return queueMessageRepository.save(message);
-    }
-
-    private String captureTraceContext() {
-        SpanContext spanContext = Span.fromContext(Context.current()).getSpanContext();
-        if (!spanContext.isValid()) {
-            return null;
-        }
-        // W3C traceparent format: version-traceId-spanId-traceFlags
-        return String.format("00-%s-%s-%02x",
-                spanContext.getTraceId(),
-                spanContext.getSpanId(),
-                spanContext.getTraceFlags().asByte());
     }
 
     @Transactional
     public Optional<QueueMessage> claimNext(QueueName queueName, String workerName) {
+        telemetry.heartbeat(queueName);
+        if (telemetry.isPaused(queueName)) return Optional.empty();
         Instant now = Instant.now();
         Instant staleBefore = now.minus(getClaimTimeout());
         Optional<QueueMessage> fresh = claimFromCandidates(
@@ -91,7 +93,10 @@ public class QueueBroker {
     }
 
     @Transactional
-    public void complete(QueueMessage message) {
+    public void complete(QueueMessage message) { complete(message, "completed"); }
+
+    @Transactional
+    public void complete(QueueMessage message, String outcome) {
         int updated = queueMessageRepository.completeClaimedMessage(
                 message.getId(),
                 QueueMessageStatus.PROCESSING,
@@ -101,7 +106,7 @@ public class QueueBroker {
                 Instant.now());
         if (updated == 0) {
             log.warn("Skipping completion for queue message {} because the claim is no longer owned", message.getId());
-        }
+        } else telemetry.finished(message, outcome, null);
     }
 
     @Transactional
@@ -122,6 +127,7 @@ public class QueueBroker {
             if (updated == 0) {
                 log.warn("Skipping retry for queue message {} because the claim is no longer owned", message.getId());
             }
+            if (updated == 1) telemetry.finished(message, "retried", failureContext.getReasonCode());
             return QueueFailureDisposition.RETRIED;
         }
 
@@ -139,6 +145,7 @@ public class QueueBroker {
             log.warn("Skipping failure transition for queue message {} because the claim is no longer owned", message.getId());
             return QueueFailureDisposition.FAILED;
         }
+        telemetry.finished(message, "failed", failureContext.getReasonCode());
         publishDeadLetter(message, failureContext, nextAttempts, failedAt);
         return QueueFailureDisposition.FAILED;
     }
@@ -191,7 +198,9 @@ public class QueueBroker {
                     now,
                     workerName);
             if (updated == 1) {
-                return queueMessageRepository.findById(candidateId);
+                Optional<QueueMessage> claimed = queueMessageRepository.findById(candidateId);
+                claimed.ifPresent(telemetry::claimed);
+                return claimed;
             }
         }
         return Optional.empty();

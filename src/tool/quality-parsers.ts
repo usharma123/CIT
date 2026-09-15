@@ -240,11 +240,11 @@ export function filterClassesByPatterns(
   const included: ClassCoverage[] = []
   const excluded: ClassCoverage[] = []
 
-  for (const cls of classes) {
-    if (matchesIgnorePattern(cls.fullName, ignorePatterns)) {
-      excluded.push(cls)
+  for (const coverageClass of classes) {
+    if (matchesIgnorePattern(coverageClass.fullName, ignorePatterns)) {
+      excluded.push(coverageClass)
     } else {
-      included.push(cls)
+      included.push(coverageClass)
     }
   }
 
@@ -272,15 +272,15 @@ export function aggregateCoverage(
     classCount: filteredClasses.length,
   }
 
-  for (const cls of filteredClasses) {
-    agg.instruction.missed += cls.instruction.missed
-    agg.instruction.covered += cls.instruction.covered
-    agg.branch.missed += cls.branch.missed
-    agg.branch.covered += cls.branch.covered
-    agg.line.missed += cls.line.missed
-    agg.line.covered += cls.line.covered
-    agg.method.missed += cls.method.missed
-    agg.method.covered += cls.method.covered
+  for (const coverageClass of filteredClasses) {
+    agg.instruction.missed += coverageClass.instruction.missed
+    agg.instruction.covered += coverageClass.instruction.covered
+    agg.branch.missed += coverageClass.branch.missed
+    agg.branch.covered += coverageClass.branch.covered
+    agg.line.missed += coverageClass.line.missed
+    agg.line.covered += coverageClass.line.covered
+    agg.method.missed += coverageClass.method.missed
+    agg.method.covered += coverageClass.method.covered
   }
 
   agg.instruction.percent = calculatePercent(agg.instruction.missed, agg.instruction.covered)
@@ -514,27 +514,27 @@ export function detectIncidentalCoverage(coverage: ClassCoverage[], testSourceDi
   const referencedClasses = new Set<string>()
 
   for (const [, content] of testFileContents) {
-    for (const cls of extractReferencedClasses(content)) {
-      referencedClasses.add(cls)
+    for (const coverageClass of extractReferencedClasses(content)) {
+      referencedClasses.add(coverageClass)
     }
   }
 
   const incidental: IncidentalCoverage[] = []
 
-  for (const cls of coverage) {
-    if (cls.line.covered === 0 && cls.instruction.covered === 0) {
+  for (const coverageClass of coverage) {
+    if (coverageClass.line.covered === 0 && coverageClass.instruction.covered === 0) {
       continue
     }
 
-    if (cls.className.endsWith("Test") || cls.className.endsWith("Tests")) {
+    if (coverageClass.className.endsWith("Test") || coverageClass.className.endsWith("Tests")) {
       continue
     }
 
-    if (!referencedClasses.has(cls.className)) {
+    if (!referencedClasses.has(coverageClass.className)) {
       incidental.push({
-        className: cls.className,
-        fullName: cls.fullName,
-        coverage: cls,
+        className: coverageClass.className,
+        fullName: coverageClass.fullName,
+        coverage: coverageClass,
         reason: "No test file directly references this class",
       })
     }
@@ -603,9 +603,9 @@ export function scanTestSourceFiles(testSourceDir: string): Map<string, TestMeth
 
       // Find the nearest enclosing class (the last class definition before this method)
       let className = classesInFile[0].name // Default to first class
-      for (const cls of classesInFile) {
-        if (cls.position < methodPosition) {
-          className = cls.name
+      for (const coverageClass of classesInFile) {
+        if (coverageClass.position < methodPosition) {
+          className = coverageClass.name
         } else {
           break
         }
@@ -907,20 +907,20 @@ export function buildTestToClassMap(
     // 2. Import analysis: filter to known production classes
     const imported = extractImportedClasses(content)
     const importedClasses = [...imported].filter(
-      (cls) => productionClassNames.has(cls) && cls !== testClassName,
+      (coverageClass) => productionClassNames.has(coverageClass) && coverageClass !== testClassName,
     )
 
     // 3. Reference analysis: all referenced production classes
     const allRefs = extractReferencedClasses(content)
     const referencedClasses = [...allRefs].filter(
-      (cls) => productionClassNames.has(cls) && cls !== testClassName,
+      (coverageClass) => productionClassNames.has(coverageClass) && coverageClass !== testClassName,
     )
 
     // Union of all covered classes
     const allCovered = new Set<string>()
     if (conventionTarget) allCovered.add(conventionTarget)
-    for (const cls of importedClasses) allCovered.add(cls)
-    for (const cls of referencedClasses) allCovered.add(cls)
+    for (const coverageClass of importedClasses) allCovered.add(coverageClass)
+    for (const coverageClass of referencedClasses) allCovered.add(coverageClass)
 
     result.set(testClassName, {
       testClassName,
@@ -975,8 +975,8 @@ export function verifyCoverageIntegrity(
 
   // Build a coverage lookup by className
   const coverageLookup = new Map<string, ClassCoverage>()
-  for (const cls of coverageData) {
-    coverageLookup.set(cls.className, cls)
+  for (const coverageClass of coverageData) {
+    coverageLookup.set(coverageClass.className, coverageClass)
   }
 
   for (const deletedFile of deletedTestFiles) {
@@ -1079,8 +1079,8 @@ export function computeChangedCodeCoverage(
 
   // Build coverage lookup by className
   const coverageLookup = new Map<string, ClassCoverage>()
-  for (const cls of coverageData) {
-    coverageLookup.set(cls.className, cls)
+  for (const coverageClass of coverageData) {
+    coverageLookup.set(coverageClass.className, coverageClass)
   }
 
   const classes: ChangedClassCoverage[] = []

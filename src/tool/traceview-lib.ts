@@ -1,6 +1,6 @@
 import path from "path"
 
-export const CLS_STAGE_ORDER = [
+export const PIPELINE_STAGE_ORDER = [
   "HTTP",
   "INGESTION",
   "MATCHING",
@@ -10,7 +10,7 @@ export const CLS_STAGE_ORDER = [
   "OTHER",
 ] as const
 
-export type ClsStageName = (typeof CLS_STAGE_ORDER)[number]
+export type PipelineStageName = (typeof PIPELINE_STAGE_ORDER)[number]
 export type TraceStatus = "ok" | "error" | "partial"
 
 export interface TraceViewParams {
@@ -67,7 +67,7 @@ interface JaegerResponse<T> {
 }
 
 export interface TraceStage {
-  name: ClsStageName
+  name: PipelineStageName
   status: TraceStatus
   startTime: number
   durationMs: number
@@ -87,7 +87,7 @@ export interface TraceSpan {
   serviceName: string
   startTime: number
   durationMs: number
-  stage: ClsStageName
+  stage: PipelineStageName
   inferredStage: boolean
   status: TraceStatus
   tags: Record<string, string>
@@ -130,9 +130,9 @@ export interface TraceQuerySummary {
   searchedOperations: string[]
 }
 
-const TRADE_ID_KEYS = ["trade.id", "tradeId", "trade_id", "cls.trade.id"]
-const MESSAGE_ID_KEYS = ["message.id", "messageId", "message_id", "cls.message.id"]
-const EXPLICIT_STAGE_KEYS = ["component.stage", "cls.stage", "stage"]
+const TRADE_ID_KEYS = ["trade.id", "tradeId", "trade_id", "pipeline.trade.id"]
+const MESSAGE_ID_KEYS = ["message.id", "messageId", "message_id", "pipeline.message.id"]
+const EXPLICIT_STAGE_KEYS = ["component.stage", "stage"]
 const QUEUE_NAME_KEYS = ["queue.name", "messaging.destination.name", "messaging.destination", "queue"]
 const LOW_SIGNAL_ROOT_PATTERNS = [
   "queuebroker.claimnext",
@@ -298,7 +298,7 @@ export function normalizeTrace(trace: JaegerTrace): NormalizedTrace | null {
     return null
   }
 
-  const stageMap = new Map<ClsStageName, TraceSpan[]>()
+  const stageMap = new Map<PipelineStageName, TraceSpan[]>()
   for (const span of normalizedSpans) {
     const existing = stageMap.get(span.stage) ?? []
     existing.push(span)
@@ -308,7 +308,7 @@ export function normalizeTrace(trace: JaegerTrace): NormalizedTrace | null {
   const stages = Array.from(stageMap.entries())
     .map(([name, spansForStage]) => summarizeStage(name, spansForStage))
     .sort((a, b) => {
-      const orderDiff = CLS_STAGE_ORDER.indexOf(a.name) - CLS_STAGE_ORDER.indexOf(b.name)
+      const orderDiff = PIPELINE_STAGE_ORDER.indexOf(a.name) - PIPELINE_STAGE_ORDER.indexOf(b.name)
       if (orderDiff !== 0) return orderDiff
       return a.startTime - b.startTime
     })
@@ -319,7 +319,7 @@ export function normalizeTrace(trace: JaegerTrace): NormalizedTrace | null {
   const startTime = normalizedSpans[0].startTime
   const endTime = normalizedSpans.reduce((max, span) => Math.max(max, span.startTime + span.durationMs), startTime)
   const hasErrors = stages.some((stage) => stage.status === "error")
-  const hasExplicitClsHints = normalizedSpans.some(
+  const hasExplicitPipelineHints = normalizedSpans.some(
     (span) =>
       EXPLICIT_STAGE_KEYS.some((key) => key in span.tags) ||
       QUEUE_NAME_KEYS.some((key) => key in span.tags) ||
@@ -332,12 +332,12 @@ export function normalizeTrace(trace: JaegerTrace): NormalizedTrace | null {
     rootSpan,
     startTime,
     durationMs: Math.max(1, endTime - startTime),
-    status: hasErrors ? "error" : hasExplicitClsHints ? "ok" : "partial",
+    status: hasErrors ? "error" : hasExplicitPipelineHints ? "ok" : "partial",
     tradeId,
     messageId,
     stages,
     rawSpans: normalizedSpans,
-    inferred: !hasExplicitClsHints || stages.some((stage) => stage.inferred),
+    inferred: !hasExplicitPipelineHints || stages.some((stage) => stage.inferred),
   }
 }
 
@@ -373,7 +373,7 @@ function normalizeSpan(
   }
 }
 
-function summarizeStage(name: ClsStageName, spans: TraceSpan[]): TraceStage {
+function summarizeStage(name: PipelineStageName, spans: TraceSpan[]): TraceStage {
   const sorted = [...spans].sort((a, b) => a.startTime - b.startTime)
   const first = sorted[0]
   const end = sorted.reduce((max, span) => Math.max(max, span.startTime + span.durationMs), first.startTime)
@@ -424,7 +424,7 @@ function summarizeGroupedFlow(groupKey: string, traces: NormalizedTrace[]): Trac
   const representative = [...traces].sort(compareTraces)[0] ?? sortedByStart[0]
   const grouping = representative.tradeId ? "tradeId" : representative.messageId ? "messageId" : "traceId"
   const rawSpans = dedupeGroupedSpans(sortedByStart.flatMap((trace) => trace.rawSpans)).sort((a, b) => a.startTime - b.startTime)
-  const stageMap = new Map<ClsStageName, TraceSpan[]>()
+  const stageMap = new Map<PipelineStageName, TraceSpan[]>()
 
   for (const span of rawSpans) {
     const existing = stageMap.get(span.stage) ?? []
@@ -435,7 +435,7 @@ function summarizeGroupedFlow(groupKey: string, traces: NormalizedTrace[]): Trac
   const stages = Array.from(stageMap.entries())
     .map(([name, spansForStage]) => summarizeStage(name, spansForStage))
     .sort((a, b) => {
-      const orderDiff = CLS_STAGE_ORDER.indexOf(a.name) - CLS_STAGE_ORDER.indexOf(b.name)
+      const orderDiff = PIPELINE_STAGE_ORDER.indexOf(a.name) - PIPELINE_STAGE_ORDER.indexOf(b.name)
       if (orderDiff !== 0) return orderDiff
       return a.startTime - b.startTime
     })
@@ -562,7 +562,7 @@ function inferStage(operationName: string, serviceName: string, tags: Record<str
   }
 
   if ("db.system" in tags || "db.statement" in tags) {
-    return { stage: "DATABASE" as ClsStageName, inferred: false }
+    return { stage: "DATABASE" as PipelineStageName, inferred: false }
   }
 
   return {
@@ -571,7 +571,7 @@ function inferStage(operationName: string, serviceName: string, tags: Record<str
   }
 }
 
-function inferStageFromText(value: string): ClsStageName {
+function inferStageFromText(value: string): PipelineStageName {
   const text = value.toLowerCase()
   if (text.includes("/api/trades") || text.includes("http") || text.includes("post /api/trades")) return "HTTP"
   if (text.includes("ingest") || text.includes("validation") || text.includes("ingestion")) return "INGESTION"
@@ -582,10 +582,10 @@ function inferStageFromText(value: string): ClsStageName {
   return "OTHER"
 }
 
-function toCanonicalStage(value: string): ClsStageName {
+function toCanonicalStage(value: string): PipelineStageName {
   const normalized = value.trim().toUpperCase()
-  if (CLS_STAGE_ORDER.includes(normalized as ClsStageName)) {
-    return normalized as ClsStageName
+  if (PIPELINE_STAGE_ORDER.includes(normalized as PipelineStageName)) {
+    return normalized as PipelineStageName
   }
   return inferStageFromText(value)
 }
@@ -714,7 +714,7 @@ function isRelevantComponentSpan(span: TraceSpan) {
     return false
   }
 
-  return span.stage !== "OTHER" || Boolean(span.tags["cls.stage"])
+  return span.stage !== "OTHER" || Boolean(span.tags["component.stage"])
 }
 
 function buildComponentFlow(flow: TraceFlow) {
@@ -815,7 +815,7 @@ export function createTraceViewAssets(input: { title: string; refreshSeconds: nu
       <header class="topbar">
         <div>
           <p class="eyebrow">Bootstrap Trace Viewer</p>
-          <h1>CLS Trace Viewer</h1>
+          <h1>Mocknet Trace Viewer</h1>
           <p id="meta" class="meta">Loading traces...</p>
         </div>
         <div class="pill-row">
@@ -1102,7 +1102,7 @@ h1, h2, h3 {
 }
 `
 
-  const appJs = `const STAGE_ORDER = ${JSON.stringify(CLS_STAGE_ORDER)};
+  const appJs = `const STAGE_ORDER = ${JSON.stringify(PIPELINE_STAGE_ORDER)};
 const REFRESH_SECONDS = ${Math.max(1, input.refreshSeconds)};
 
 const state = {
@@ -1200,7 +1200,7 @@ function renderList(flows) {
 
 function renderDetail(flow) {
   if (!flow) {
-    els.detail.innerHTML = '<p class="empty">Select a flow to inspect the CLS stage map.</p>';
+    els.detail.innerHTML = '<p class="empty">Select a flow to inspect the Mocknet stage map.</p>';
     return;
   }
 

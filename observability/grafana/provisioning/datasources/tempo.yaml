@@ -1,0 +1,65 @@
+apiVersion: 1
+datasources:
+  - name: Mocknet Tempo
+    type: tempo
+    uid: mocknet-tempo
+    access: proxy
+    url: http://tempo:3200
+    editable: false
+    jsonData:
+      httpMethod: GET
+      nodeGraph: {enabled: true}
+      search: {hide: false}
+      tracesToLogsV2:
+        datasourceUid: mocknet-loki
+        spanStartTimeShift: '-1m'
+        spanEndTimeShift: '1m'
+        tags: [{key: service.name, value: service_name}]
+        filterByTraceID: true
+        filterBySpanID: false
+      tracesToMetrics:
+        datasourceUid: mocknet-prometheus
+        spanStartTimeShift: '-5m'
+        spanEndTimeShift: '5m'
+        tags: [{key: service.name, value: service}]
+        queries:
+          - name: Database pool waiting
+            query: 'hikaricp_connections_pending{$$__tags}'
+  - name: Mocknet Metrics
+    type: prometheus
+    uid: mocknet-prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData: {httpMethod: POST, timeInterval: 5s}
+  - name: Mocknet Logs
+    type: loki
+    uid: mocknet-loki
+    access: proxy
+    url: http://loki:3100
+    editable: false
+    jsonData:
+      derivedFields:
+        - name: TraceID
+          matcherRegex: trace_id
+          matcherType: label
+          datasourceUid: mocknet-tempo
+          url: '$${__value.raw}'
+          urlDisplayLabel: Open trace
+  - name: Mocknet Operations (read only)
+    type: grafana-postgresql-datasource
+    uid: mocknet-operations
+    access: proxy
+    url: postgres:5432
+    user: grafana_reader
+    editable: false
+    jsonData:
+      database: mocknet
+      sslmode: disable
+      postgresVersion: 1700
+      maxOpenConns: 4
+      maxIdleConns: 2
+      connMaxLifetime: 300
+    secureJsonData:
+      password: $MOCKNET_READER_PASSWORD

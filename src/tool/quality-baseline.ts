@@ -248,11 +248,11 @@ export async function createBaseline(
   const commit = await getCurrentCommit(projectRoot)
 
   const perClass: QualityBaseline["metrics"]["perClass"] = {}
-  for (const cls of coverageData) {
-    perClass[cls.fullName] = {
-      line: cls.line.percent,
-      branch: cls.branch.percent,
-      instruction: cls.instruction.percent,
+  for (const coverageClass of coverageData) {
+    perClass[coverageClass.fullName] = {
+      line: coverageClass.line.percent,
+      branch: coverageClass.branch.percent,
+      instruction: coverageClass.instruction.percent,
     }
   }
 
@@ -271,9 +271,9 @@ export async function createBaseline(
   const productionClasses: QualityBaseline["metrics"]["productionClasses"] = {}
   if (mainSourceDir) {
     const scannedClasses = scanProductionSourceFiles(mainSourceDir)
-    for (const [fullName, cls] of scannedClasses) {
+    for (const [fullName, coverageClass] of scannedClasses) {
       const methods: { [signature: string]: { lineNumber: number; filePath: string } } = {}
-      for (const method of cls.methods) {
+      for (const method of coverageClass.methods) {
         methods[method.signature] = {
           lineNumber: method.lineNumber,
           filePath: method.filePath,
@@ -608,18 +608,18 @@ export function computeDiff(
 
   // Level 2: Changed code coverage warnings
   if (changedCodeCoverage) {
-    for (const cls of changedCodeCoverage.classes) {
-      if (cls.line === null) {
+    for (const coverageClass of changedCodeCoverage.classes) {
+      if (coverageClass.line === null) {
         warnings.push({
           level: "info",
           code: "CHANGED_CODE_NO_COVERAGE_DATA",
-          message: `Changed class ${cls.className} has no JaCoCo coverage data`,
+          message: `Changed class ${coverageClass.className} has no JaCoCo coverage data`,
         })
-      } else if (cls.line.percent < 50) {
+      } else if (coverageClass.line.percent < 50) {
         warnings.push({
           level: "warning",
           code: "CHANGED_CODE_LOW_COVERAGE",
-          message: `Changed class ${cls.className} has only ${cls.line.percent.toFixed(1)}% line coverage`,
+          message: `Changed class ${coverageClass.className} has only ${coverageClass.line.percent.toFixed(1)}% line coverage`,
         })
       }
     }
@@ -776,9 +776,9 @@ export function computeProductionSourceDiff(
 
   if (!previousBaseline || !previousBaseline.metrics.productionClasses) {
     // No previous baseline with production classes - everything is "added"
-    for (const [fullName, cls] of currentClasses) {
+    for (const [fullName, coverageClass] of currentClasses) {
       result.classesAdded.push(fullName)
-      for (const method of cls.methods) {
+      for (const method of coverageClass.methods) {
         result.methodsAdded.push({ className: fullName, methodSignature: method.signature })
       }
     }

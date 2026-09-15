@@ -162,7 +162,7 @@ Two complementary OpenTelemetry layers run across the pipeline:
 
 1. **QueueMessageTracing** — wraps each queue-message processing cycle in a `QueueMessage.process` span. Records `queue.name`, `worker.name`, correlation IDs (`tradeId`, `matchedTradeId`, `nettingSetId`), and the processing outcome (`completed`, `rejected`, `retried`, `failed` with `failure.reason_code`).
 
-2. **ComponentTracingAspect** (AOP) — intercepts every public component/repository bean under `com.cit.mocknet`. Tags each span with `cls.stage` (HTTP, INGESTION, MATCHING, NETTING, SETTLEMENT, DATABASE), `component.kind`, and any correlation IDs extracted from method arguments and return values.
+2. **ComponentTracingAspect** (AOP) — intercepts every public component/repository bean under `com.cit.mocknet`. Tags each span with `component.stage` (HTTP, INGESTION, MATCHING, NETTING, SETTLEMENT, DATABASE), `component.kind`, and any correlation IDs extracted from method arguments and return values.
 
 ## Processing flow (summary)
 
@@ -209,7 +209,7 @@ cd mocknet
 mvn test
 ```
 
-From the repository root, Bootstrap can prepare tracing and render terminal CLS flow diagrams:
+From the repository root, Bootstrap can prepare tracing and render terminal Mocknet flow diagrams:
 
 ```bash
 bun install

@@ -1,0 +1,20 @@
+<configuration>
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder><pattern>%date %-5level %logger{40} - %msg%n</pattern></encoder>
+  </appender>
+  <appender name="JOURNAL" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${MOCKNET_COMPONENT_LOG_DIR}/components.jsonl</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+      <fileNamePattern>${MOCKNET_COMPONENT_LOG_DIR}/components.%d{yyyy-MM-dd}.%i.jsonl</fileNamePattern>
+      <maxFileSize>20MB</maxFileSize><maxHistory>7</maxHistory><totalSizeCap>512MB</totalSizeCap>
+    </rollingPolicy>
+    <encoder><pattern>%msg%n</pattern></encoder>
+  </appender>
+  <appender name="ASYNC_JOURNAL" class="ch.qos.logback.classic.AsyncAppender">
+    <queueSize>8192</queueSize><discardingThreshold>0</discardingThreshold>
+    <neverBlock>false</neverBlock><maxFlushTime>10000</maxFlushTime>
+    <appender-ref ref="JOURNAL"/>
+  </appender>
+  <logger name="mocknet.component.journal" level="INFO" additivity="false"><appender-ref ref="ASYNC_JOURNAL"/></logger>
+  <root level="WARN"><appender-ref ref="CONSOLE"/></root>
+</configuration>

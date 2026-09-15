@@ -104,7 +104,7 @@ public class TradeIngestionService {
                 try (Scope ignored = processingSpan.makeCurrent()) {
                     try {
                         IngestionOutcome outcome = self.processTradeXml(message.getPayload());
-                        queueBroker.complete(message);
+                        queueBroker.complete(message, outcome == IngestionOutcome.REJECTED ? "rejected" : "completed");
                         queueMessageTracing.markOutcome(processingSpan, outcome == IngestionOutcome.REJECTED ? "rejected" : "completed");
                     } catch (QueueProcessingException e) {
                         processingSpan.recordException(e);
@@ -121,7 +121,7 @@ public class TradeIngestionService {
                         queueMessageTracing.markFailure(processingSpan, failureContext, disposition);
                     }
                 } finally {
-                    processingSpan.end();
+                    queueMessageTracing.endProcessingSpan(processingSpan);
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -133,6 +133,12 @@ public class TradeIngestionService {
     }
 
     public IngestionOutcome processTradeXml(String xml) {
+        String operationId = com.cit.mocknet.observability.ProcessingContext.operationId();
+        if (operationId != null) {
+            var existing = tradeRepository.findByOperationId(operationId);
+            if (existing.isPresent()) return existing.get().getStatus() == TradeStatus.REJECTED
+                    ? IngestionOutcome.REJECTED : IngestionOutcome.COMPLETED;
+        }
         ParsedTradeMessage parsedTrade = tradeXmlParser.parse(xml);
         ValidationResult validationResult = tradeValidator.validate(parsedTrade);
 
@@ -144,6 +150,7 @@ public class TradeIngestionService {
             transactionTemplate.executeWithoutResult(status -> {
                 Trade rejected = tradeEntityMapper.mapToTrade(parsedTrade);
                 rejected.setStatus(TradeStatus.REJECTED);
+                rejected.setOperationId(com.cit.mocknet.observability.ProcessingContext.operationId());
                 tradeRepository.save(rejected);
             });
 
@@ -158,15 +165,15 @@ public class TradeIngestionService {
         transactionTemplate.executeWithoutResult(status -> {
             Trade trade = tradeEntityMapper.mapToTrade(parsedTrade);
             trade.setStatus(TradeStatus.VALIDATED);
+            trade.setOperationId(com.cit.mocknet.observability.ProcessingContext.operationId());
             trade = tradeRepository.save(trade);
             log.debug("Trade {} persisted with id={}, status=VALIDATED",
                     trade.getTradeId(), trade.getId());
             outMessage[0] = String.format("{\"tradeId\": %d}", trade.getId());
+            queueBroker.publish(QueueName.MATCHING, outMessage[0]);
         });
 
-        if (outMessage[0] != null) {
-            queueBroker.publish(QueueName.MATCHING, outMessage[0]);
-        }
+
         return IngestionOutcome.COMPLETED;
     }
 

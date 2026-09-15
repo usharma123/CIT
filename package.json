@@ -15,7 +15,10 @@
     "electron:build:main": "bun build ./src/electron/main.ts ./src/electron/preload.ts --outdir ./dist-electron --target=node --external electron",
     "electron:build:renderer": "bunx vite build --config vite.electron.renderer.config.ts --base ./",
     "electron:build": "bun run electron:build:main && bun run electron:build:renderer",
-    "electron:start": "bun run electron:build && electron ./dist-electron/main.js"
+    "electron:start": "bun run electron:build && electron ./dist-electron/main.js",
+    "mocknet:grafana": "bash ./script/mocknet-grafana.sh",
+    "mocknet:grafana:b": "bash ./script/mocknet-approach-b.sh",
+    "mocknet:grafana:c": "bash ./script/mocknet-approach-c.sh"
   },
   "bin": {
     "bootstrap": "./bin/bootstrap"

@@ -1,0 +1,25 @@
+apiVersion: 1
+providers:
+  - name: Mocknet
+    folder: Approach A
+    type: file
+    disableDeletion: true
+    editable: false
+    options:
+      path: /var/lib/grafana/dashboards
+
+  - name: Approach B
+    folder: Approach B
+    type: file
+    disableDeletion: true
+    editable: false
+    options:
+      path: /var/lib/grafana/approach-b
+
+  - name: Approach C
+    folder: Approach C
+    type: file
+    disableDeletion: true
+    editable: false
+    options:
+      path: /var/lib/grafana/approach-c

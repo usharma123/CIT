@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+scrape_configs:
+  - job_name: approach-b-jvm
+    static_configs:
+      - targets: [collector-b:9464]

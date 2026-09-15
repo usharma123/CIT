@@ -16,6 +16,8 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "queue_messages", indexes = {
+        @Index(name = "idx_queue_operation", columnList = "operationId"),
+        @Index(name = "idx_queue_business", columnList = "businessId"),
         @Index(name = "idx_queue_messages_queue_status_available", columnList = "queueName,status,availableAt"),
         @Index(name = "idx_queue_messages_queue_status_claimed", columnList = "queueName,status,claimedAt")
 })
@@ -29,8 +31,7 @@ public class QueueMessage {
     @Column(nullable = false, length = 32)
     private QueueName queueName;
 
-    @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "text")
     private String payload;
 
     @Enumerated(EnumType.STRING)
@@ -53,11 +54,31 @@ public class QueueMessage {
     @Column(length = 255)
     private String workerName;
 
-    @Lob
+    @Column(columnDefinition = "text")
     private String lastError;
 
     @Column(length = 512)
     private String traceContext;
+
+    @Column(length = 512)
+    private String traceState;
+
+    public String getTraceState() { return traceState; }
+
+    public void setTraceState(String traceState) { this.traceState = traceState; }
+
+    @Column(length = 36)
+    private String operationId;
+    @Column(length = 256)
+    private String businessId;
+    @Column(length = 32)
+    private String outcome;
+    public String getOperationId() { return operationId; }
+    public void setOperationId(String value) { operationId = value; }
+    public String getBusinessId() { return businessId; }
+    public void setBusinessId(String value) { businessId = value; }
+    public String getOutcome() { return outcome; }
+    public void setOutcome(String value) { outcome = value; }
 
     @Version
     private Long version;

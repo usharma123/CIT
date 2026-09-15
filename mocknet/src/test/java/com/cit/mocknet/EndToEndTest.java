@@ -207,13 +207,13 @@ class EndToEndTest {
 
         assertTrue(spans.stream().anyMatch(span ->
                 "TradeIngestionService.processTradeXml".equals(span.getName())
-                        && "INGESTION".equals(span.getAttributes().get(AttributeKey.stringKey("cls.stage")))
+                        && "INGESTION".equals(span.getAttributes().get(AttributeKey.stringKey("component.stage")))
                         && "TRD-TEST-001".equals(span.getAttributes().get(AttributeKey.stringKey("trade.id")))
                         && "MSG-TEST-001".equals(span.getAttributes().get(AttributeKey.stringKey("message.id")))));
 
         assertTrue(spans.stream().anyMatch(span ->
                 "repository".equals(span.getAttributes().get(AttributeKey.stringKey("component.kind")))
-                        && "DATABASE".equals(span.getAttributes().get(AttributeKey.stringKey("cls.stage")))));
+                        && "DATABASE".equals(span.getAttributes().get(AttributeKey.stringKey("component.stage")))));
     }
 
     @Test
@@ -386,9 +386,9 @@ class EndToEndTest {
     private void assertHasStageTaggedSpan(String spanName, String expectedStage, String expectedComponentKind) {
         assertTrue(spanExporter.getFinishedSpanItems().stream().anyMatch(span ->
                         spanName.equals(span.getName())
-                                && expectedStage.equals(span.getAttributes().get(AttributeKey.stringKey("cls.stage")))
+                                && expectedStage.equals(span.getAttributes().get(AttributeKey.stringKey("component.stage")))
                                 && expectedComponentKind.equals(span.getAttributes().get(AttributeKey.stringKey("component.kind")))),
-                () -> "Expected a span named " + spanName + " tagged with cls.stage=" + expectedStage
+                () -> "Expected a span named " + spanName + " tagged with component.stage=" + expectedStage
                         + " and component.kind=" + expectedComponentKind);
     }
 

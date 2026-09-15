@@ -81,6 +81,9 @@ public class TwoPhaseCommitCoordinator {
     }
 
     public boolean executeTransaction(Long matchedTradeId) {
+        // A committed netting result can be redelivered after a worker loses its queue acknowledgement.
+        if (matchedTradeRepository.findById(matchedTradeId)
+                .map(m -> m.getStatus() == TradeStatus.NETTED).orElse(false)) return true;
         String txId = "2PC-" + UUID.randomUUID().toString().substring(0, 8);
 
         initiate(txId, matchedTradeId);

@@ -351,9 +351,9 @@ function generateReport(
   // Sort by line coverage ascending (show lowest first)
   const sortedClasses = [...coverageData].sort((a, b) => a.line.percent - b.line.percent)
 
-  for (const cls of sortedClasses) {
-    const branchStr = cls.branch.missed + cls.branch.covered === 0 ? "N/A" : formatPercent(cls.branch.percent)
-    lines.push(`| ${cls.className} | ${formatPercent(cls.line.percent)} | ${branchStr} | ${formatPercent(cls.method.percent)} |`)
+  for (const coverageClass of sortedClasses) {
+    const branchStr = coverageClass.branch.missed + coverageClass.branch.covered === 0 ? "N/A" : formatPercent(coverageClass.branch.percent)
+    lines.push(`| ${coverageClass.className} | ${formatPercent(coverageClass.line.percent)} | ${branchStr} | ${formatPercent(coverageClass.method.percent)} |`)
   }
   lines.push("")
 
@@ -401,13 +401,13 @@ function generateReport(
     lines.push(`| Class | Change | Line | Branch | Gate (${config.gates.min_new_code_line_coverage}%) |`)
     lines.push("|-------|--------|------|--------|------|")
 
-    for (const cls of changedCodeCoverage.classes) {
-      const lineStr = cls.line !== null ? formatPercent(cls.line.percent) : "N/A"
-      const branchStr = cls.branch !== null ? formatPercent(cls.branch.percent) : "N/A"
-      const gateStatus = cls.line !== null
-        ? cls.line.percent >= config.gates.min_new_code_line_coverage ? "PASS" : "FAIL"
+    for (const coverageClass of changedCodeCoverage.classes) {
+      const lineStr = coverageClass.line !== null ? formatPercent(coverageClass.line.percent) : "N/A"
+      const branchStr = coverageClass.branch !== null ? formatPercent(coverageClass.branch.percent) : "N/A"
+      const gateStatus = coverageClass.line !== null
+        ? coverageClass.line.percent >= config.gates.min_new_code_line_coverage ? "PASS" : "FAIL"
         : "N/A"
-      lines.push(`| ${cls.className} | ${cls.changeType} | ${lineStr} | ${branchStr} | ${gateStatus} |`)
+      lines.push(`| ${coverageClass.className} | ${coverageClass.changeType} | ${lineStr} | ${branchStr} | ${gateStatus} |`)
     }
 
     if (changedCodeCoverage.classesWithData > 0) {
@@ -1434,14 +1434,14 @@ To generate artifacts, run:
     if (testSourceDir) {
       // Collect production class names for filtering
       const productionClassNames = new Set<string>()
-      for (const cls of coverageData) {
-        productionClassNames.add(cls.className)
+      for (const coverageClass of coverageData) {
+        productionClassNames.add(coverageClass.className)
       }
       // Also include classes from source scanning
       if (mainSourceDir) {
         const prodClasses = scanProductionSourceFiles(mainSourceDir)
-        for (const [, cls] of prodClasses) {
-          productionClassNames.add(cls.className)
+        for (const [, coverageClass] of prodClasses) {
+          productionClassNames.add(coverageClass.className)
         }
       }
       testClassMap = buildTestToClassMap(testSourceDir, productionClassNames)
@@ -1727,14 +1727,14 @@ To generate artifacts, run:
         summary: resultMetadata,
         coverage: {
           aggregate: aggregateCov,
-          perClass: coverageData.map((cls) => ({
-            className: cls.className,
-            fullName: cls.fullName,
-            package: cls.package,
-            line: cls.line.percent,
-            branch: cls.branch.percent,
-            instruction: cls.instruction.percent,
-            method: cls.method.percent,
+          perClass: coverageData.map((coverageClass) => ({
+            className: coverageClass.className,
+            fullName: coverageClass.fullName,
+            package: coverageClass.package,
+            line: coverageClass.line.percent,
+            branch: coverageClass.branch.percent,
+            instruction: coverageClass.instruction.percent,
+            method: coverageClass.method.percent,
           })),
         },
         tests: {

@@ -1,0 +1,522 @@
+{
+  "uid": "mocknet-c-queues",
+  "title": "Approach C | Queue journal diagnostics",
+  "schemaVersion": 40,
+  "version": 1,
+  "editable": false,
+  "tags": [
+    "mocknet",
+    "Approach C",
+    "logs and journals"
+  ],
+  "timezone": "browser",
+  "refresh": "10s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "links": [
+    {
+      "type": "link",
+      "title": "C overview",
+      "url": "/d/mocknet-c-overview",
+      "includeVars": true,
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "C queues",
+      "url": "/d/mocknet-c-queues",
+      "includeVars": true,
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "C investigation",
+      "url": "/d/mocknet-c-investigation",
+      "includeVars": true,
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "Compare A",
+      "url": "http://localhost:3300/d/mocknet-traces",
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "Compare B",
+      "url": "http://localhost:3300/d/mocknet-b-overview",
+      "keepTime": true
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "stage",
+        "label": "Queue / stage",
+        "type": "custom",
+        "query": "INGESTION,MATCHING,NETTING,SETTLEMENT,DEAD_LETTER",
+        "includeAll": true,
+        "allValue": "'.*'",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "search",
+        "label": "Find trade / operation",
+        "description": "Filters operation lists and the investigation selector. Overview charts remain stage-wide.",
+        "type": "textbox",
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        }
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "description": "Reconstructed evidence from component logs and committed MQ journals. No application spans or Java agent. Current-state tables are latest collected state; graphs follow the selected interval. A returned method is not proof of transaction commit. Missing evidence stays explicit.",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Queue inventory from the journal",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 8
+      },
+      "description": "Current state reconstructed from the latest committed journal record for each message. SETTLEMENT is an idle separate queue in this workload; instruction generation runs within NETTING.",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT stage,state,count(*) AS messages,\n round(max(CASE WHEN state='ready' THEN extract(epoch FROM now()-available_at) WHEN state='processing' THEN extract(epoch FROM now()-claimed_at) END)::numeric,2) AS oldest_seconds\n FROM c_queue WHERE stage ~ ${stage:sqlstring} GROUP BY stage,state ORDER BY stage,state",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Current waiting work and dead letters",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 24,
+        "h": 9
+      },
+      "description": "",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT business_id,stage,state,worker,retries,available_at,message_id,operation_id FROM c_queue WHERE stage ~ ${stage:sqlstring} AND (${search:sqlstring}='' OR operation_id=${search:sqlstring} OR business_id=${search:sqlstring}) AND (state IN('ready','scheduled','processing') OR stage='DEAD_LETTER') ORDER BY created_at LIMIT 200",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "operation_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Reconstruct operation",
+                    "url": "/d/mocknet-c-investigation?${__url_time_range}&var-operation=${__value.raw}&var-search=${__value.raw}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "operation_id"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 300
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "business_id"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 300
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "unfinished"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 75
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "failed_messages"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 75
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "dead_letters"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 65
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Ready, scheduled and processing",
+      "type": "timeseries",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 12,
+        "h": 8
+      },
+      "description": "",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT at AS time,ready::double precision AS value,stage || ' ready' AS metric FROM queue_samples WHERE $__timeFilter(at) AND stage ~ ${stage:sqlstring} UNION ALL SELECT at,scheduled,stage || ' scheduled' FROM queue_samples WHERE $__timeFilter(at) AND stage ~ ${stage:sqlstring} UNION ALL SELECT at,processing,stage || ' processing' FROM queue_samples WHERE $__timeFilter(at) AND stage ~ ${stage:sqlstring} ORDER BY 1",
+          "format": "time_series",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Wait versus handler duration \u00b7 p95",
+      "type": "timeseries",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 17,
+        "w": 12,
+        "h": 8
+      },
+      "description": "",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT to_timestamp(floor(extract(epoch FROM finished_at)/30)*30) AS time,percentile_cont(.95) WITHIN GROUP(ORDER BY wait_seconds) AS value,stage || ' wait' AS metric FROM c_attempt WHERE $__timeFilter(finished_at) AND stage ~ ${stage:sqlstring} GROUP BY 1,3 UNION ALL SELECT to_timestamp(floor(extract(epoch FROM finished_at)/30)*30),percentile_cont(.95) WITHIN GROUP(ORDER BY duration_seconds),stage || ' handler' FROM c_attempt WHERE $__timeFilter(finished_at) AND stage ~ ${stage:sqlstring} GROUP BY 1,3 ORDER BY 1",
+          "format": "time_series",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Retry and failure history",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 25,
+        "w": 24,
+        "h": 9
+      },
+      "description": "",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT started_at,stage,attempt,wait_seconds,duration_seconds,outcome,reason,worker,message_id,operation_id FROM c_attempt WHERE $__timeFilter(started_at) AND stage ~ ${stage:sqlstring} AND outcome IN('retried','failed','abandoned','rejected') ORDER BY started_at DESC LIMIT 150",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "operation_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Reconstruct operation",
+                    "url": "/d/mocknet-c-investigation?${__url_time_range}&var-operation=${__value.raw}&var-search=${__value.raw}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "operation_id"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 300
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "business_id"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 300
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "unfinished"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 75
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "failed_messages"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 75
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "dead_letters"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 65
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Evidence completeness",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 34,
+        "w": 24,
+        "h": 5
+      },
+      "description": "Collector age over 10 seconds means the reconstructed state may be stale. Incomplete calls can mean active work, crash loss or absent logging; inspect their start/end records. Quarantined lines are excluded, never silently accepted.",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT collected_at,round(collector_age_seconds::numeric,1) AS collector_age_seconds,pending_journal,oldest_pending_seconds,quarantined_lines,incomplete_calls,internal_log_sequence_gaps FROM c_evidence_health",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    }
+  ]
+}

@@ -1034,10 +1034,10 @@ span.setAttribute(COMPONENT_CLASS, componentClass);      // e.g. "TradeIngestion
 span.setAttribute(COMPONENT_KIND, componentKind);        // "controller" | "service" | "repository"
 span.setAttribute(COMPONENT_METHOD, methodName);         // e.g. "processTradeXml"
 span.setAttribute(CODE_NAMESPACE, declaringType.getName()); // fully qualified class name
-span.setAttribute(CLS_STAGE, stage);                     // "HTTP" | "INGESTION" | "MATCHING" | "NETTING" | "SETTLEMENT" | "DATABASE"
+span.setAttribute(COMPONENT_STAGE, stage);                     // "HTTP" | "INGESTION" | "MATCHING" | "NETTING" | "SETTLEMENT" | "DATABASE"
 ```
 
-The `cls.stage` value is resolved by `resolveStage()` (lines 312–333) by inspecting the fully qualified class name:
+The `component.stage` value is resolved by `resolveStage()` (lines 312–333) by inspecting the fully qualified class name:
 
 ```java
 // "HTTP" for .controller., "DATABASE" for .repository.
@@ -1693,7 +1693,7 @@ Tool: bash
 **Input:**
 ```json
 {
-  "command": "# Get a trace that contains NettingCalculator (full pipeline trace)\ncurl -s \"http://localhost:16686/api/traces?service=mocknet&operation=TwoPhaseCommitCoordinator.executeTransaction&limit=3&lookback=3600000\" 2>&1 | python3 -c \"\nimport json, sys\ndata = json.load(sys.stdin)\ntraces = data.get('data', [])\nprint(f'2PC traces: {len(traces)}')\nfor t in traces[:1]:\n    spans = t.get('spans', [])\n    processes = t.get('processes', {})\n    traceID = t['traceID']\n    print(f'traceID={traceID}  total_spans={len(spans)}')\n    for s in sorted(spans, key=lambda x: x['startTime']):\n        op = s['operationName']\n        svc = processes.get(s['processID'], {}).get('serviceName', '?')\n        dur = s['duration']\n        tags = {tag['key']: tag['value'] for tag in s.get('tags', [])}\n        stage = tags.get('cls.stage', '')\n        print(f'  [{svc}/{stage}] {op}  {dur}us')\n\"",
+  "command": "# Get a trace that contains NettingCalculator (full pipeline trace)\ncurl -s \"http://localhost:16686/api/traces?service=mocknet&operation=TwoPhaseCommitCoordinator.executeTransaction&limit=3&lookback=3600000\" 2>&1 | python3 -c \"\nimport json, sys\ndata = json.load(sys.stdin)\ntraces = data.get('data', [])\nprint(f'2PC traces: {len(traces)}')\nfor t in traces[:1]:\n    spans = t.get('spans', [])\n    processes = t.get('processes', {})\n    traceID = t['traceID']\n    print(f'traceID={traceID}  total_spans={len(spans)}')\n    for s in sorted(spans, key=lambda x: x['startTime']):\n        op = s['operationName']\n        svc = processes.get(s['processID'], {}).get('serviceName', '?')\n        dur = s['duration']\n        tags = {tag['key']: tag['value'] for tag in s.get('tags', [])}\n        stage = tags.get('component.stage', '')\n        print(f'  [{svc}/{stage}] {op}  {dur}us')\n\"",
   "description": "Get full pipeline trace with 2PC span for ASCII flow"
 }
 ```
@@ -1825,7 +1825,7 @@ Tool: bash
 **Input:**
 ```json
 {
-  "command": "# Get the ingestion trace to complete the full picture\ncurl -s \"http://localhost:16686/api/traces?service=mocknet&operation=TradeIngestionService.processTradeXml&limit=3&lookback=3600000\" 2>&1 | python3 -c \"\nimport json, sys\ndata = json.load(sys.stdin)\ntraces = data.get('data', [])\nfor t in traces[:1]:\n    spans = t.get('spans', [])\n    processes = t.get('processes', {})\n    print(f'traceID={t[\\\"traceID\\\"]}  total_spans={len(spans)}')\n    for s in sorted(spans, key=lambda x: x['startTime']):\n        op = s['operationName']\n        svc = processes.get(s['processID'], {}).get('serviceName', '?')\n        tags = {tag['key']: tag['value'] for tag in s.get('tags', [])}\n        stage = tags.get('cls.stage', '')\n        dur = s['duration']\n        print(f'  [{svc}/{stage}] {op}  {dur}us')\n\"",
+  "command": "# Get the ingestion trace to complete the full picture\ncurl -s \"http://localhost:16686/api/traces?service=mocknet&operation=TradeIngestionService.processTradeXml&limit=3&lookback=3600000\" 2>&1 | python3 -c \"\nimport json, sys\ndata = json.load(sys.stdin)\ntraces = data.get('data', [])\nfor t in traces[:1]:\n    spans = t.get('spans', [])\n    processes = t.get('processes', {})\n    print(f'traceID={t[\\\"traceID\\\"]}  total_spans={len(spans)}')\n    for s in sorted(spans, key=lambda x: x['startTime']):\n        op = s['operationName']\n        svc = processes.get(s['processID'], {}).get('serviceName', '?')\n        tags = {tag['key']: tag['value'] for tag in s.get('tags', [])}\n        stage = tags.get('component.stage', '')\n        dur = s['duration']\n        print(f'  [{svc}/{stage}] {op}  {dur}us')\n\"",
   "description": "Get ingestion trace for full ASCII flow derivation"
 }
 ```
@@ -1860,7 +1860,7 @@ Tool: bash
 **Input:**
 ```json
 {
-  "command": "# Get matching engine trace\ncurl -s \"http://localhost:16686/api/traces?service=mocknet&operation=TradeMatchingEngine.processMatchingMessage&limit=3&lookback=3600000\" 2>&1 | python3 -c \"\nimport json, sys\ndata = json.load(sys.stdin)\ntraces = data.get('data', [])\nfor t in traces[:1]:\n    spans = t.get('spans', [])\n    processes = t.get('processes', {})\n    print(f'traceID={t[\\\"traceID\\\"]}  total_spans={len(spans)}')\n    for s in sorted(spans, key=lambda x: x['startTime']):\n        op = s['operationName']\n        svc = processes.get(s['processID'], {}).get('serviceName', '?')\n        tags = {tag['key']: tag['value'] for tag in s.get('tags', [])}\n        stage = tags.get('cls.stage', '')\n        dur = s['duration']\n        print(f'  [{svc}/{stage}] {op}  {dur}us')\n\"",
+  "command": "# Get matching engine trace\ncurl -s \"http://localhost:16686/api/traces?service=mocknet&operation=TradeMatchingEngine.processMatchingMessage&limit=3&lookback=3600000\" 2>&1 | python3 -c \"\nimport json, sys\ndata = json.load(sys.stdin)\ntraces = data.get('data', [])\nfor t in traces[:1]:\n    spans = t.get('spans', [])\n    processes = t.get('processes', {})\n    print(f'traceID={t[\\\"traceID\\\"]}  total_spans={len(spans)}')\n    for s in sorted(spans, key=lambda x: x['startTime']):\n        op = s['operationName']\n        svc = processes.get(s['processID'], {}).get('serviceName', '?')\n        tags = {tag['key']: tag['value'] for tag in s.get('tags', [])}\n        stage = tags.get('component.stage', '')\n        dur = s['duration']\n        print(f'  [{svc}/{stage}] {op}  {dur}us')\n\"",
   "description": "Get matching engine trace"
 }
 ```
@@ -2132,16 +2132,16 @@ Client
 [mocknet / HTTP]
   POST /api/trades                          <- OTel auto-instrumented HTTP server span
     └─ TradeSubmissionController.submitTrade  <- ComponentTracingAspect, SpanKind=SERVER
-         └─ QueueBroker.publish               <- enqueue, cls.stage=OTHER
+         └─ QueueBroker.publish               <- enqueue, component.stage=OTHER
               └─ INSERT ./data/coredb.queue_messages
   HTTP 202 Accepted  {"status":"accepted"}
   │
   │  (async pipeline triggered by queue polling workers)
   │
-  ├─ TradeIngestionService.processTradeXml   cls.stage=INGESTION
-  ├─ TradeMatchingEngine.processMatchingMessage  cls.stage=MATCHING
-  ├─ NettingCalculator.processNettingMessage cls.stage=NETTING
-  └─ TwoPhaseCommitCoordinator.executeTransaction  cls.stage=SETTLEMENT
+  ├─ TradeIngestionService.processTradeXml   component.stage=INGESTION
+  ├─ TradeMatchingEngine.processMatchingMessage  component.stage=MATCHING
+  ├─ NettingCalculator.processNettingMessage component.stage=NETTING
+  └─ TwoPhaseCommitCoordinator.executeTransaction  component.stage=SETTLEMENT
 ```
 
 Each async stage runs in its own trace (no distributed context propagation across the internal queue — each worker starts a fresh root span). The HTTP trace covers `POST /api/trades → TradeSubmissionController.submitTrade → QueueBroker.publish` only; downstream stages are separate traces linked by business keys (`trade.id`, `matched.trade.id`, `netting.set.id`).

@@ -1,0 +1,41 @@
+name: cit-observability-c
+services:
+  grafana-c:
+    image: grafana/grafana:12.4.1
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SECURITY_ADMIN_USER: demo-admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Use local secret file}
+      MOCKNET_READER_PASSWORD: ${MOCKNET_READER_PASSWORD:?Use local secret file}
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/approach-c/mocknet-c-overview.json
+    ports: ["127.0.0.1:3302:3000"]
+    volumes:
+      - ./provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ../grafana/provisioning/datasources/approach-c.yaml:/etc/grafana/provisioning/datasources/approach-c.yaml:ro
+      - ./grafana:/var/lib/grafana/approach-c:ro
+      - grafana-c-data:/var/lib/grafana
+    depends_on:
+      postgres-c:
+        condition: service_healthy
+    restart: unless-stopped
+  postgres-c:
+    image: postgres:17.6-alpine
+    environment:
+      POSTGRES_DB: mocknet_c
+      POSTGRES_USER: mocknet_c
+      POSTGRES_PASSWORD: ${MOCKNET_DB_PASSWORD:?Use local secret file}
+    ports: ["127.0.0.1:15452:5432"]
+    volumes: ["postgres-c-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mocknet_c -d mocknet_c"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+volumes:
+  postgres-c-data:
+  grafana-c-data:

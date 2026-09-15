@@ -14,3 +14,6 @@ mocknet/target/
 .harness
 mocknet/data/
 presentation/
+# Local Python build artifacts
+__pycache__/
+*.py[cod]

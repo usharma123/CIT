@@ -51,10 +51,15 @@ public class Trade {
     @Column(nullable = false)
     private TradeStatus status;
 
-    @Column(columnDefinition = "CLOB")
+    @Column(columnDefinition = "text")
     private String rawJson;
 
     private Instant receivedAt;
+
+    @Column(length = 36, unique = true)
+    private String operationId;
+    public String getOperationId() { return operationId; }
+    public void setOperationId(String value) { operationId = value; }
 
     @Version
     private Long version;

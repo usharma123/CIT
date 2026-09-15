@@ -71,7 +71,7 @@ export const TraceViewTool = Tool.define("traceview", async () => {
       if (params.open) {
         await fs.mkdir(outputDir, { recursive: true })
         const assets = createTraceViewAssets({
-          title: `${params.serviceName} CLS Trace Viewer`,
+          title: `${params.serviceName} Mocknet Trace Viewer`,
           refreshSeconds: params.refreshSeconds,
         })
 

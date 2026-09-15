@@ -1,4 +1,4 @@
-# Mocknet CLS Pipeline Trace
+# Mocknet Mocknet Pipeline Trace
 
 ```mermaid
 sequenceDiagram

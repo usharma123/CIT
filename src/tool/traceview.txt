@@ -1,4 +1,4 @@
-Prepare terminal-first CLS trace flow diagrams backed by Jaeger's HTTP API.
+Prepare terminal-first Mocknet trace flow diagrams backed by Jaeger's HTTP API.
 
 Use this when Bootstrap should inspect OpenTelemetry traces for a Java service after starting the full tracing stack and then render exact span-derived component and HTTP flows directly in the terminal.
 
@@ -41,7 +41,7 @@ When summarizing traces:
 - Use the Jaeger `processes` map for service attribution when needed; per-span `serviceName` fields may be absent.
 - Prefer terminal ASCII diagrams over browser output unless the user explicitly asks for the viewer.
 
-Canonical CLS stages:
+Canonical Mocknet stages:
 - `HTTP`
 - `INGESTION`
 - `MATCHING`

@@ -1,0 +1,740 @@
+{
+  "uid": "mocknet-traces",
+  "title": "Approach A | Service overview",
+  "schemaVersion": 40,
+  "version": 1,
+  "editable": false,
+  "tags": [
+    "mocknet",
+    "L3",
+    "Approach A",
+    "provisioned"
+  ],
+  "timezone": "browser",
+  "refresh": "10s",
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "links": [
+    {
+      "title": "Service overview",
+      "type": "link",
+      "url": "/d/mocknet-traces",
+      "includeVars": true,
+      "keepTime": true
+    },
+    {
+      "title": "Stage diagnostics",
+      "type": "link",
+      "url": "/d/mocknet-stages",
+      "includeVars": true,
+      "keepTime": true
+    },
+    {
+      "title": "Operation investigation",
+      "type": "link",
+      "url": "/d/mocknet-operation",
+      "includeVars": true,
+      "keepTime": true
+    },
+    {
+      "title": "Compare Approach B",
+      "type": "link",
+      "url": "/d/mocknet-b-overview",
+      "keepTime": true
+    },
+    {
+      "title": "Compare Approach C",
+      "type": "link",
+      "url": "http://localhost:3302/d/mocknet-c-overview",
+      "keepTime": true
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "environment",
+        "label": "Environment",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "mocknet-prometheus"
+        },
+        "query": "label_values(mocknet_snapshot_timestamp, environment)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "multi": false
+      },
+      {
+        "name": "service",
+        "label": "Service",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "mocknet-prometheus"
+        },
+        "query": "label_values(mocknet_snapshot_timestamp, service)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "multi": false
+      },
+      {
+        "name": "version",
+        "label": "Version",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "mocknet-prometheus"
+        },
+        "query": "label_values(mocknet_snapshot_timestamp, version)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "multi": false
+      },
+      {
+        "name": "app_instance",
+        "label": "Instance",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "mocknet-prometheus"
+        },
+        "query": "label_values(mocknet_snapshot_timestamp, app_instance)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "multi": false
+      },
+      {
+        "name": "stage",
+        "label": "Stage",
+        "type": "custom",
+        "query": "INGESTION,MATCHING,NETTING,SETTLEMENT,DEAD_LETTER",
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "business_id",
+        "label": "Trade or operation ID",
+        "type": "textbox",
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Operations to investigate",
+      "type": "table",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 9
+      },
+      "description": "Current unfinished processing is always included, even when accepted before the selected interval. Failures/rejections use the admission interval. An explicit ID searches all admissions. Oldest unfinished work comes first, up to 50 rows. Details opens admission through now for the current operation, independently of the historical chart interval. Current state is from the one local database.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "operation_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Investigate",
+                    "url": "/d/mocknet-operation?from=${__data.fields.trace_from}&to=now&var-business_id=${__value.raw}&var-trace_id=${__data.fields.trace_id}&var-environment=${environment:percentencode}&var-service=${service:percentencode}&var-version=${version:percentencode}&var-app_instance=${app_instance:percentencode}&var-stage=${stage:percentencode}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "outcome"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "FAILED": {
+                        "color": "red",
+                        "index": 0
+                      },
+                      "REJECTED": {
+                        "color": "orange",
+                        "index": 1
+                      },
+                      "COMPLETED": {
+                        "color": "green",
+                        "index": 2
+                      },
+                      "AWAITING_COUNTERPARTY": {
+                        "color": "blue",
+                        "index": 3
+                      },
+                      "retried": {
+                        "color": "orange",
+                        "index": 4
+                      },
+                      "failed": {
+                        "color": "red",
+                        "index": 5
+                      },
+                      "completed": {
+                        "color": "green",
+                        "index": 6
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "trace_from"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "trace_id"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "business_id"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Trade"
+              },
+              {
+                "id": "noValue",
+                "value": "Missing trade ID"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "outcome"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Current state"
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "stage"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Stage"
+              },
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "reason"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Reason"
+              },
+              {
+                "id": "custom.width",
+                "value": 180
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "last_progress_at"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Last progress"
+              },
+              {
+                "id": "custom.width",
+                "value": 190
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "operation_id"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Details"
+              },
+              {
+                "id": "custom.width",
+                "value": 100
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "data-links"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT o.business_id, o.outcome,\n    COALESCE(active_queue.stage,last_attempt.stage) AS stage, last_attempt.reason, o.last_progress_at, o.operation_id, o.trace_id, (extract(epoch FROM o.accepted_at)*1000-60000)::bigint AS trace_from\n    FROM support.operations o\n    LEFT JOIN LATERAL (\n        SELECT a.stage,a.reason FROM support.attempts a\n        WHERE a.operation_id=ANY(ARRAY[o.operation_id] || ARRAY(SELECT related_operation_id FROM support.operation_links WHERE operation_id=o.operation_id))\n        ORDER BY CASE WHEN a.outcome='failed' THEN 0 WHEN a.outcome='processing' THEN 1 ELSE 2 END,\n                 a.claimed_at DESC LIMIT 1\n    ) last_attempt ON true\n    LEFT JOIN LATERAL (\n        SELECT q.stage FROM support.queue_messages q WHERE q.operation_id=o.operation_id\n        AND q.status IN ('NEW','PROCESSING') AND q.stage<>'DEAD_LETTER'\n        ORDER BY CASE q.status WHEN 'PROCESSING' THEN 0 ELSE 1 END,q.created_at LIMIT 1\n    ) active_queue ON true\n    WHERE (${business_id:sqlstring}='' OR business_id=${business_id:sqlstring} OR operation_id=${business_id:sqlstring}) AND ($__timeFilter(accepted_at) OR o.outcome IN ('QUEUED','PROCESSING','PENDING') OR ${business_id:sqlstring}<>'')\n        AND COALESCE(active_queue.stage,last_attempt.stage,'') ~ '^(${stage:regex})$' AND (o.outcome IN ('FAILED','REJECTED','QUEUED','PROCESSING','PENDING')\n        OR ${business_id:sqlstring}<>'')\n    ORDER BY CASE o.outcome WHEN 'PROCESSING' THEN 0 WHEN 'QUEUED' THEN 1 WHEN 'PENDING' THEN 2 WHEN 'FAILED' THEN 3 ELSE 4 END,\n        o.last_progress_at ASC LIMIT 50",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-operations"
+      }
+    },
+    {
+      "id": 2,
+      "title": "Where work is waiting",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 12,
+        "h": 8
+      },
+      "description": "Oldest ready message per stage, excluding scheduled retry delay. Shared database scope; version/instance do not partition queues. Missing telemetry is not zero.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by(stage)(mocknet_queue_oldest_seconds{service=~\"$service\",environment=~\"$environment\",stage=~\"$stage\",stage!=\"DEAD_LETTER\",state=\"ready\"})",
+          "legendFormat": "{{stage}}",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-prometheus"
+      }
+    },
+    {
+      "id": 3,
+      "title": "Failed and retried attempts",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 9,
+        "w": 12,
+        "h": 8
+      },
+      "description": "Failed means terminal attempt failure. Retried means processing will try again; investigate the operation for its final outcome.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(stage,outcome)(rate(mocknet_processing_seconds_count{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\",stage=~\"$stage\",stage!=\"DEAD_LETTER\",outcome=~\"failed|retried\"}[$__rate_interval]))",
+          "legendFormat": "{{stage}} {{outcome}}",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-prometheus"
+      }
+    },
+    {
+      "id": 4,
+      "title": "Failure reasons",
+      "type": "table",
+      "gridPos": {
+        "x": 0,
+        "y": 17,
+        "w": 16,
+        "h": 8
+      },
+      "description": "Groups committed attempt failures by stage and reason. One operation can appear in multiple signatures. Retry counts are separate from terminal failures.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "outcome"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "FAILED": {
+                        "color": "red",
+                        "index": 0
+                      },
+                      "REJECTED": {
+                        "color": "orange",
+                        "index": 1
+                      },
+                      "COMPLETED": {
+                        "color": "green",
+                        "index": 2
+                      },
+                      "AWAITING_COUNTERPARTY": {
+                        "color": "blue",
+                        "index": 3
+                      },
+                      "retried": {
+                        "color": "orange",
+                        "index": 4
+                      },
+                      "failed": {
+                        "color": "red",
+                        "index": 5
+                      },
+                      "completed": {
+                        "color": "green",
+                        "index": 6
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT stage,reason,outcome,count(DISTINCT operation_id) AS affected_operations,count(*) AS attempts,max(finished_at) AS last_seen FROM support.attempts WHERE $__timeFilter(claimed_at) AND stage ~ '^(${stage:regex})$' AND outcome IN ('failed','retried','abandoned') AND (${business_id:sqlstring}='' OR business_id=${business_id:sqlstring} OR operation_id=${business_id:sqlstring}) GROUP BY stage,reason,outcome ORDER BY affected_operations DESC LIMIT 20",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-operations"
+      }
+    },
+    {
+      "id": 5,
+      "title": "Outcome summary",
+      "type": "table",
+      "gridPos": {
+        "x": 16,
+        "y": 17,
+        "w": 8,
+        "h": 8
+      },
+      "description": "Current outcome of submissions accepted in the selected interval. Recovered is a subset, not another operation. COMPLETED means netting and instruction generation finished; external settlement is outside this service.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT outcome AS state,count(*) AS operations,count(*) FILTER (WHERE recovered) AS recovered FROM support.operations WHERE $__timeFilter(accepted_at) AND (${business_id:sqlstring}='' OR business_id=${business_id:sqlstring} OR operation_id=${business_id:sqlstring}) GROUP BY outcome ORDER BY count(*) DESC",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-operations"
+      }
+    },
+    {
+      "id": 6,
+      "title": "Waiting work by stage",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 25,
+        "w": 12,
+        "h": 8
+      },
+      "description": "Ready, scheduled retry and active processing are separate. Shared database gauges use max across exporters to avoid counting the same queue twice; not a sum across independent databases.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by(stage,state)(mocknet_queue_messages{service=~\"$service\",environment=~\"$environment\",stage=~\"$stage\",stage!=\"DEAD_LETTER\",state=~\"ready|scheduled|processing\"})",
+          "legendFormat": "{{stage}} {{state}}",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-prometheus"
+      }
+    },
+    {
+      "id": 7,
+      "title": "Processing duration by stage \u00b7 p95",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 25,
+        "w": 12,
+        "h": 8
+      },
+      "description": "Handler duration excludes ready queue waiting. Compare it with queue age to distinguish slow execution from work not being claimed.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95,sum by(le,stage)(rate(mocknet_processing_seconds_bucket{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\",stage=~\"$stage\",stage!=\"DEAD_LETTER\"}[$__rate_interval])))",
+          "legendFormat": "{{stage}}",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-prometheus"
+      }
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "name": "First observed worker version",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "mocknet-operations"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "#B877D9",
+        "rawQuery": true,
+        "rawSql": "SELECT observed AS time, 'First observed ' || service_version AS text, instance AS tags FROM (SELECT min(claimed_at) AS observed,service_version,instance FROM support.attempts WHERE service_version IS NOT NULL GROUP BY service_version,instance) versions WHERE $__timeFilter(observed)"
+      }
+    ]
+  },
+  "description": "Find affected operations, locate the failing or delayed stage, and open the operation history. Database panels show current state for the selected admission interval; metric panels show the selected interval."
+}

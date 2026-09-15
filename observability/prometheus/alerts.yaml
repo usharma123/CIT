@@ -1,0 +1,66 @@
+groups:
+  - name: mocknet-l3
+    rules:
+      - alert: MocknetUnavailable
+        expr: up{job="mocknet"} == 0 or absent(up{job="mocknet"})
+        for: 15s
+        labels: {severity: critical, owner: mocknet-l3}
+        annotations:
+          summary: Application metrics scrape is unavailable; verify service impact separately
+          runbook_url: "http://localhost:3300/d/mocknet-stages?from=now-30m&to=now"
+          description: "Check HTTP service impact and database reachability independently. A failed metrics scrape does not by itself prove failed transactions."
+      - alert: QueueBacklogAging
+        expr: max by (stage, service, environment) (mocknet_queue_oldest_seconds{state="ready",stage!="DEAD_LETTER"} and on (job, instance) (time() - mocknet_snapshot_timestamp < 15)) > 10
+        for: 10s
+        labels: {severity: warning, owner: mocknet-l3}
+        annotations:
+          summary: '{{ $labels.stage }} has work waiting over 10 seconds'
+          runbook_url: "http://localhost:3300/d/mocknet-stages?from=now-30m&to=now&var-stage={{ $labels.stage }}"
+          description: "Inspect oldest ready work, arrivals versus departures, and worker heartbeat. Check pool waiters before increasing consumers."
+      - alert: QueueClaimStalled
+        expr: max by (stage, service, environment) (mocknet_queue_oldest_seconds{state="processing",stage!="DEAD_LETTER"} and on (job, instance) (time() - mocknet_snapshot_timestamp < 15)) > 20
+        for: 10s
+        labels: {severity: warning, owner: mocknet-l3}
+        annotations:
+          summary: Processing is approaching the 30 second lease timeout
+          runbook_url: "http://localhost:3300/d/mocknet-stages?from=now-30m&to=now&var-stage={{ $labels.stage }}"
+          description: "Open the oldest processing operation and its SQL spans. A heartbeat proves polling, not completion; inspect abandoned attempts after lease recovery."
+      - alert: DatabasePoolSaturated
+        expr: hikaricp_connections_pending > 0
+        for: 5s
+        labels: {severity: warning, owner: mocknet-l3}
+        annotations:
+          summary: Application threads are waiting for database connections
+          runbook_url: "http://localhost:3300/d/mocknet-stages?from=now-30m&to=now"
+          description: "Compare active connections with pending callers, then inspect slow SQL. Increasing consumer count can make pool contention worse."
+      - alert: QueueSnapshotStale
+        expr: time() - mocknet_snapshot_timestamp > 15 or absent(mocknet_snapshot_timestamp)
+        for: 5s
+        labels: {severity: warning, owner: mocknet-l3}
+        annotations:
+          summary: Queue metrics are stale; check database pool and snapshot failures
+          runbook_url: "http://localhost:3300/d/mocknet-stages?from=now-30m&to=now"
+          description: "Queue gauges may retain old values. Check current read-only queue inventory and database availability before treating old values as live."
+      - alert: TerminalProcessingFailure
+        expr: sum by (stage, service, environment) (increase(mocknet_processing_seconds_count{outcome="failed"}[5m])) > 0
+        labels: {severity: warning, owner: mocknet-l3}
+        annotations:
+          summary: A queue message exhausted retries or failed permanently
+          runbook_url: "http://localhost:3300/d/mocknet-stages?from=now-30m&to=now&var-stage={{ $labels.stage }}"
+          description: "Filter current dead letters by stage, open the operation, and inspect the final reason and earlier retries. Check committed side effects before any replay."
+      - alert: TelemetryBackendUnavailable
+        expr: up{job=~"collector|tempo|loki"} == 0
+        for: 10s
+        labels: {severity: warning, owner: observability}
+        annotations:
+          summary: '{{ $labels.job }} scrape failed; telemetry may be incomplete'
+          runbook_url: "http://localhost:3300/d/mocknet-stages?from=now-30m&to=now"
+          description: "Use durable operation and attempt history while trace or log storage is unavailable. Check collector export backlog."
+      - alert: TelemetryExportBacklog
+        expr: otelcol_exporter_queue_size / otelcol_exporter_queue_capacity > 0.5
+        for: 15s
+        labels: {severity: warning, owner: observability}
+        annotations:
+          summary: Collector export queue is over half full
+          runbook_url: "http://localhost:3300/d/mocknet-stages?from=now-30m&to=now"
+          description: "Inspect failed exports and destination availability. Disk-backed export retries do not protect undecided tail-sampled traces."

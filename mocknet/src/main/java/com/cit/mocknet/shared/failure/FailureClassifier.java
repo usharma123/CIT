@@ -31,7 +31,7 @@ public class FailureClassifier {
                 return FailureContext.of(messageOrDefault(error, fallbackMessage), FailureReason.CONCURRENCY_CONFLICT, true);
             }
 
-            if (current instanceof TransientDataAccessException) {
+            if (current instanceof TransientDataAccessException || current instanceof java.sql.SQLTransientException) {
                 return FailureContext.of(messageOrDefault(error, fallbackMessage), FailureReason.TRANSIENT_DATA_ACCESS, true);
             }
 

@@ -143,3 +143,8 @@ The default configuration uses:
 - `GET /api/participant-votes`
 - `GET /api/queues`
 - `GET /api/queues/{queueName}/messages?status=...&limit=...`
+
+## Grafana trace demo
+
+From the repository root, run `bun run mocknet:grafana start`, then `bun run mocknet:grafana demo`.
+Open [the trace dashboard](http://localhost:3300/d/mocknet-traces). See [setup, scenarios, queries, and limitations](../observability/README.md).

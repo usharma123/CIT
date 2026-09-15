@@ -28,5 +28,7 @@ public interface TradeRepository extends JpaRepository<Trade, Long> {
             @Param("status") TradeStatus status,
             @Param("excludeId") Long excludeId);
 
+    Optional<Trade> findByOperationId(String operationId);
+
     List<Trade> findByStatus(TradeStatus status);
 }

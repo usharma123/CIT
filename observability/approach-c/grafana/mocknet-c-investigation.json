@@ -1,0 +1,401 @@
+{
+  "uid": "mocknet-c-investigation",
+  "title": "Approach C | Reconstructed operation",
+  "schemaVersion": 40,
+  "version": 1,
+  "editable": false,
+  "tags": [
+    "mocknet",
+    "Approach C",
+    "logs and journals"
+  ],
+  "timezone": "browser",
+  "refresh": "10s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "links": [
+    {
+      "type": "link",
+      "title": "C overview",
+      "url": "/d/mocknet-c-overview",
+      "includeVars": true,
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "C queues",
+      "url": "/d/mocknet-c-queues",
+      "includeVars": true,
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "C investigation",
+      "url": "/d/mocknet-c-investigation",
+      "includeVars": true,
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "Compare A",
+      "url": "http://localhost:3300/d/mocknet-traces",
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "Compare B",
+      "url": "http://localhost:3300/d/mocknet-b-overview",
+      "keepTime": true
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "search",
+        "label": "Find trade / operation",
+        "description": "Filters operation lists and the investigation selector. Overview charts remain stage-wide.",
+        "type": "textbox",
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        }
+      },
+      {
+        "name": "operation",
+        "label": "Operation",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "mocknet-c-reporting"
+        },
+        "query": "SELECT coalesce(business_id,'unparsed') || ' | ' || operation_id AS __text, operation_id AS __value FROM c_operations WHERE (${search:sqlstring}='' OR operation_id=${search:sqlstring} OR business_id=${search:sqlstring}) ORDER BY admitted_at DESC LIMIT 1000",
+        "refresh": 1
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "description": "Reconstructed evidence from component logs and committed MQ journals. No application spans or Java agent. Current-state tables are latest collected state; graphs follow the selected interval. A returned method is not proof of transaction commit. Missing evidence stays explicit.",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Operation and journal disposition",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 5
+      },
+      "description": "",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT business_id,operation_id,admitted_at,last_event_at,disposition,messages,unfinished,dead_letters FROM c_operations WHERE operation_id=${operation:sqlstring}",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Reconstructed operation waterfall",
+      "type": "traces",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 24,
+        "h": 18
+      },
+      "description": "Native Grafana waterfall reconstructed from component logs and committed MQ journals. Auto-fits the operation duration independently of the dashboard time window. Expand rows for source IDs, worker, retry reason and evidence warnings. Recorded call parents are preserved; worker/attempt grouping is explicitly inferred. Display trace/span IDs are deterministic reconstruction IDs, not OTel identifiers. Open/missing ends remain uncertain.",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT * FROM c_waterfall(${operation:sqlstring})",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 3,
+      "title": "Calls, parent links and missing evidence",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 23,
+        "w": 24,
+        "h": 11
+      },
+      "description": "Returned means the method returned. Use committed MQ dispositions below to establish queue success. Missing start/end records are retained as incomplete evidence.",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT component,stage,depth,started_at,finished_at,round(duration_ms::numeric,3) AS duration_ms,\n outcome,error_type,evidence_state,worker,message_id,published_message_id,call_id,parent_call_id\n FROM c_call WHERE operation_id=${operation:sqlstring} ORDER BY coalesce(started_at,finished_at),depth",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "MQ attempt timeline",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 34,
+        "w": 24,
+        "h": 9
+      },
+      "description": "",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT stage,message_id,attempt,started_at,finished_at,wait_seconds,duration_seconds,outcome,reason,worker FROM c_attempt WHERE operation_id=${operation:sqlstring} ORDER BY started_at",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "MQ state transitions",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 43,
+        "w": 24,
+        "h": 9
+      },
+      "description": "Only committed journal records enter this report. Journal sequence is a source ordering key, not a global distributed clock.",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT at,sequence,body->>'queue_name' AS queue,body->>'status' AS state,body->>'outcome' AS outcome,body->>'id' AS message_id,body->>'worker_name' AS worker,body->>'available_at' AS available_at FROM evidence WHERE operation_id=${operation:sqlstring} AND source='mq_journal' AND kind='queue_messages' ORDER BY sequence",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Source records and collection delay",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 52,
+        "w": 24,
+        "h": 10
+      },
+      "description": "",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT at,observed_at,round(extract(epoch FROM observed_at-at)::numeric,3) AS collection_delay_seconds,source,kind,event_id,body::text AS record FROM evidence WHERE operation_id=${operation:sqlstring} ORDER BY at LIMIT 400",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Evidence completeness",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 62,
+        "w": 24,
+        "h": 5
+      },
+      "description": "",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT collected_at,round(collector_age_seconds::numeric,1) AS collector_age_seconds,pending_journal,oldest_pending_seconds,quarantined_lines,incomplete_calls,internal_log_sequence_gaps FROM c_evidence_health",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    }
+  ]
+}

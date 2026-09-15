@@ -1,0 +1,431 @@
+{
+  "uid": "mocknet-b-overview",
+  "title": "Approach B | JVM service overview",
+  "schemaVersion": 40,
+  "version": 1,
+  "editable": false,
+  "tags": [
+    "mocknet",
+    "Approach B",
+    "JVM only"
+  ],
+  "timezone": "browser",
+  "refresh": "10s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "description": "Strict JVM-only evidence from the OpenTelemetry Java agent. No application metrics, SQL, logs, spans or span-derived metrics. Queue state, trade outcomes and individual request causes are not observable. Compare time trends before and during an incident. Missing data is not zero.",
+  "templating": {
+    "list": [
+      {
+        "name": "environment",
+        "label": "Environment",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "mocknet-b-metrics"
+        },
+        "query": "label_values(jvm_memory_used_bytes{service_name=\"mocknet-b\"}, deployment_environment_name)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "service",
+        "label": "Service",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "mocknet-b-metrics"
+        },
+        "query": "label_values(jvm_memory_used_bytes{service_name=\"mocknet-b\"}, service_name)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "version",
+        "label": "Version",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "mocknet-b-metrics"
+        },
+        "query": "label_values(jvm_memory_used_bytes{service_name=\"mocknet-b\"}, service_version)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "app_instance",
+        "label": "JVM instance",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "mocknet-b-metrics"
+        },
+        "query": "label_values(jvm_memory_used_bytes{service_name=\"mocknet-b\"}, service_instance_id)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      }
+    ]
+  },
+  "links": [
+    {
+      "title": "B overview",
+      "type": "link",
+      "url": "/d/mocknet-b-overview",
+      "includeVars": true,
+      "keepTime": true
+    },
+    {
+      "title": "B runtime diagnostics",
+      "type": "link",
+      "url": "/d/mocknet-b-runtime",
+      "includeVars": true,
+      "keepTime": true
+    },
+    {
+      "title": "B incident investigation",
+      "type": "link",
+      "url": "/d/mocknet-b-investigation",
+      "includeVars": true,
+      "keepTime": true
+    },
+    {
+      "title": "Compare Approach A",
+      "type": "link",
+      "url": "/d/mocknet-traces",
+      "keepTime": true
+    },
+    {
+      "title": "Compare Approach C",
+      "type": "link",
+      "url": "/d/mocknet-c-overview",
+      "keepTime": true
+    }
+  ],
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "JVM CPU utilization",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-b-metrics"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "description": "Process CPU reported by the JVM. Low CPU does not prove successful transaction processing.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "jvm_cpu_recent_utilization_ratio{service_name=~\"$service\",deployment_environment_name=~\"$environment\",service_version=~\"$version\",service_instance_id=~\"$app_instance\",otel_scope_name=\"io.opentelemetry.runtime-telemetry\"}",
+          "legendFormat": "JVM {{service_instance_id}}",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Heap used, committed and limit",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-b-metrics"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "description": "Compare used memory with the configured heap limit. A rise alone is not a leak; inspect memory after GC.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(service_instance_id)(jvm_memory_used_bytes{service_name=~\"$service\",deployment_environment_name=~\"$environment\",service_version=~\"$version\",service_instance_id=~\"$app_instance\",otel_scope_name=\"io.opentelemetry.runtime-telemetry\",jvm_memory_type=\"heap\"} > 0)",
+          "legendFormat": "used {{service_instance_id}}",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "expr": "sum by(service_instance_id)(jvm_memory_committed_bytes{service_name=~\"$service\",deployment_environment_name=~\"$environment\",service_version=~\"$version\",service_instance_id=~\"$app_instance\",otel_scope_name=\"io.opentelemetry.runtime-telemetry\",jvm_memory_type=\"heap\"} > 0)",
+          "legendFormat": "committed {{service_instance_id}}",
+          "range": true
+        },
+        {
+          "refId": "C",
+          "expr": "sum by(service_instance_id)(jvm_memory_limit_bytes{service_name=~\"$service\",deployment_environment_name=~\"$environment\",service_version=~\"$version\",service_instance_id=~\"$app_instance\",otel_scope_name=\"io.opentelemetry.runtime-telemetry\",jvm_memory_type=\"heap\"} > 0)",
+          "legendFormat": "limit {{service_instance_id}}",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Time spent in garbage collection",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-b-metrics"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "description": "GC duration seconds per elapsed second, grouped by collector. This is JVM GC activity, not request latency or exact application pause percentage.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(service_instance_id,jvm_gc_name)(rate(jvm_gc_duration_seconds_sum{service_name=~\"$service\",deployment_environment_name=~\"$environment\",service_version=~\"$version\",service_instance_id=~\"$app_instance\",otel_scope_name=\"io.opentelemetry.runtime-telemetry\"}[$__rate_interval]))",
+          "legendFormat": "{{service_instance_id}} {{jvm_gc_name}}",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Threads by state",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-b-metrics"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "description": "Platform thread states for the entire JVM. Waiting threads are often normal. These metrics do not identify queue consumers or the dependency on which a thread waits.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(service_instance_id,jvm_thread_state)(jvm_thread_count{service_name=~\"$service\",deployment_environment_name=~\"$environment\",service_version=~\"$version\",service_instance_id=~\"$app_instance\",otel_scope_name=\"io.opentelemetry.runtime-telemetry\"})",
+          "legendFormat": "{{service_instance_id}} {{jvm_thread_state}}",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Heap remaining after garbage collection",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-b-metrics"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "description": "A sustained rising baseline can motivate memory investigation. This is not proof of a leak or an object-level allocation profile.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "jvm_memory_used_after_last_gc_bytes{service_name=~\"$service\",deployment_environment_name=~\"$environment\",service_version=~\"$version\",service_instance_id=~\"$app_instance\",otel_scope_name=\"io.opentelemetry.runtime-telemetry\",jvm_memory_type=\"heap\"}",
+          "legendFormat": "{{service_instance_id}} {{jvm_memory_pool_name}}",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Allocation rate",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-b-metrics"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "description": "JVM allocation volume reported by runtime telemetry, not transaction payload size. Experimental runtime metrics are pinned to this agent version.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(service_instance_id,arena)(rate(jvm_memory_allocation_bytes_sum{service_name=~\"$service\",deployment_environment_name=~\"$environment\",service_version=~\"$version\",service_instance_id=~\"$app_instance\",otel_scope_name=\"io.opentelemetry.runtime-telemetry\"}[$__rate_interval]))",
+          "legendFormat": "{{service_instance_id}} {{arena}}",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "min": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    }
+  ]
+}

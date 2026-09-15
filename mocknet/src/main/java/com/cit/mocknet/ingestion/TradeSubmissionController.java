@@ -31,9 +31,12 @@ public class TradeSubmissionController {
         log.info("Received trade submission ({} bytes)", xmlPayload.length());
 
         try {
-            queueBroker.publish(QueueName.INGESTION, xmlPayload);
+            if (xmlPayload.length() > 65536) return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                    .body(Map.of("status", "error", "message", "Maximum XML size is 64 KiB"));
+            var queued = queueBroker.publish(QueueName.INGESTION, xmlPayload);
+            var sc = io.opentelemetry.api.trace.Span.current().getSpanContext();
             return ResponseEntity.status(HttpStatus.ACCEPTED)
-                    .body(Map.of("status", "accepted", "message", "Trade submitted for processing"));
+                    .body(Map.of("status", "accepted", "message", "Trade submitted for processing", "operationId", queued.getOperationId(), "queueMessageId", queued.getId().toString(), "traceId", sc.getTraceId()));
         } catch (Exception e) {
             log.error("Failed to enqueue trade submission", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

@@ -61,7 +61,7 @@ describe("tool.traceview", () => {
     })
   })
 
-  test("falls back to traceId grouping and inferred stage mapping when CLS tags are absent", () => {
+  test("falls back to traceId grouping and inferred stage mapping when Mocknet tags are absent", () => {
     const normalized = normalizeTrace(rawTraceFixture())!
     expect(normalized.tradeId).toBeUndefined()
     expect(normalized.messageId).toBeUndefined()
@@ -109,7 +109,7 @@ describe("tool.traceview", () => {
 
 function createJaegerFixtureServer() {
   const searchPayload = {
-    data: [{ traceID: "trace-cls" }, { traceID: "trace-raw" }, { traceID: "trace-poll" }],
+    data: [{ traceID: "trace-pipeline" }, { traceID: "trace-raw" }, { traceID: "trace-poll" }],
   }
 
   return Bun.serve({
@@ -132,8 +132,8 @@ function createJaegerFixtureServer() {
       if (url.pathname === "/api/traces") {
         return Response.json(searchPayload)
       }
-      if (url.pathname === "/api/traces/trace-cls") {
-        return Response.json({ data: [clsTraceFixture()] })
+      if (url.pathname === "/api/traces/trace-pipeline") {
+        return Response.json({ data: [pipelineTraceFixture()] })
       }
       if (url.pathname === "/api/traces/trace-raw") {
         return Response.json({ data: [rawTraceFixture()] })
@@ -146,46 +146,46 @@ function createJaegerFixtureServer() {
   })
 }
 
-function clsTraceFixture() {
+function pipelineTraceFixture() {
   const base = 1_700_000_000_000_000
   return {
-    traceID: "trace-cls",
+    traceID: "trace-pipeline",
     processes: {
       p1: { serviceName: "mocknet" },
       p2: { serviceName: "mocknet-db" },
     },
     spans: [
-      span("trace-cls", "1", undefined, "TradeSubmissionController.submitTrade", "p1", base, 800_000, [
-        tag("cls.stage", "HTTP"),
+      span("trace-pipeline", "1", undefined, "TradeSubmissionController.submitTrade", "p1", base, 800_000, [
+        tag("component.stage", "HTTP"),
         tag("component.kind", "controller"),
         tag("trade.id", "TRD-100"),
         tag("message.id", "MSG-100"),
       ]),
-      span("trace-cls", "2", "1", "TradeIngestionService.processTradeXml", "p1", base + 50_000, 90_000, [
-        tag("cls.stage", "INGESTION"),
+      span("trace-pipeline", "2", "1", "TradeIngestionService.processTradeXml", "p1", base + 50_000, 90_000, [
+        tag("component.stage", "INGESTION"),
         tag("component.kind", "service"),
         tag("trade.id", "TRD-100"),
         tag("message.id", "MSG-100"),
         tag("queue.name", "INGESTION"),
       ]),
-      span("trace-cls", "3", "2", "TradeMatchingEngine.processMatchingMessage", "p1", base + 170_000, 100_000, [
-        tag("cls.stage", "MATCHING"),
+      span("trace-pipeline", "3", "2", "TradeMatchingEngine.processMatchingMessage", "p1", base + 170_000, 100_000, [
+        tag("component.stage", "MATCHING"),
         tag("component.kind", "service"),
         tag("trade.id", "TRD-100"),
         tag("message.id", "MSG-100"),
       ]),
-      span("trace-cls", "4", "3", "NettingCalculator.processNettingMessage", "p1", base + 320_000, 110_000, [
-        tag("cls.stage", "NETTING"),
+      span("trace-pipeline", "4", "3", "NettingCalculator.processNettingMessage", "p1", base + 320_000, 110_000, [
+        tag("component.stage", "NETTING"),
         tag("component.kind", "service"),
         tag("trade.id", "TRD-100"),
       ]),
-      span("trace-cls", "5", "4", "TwoPhaseCommitCoordinator.executeTransaction", "p1", base + 470_000, 120_000, [
-        tag("cls.stage", "SETTLEMENT"),
+      span("trace-pipeline", "5", "4", "TwoPhaseCommitCoordinator.executeTransaction", "p1", base + 470_000, 120_000, [
+        tag("component.stage", "SETTLEMENT"),
         tag("component.kind", "service"),
         tag("trade.id", "TRD-100"),
       ]),
-      span("trace-cls", "6", "2", "TradeRepository.save", "p2", base + 210_000, 60_000, [
-        tag("cls.stage", "DATABASE"),
+      span("trace-pipeline", "6", "2", "TradeRepository.save", "p2", base + 210_000, 60_000, [
+        tag("component.stage", "DATABASE"),
         tag("component.kind", "repository"),
         tag("trade.id", "TRD-100"),
       ]),

@@ -121,7 +121,7 @@ public class TradeMatchingEngine {
                         queueMessageTracing.markFailure(processingSpan, failureContext, disposition);
                     }
                 } finally {
-                    processingSpan.end();
+                    queueMessageTracing.endProcessingSpan(processingSpan);
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -137,7 +137,7 @@ public class TradeMatchingEngine {
         if (result == null) {
             return;
         }
-        queueBroker.publish(QueueName.NETTING, result);
+        // The durable handoff is committed inside tryMatch with both trade updates.
     }
 
     private String tryMatch(long tradeId) {
@@ -179,7 +179,9 @@ public class TradeMatchingEngine {
                 log.debug("MatchedTrade id={} created for {} and {}",
                         matched.getId(), incomingTrade.getTradeId(), matchedWith.getTradeId());
 
-                return String.format("{\"matchedTradeId\": %d}", matched.getId());
+                String nextMessage = String.format("{\"matchedTradeId\": %d}", matched.getId());
+                queueBroker.publish(QueueName.NETTING, nextMessage);
+                return nextMessage;
             });
         } catch (QueueProcessingException e) {
             throw e;

@@ -25,21 +25,24 @@ import org.springframework.data.repository.Repository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.stereotype.Component;
+import org.springframework.core.annotation.Order;
 
-import java.util.Iterator;
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
 
 @Aspect
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "mocknet.tracing.enabled", havingValue = "true", matchIfMissing = true)
+@Order(0)
 public class ComponentTracingAspect {
 
     private static final AttributeKey<String> COMPONENT_CLASS = AttributeKey.stringKey("component.class");
     private static final AttributeKey<String> COMPONENT_KIND = AttributeKey.stringKey("component.kind");
     private static final AttributeKey<String> COMPONENT_METHOD = AttributeKey.stringKey("component.method");
     private static final AttributeKey<String> CODE_NAMESPACE = AttributeKey.stringKey("code.namespace");
-    private static final AttributeKey<String> CLS_STAGE = AttributeKey.stringKey("cls.stage");
+    private static final AttributeKey<String> COMPONENT_STAGE = AttributeKey.stringKey("component.stage");
     private static final AttributeKey<String> ERROR_TYPE = AttributeKey.stringKey("error.type");
     private static final AttributeKey<String> MATCHED_TRADE_ID = AttributeKey.stringKey("matched.trade.id");
     private static final AttributeKey<String> MESSAGE_ID = AttributeKey.stringKey("message.id");
@@ -61,6 +64,9 @@ public class ComponentTracingAspect {
     @Around(
             "execution(public * com.cit.mocknet..*.*(..))"
                     + " && !within(com.cit.mocknet.config..*)"
+                    + " && !within(com.cit.mocknet.observability..*)"
+                    + " && !within(com.cit.mocknet.queue.QueueMessageTracing)"
+                    + " && !within(com.cit.mocknet.queue.util..*)"
                     + " && !@within(org.springframework.context.annotation.Configuration)"
                     + " && !execution(@org.springframework.context.annotation.Bean * *(..))"
     )
@@ -69,7 +75,8 @@ public class ComponentTracingAspect {
         Class<?> declaringType = signature.getDeclaringType();
         Class<?> targetType = resolveTargetType(joinPoint, declaringType);
         String componentKind = resolveComponentKind(declaringType, targetType);
-        if (componentKind == null) {
+        if (componentKind == null || (!"controller".equals(componentKind)
+                && !Span.current().getSpanContext().isValid())) {
             return joinPoint.proceed();
         }
         String stage = resolveStage(declaringType, targetType, componentKind);
@@ -77,14 +84,14 @@ public class ComponentTracingAspect {
         String methodName = signature.getName();
 
         Span span = tracer.spanBuilder(componentClass + "." + methodName)
-                .setSpanKind("controller".equals(componentKind) ? SpanKind.SERVER : SpanKind.INTERNAL)
+                .setSpanKind(SpanKind.INTERNAL)
                 .startSpan();
 
         span.setAttribute(COMPONENT_CLASS, componentClass);
         span.setAttribute(COMPONENT_KIND, componentKind);
         span.setAttribute(COMPONENT_METHOD, methodName);
         span.setAttribute(CODE_NAMESPACE, declaringType.getName());
-        span.setAttribute(CLS_STAGE, stage);
+        span.setAttribute(COMPONENT_STAGE, stage);
         applyCorrelation(span, joinPoint.getArgs());
 
         try {
@@ -105,8 +112,16 @@ public class ComponentTracingAspect {
     }
 
     private void applyCorrelation(Span span, Object value) {
+        if (!span.isRecording()) {
+            return;
+        }
         CorrelationTags tags = new CorrelationTags();
-        collectCorrelation(tags, value);
+        try {
+            collectCorrelation(tags, value, 0);
+        } catch (RuntimeException ignored) {
+            // Best-effort metadata must not change application behavior.
+            return;
+        }
 
         if (!tags.tradeIds.isEmpty()) {
             span.setAttribute(TRADE_ID, tags.tradeIds.iterator().next());
@@ -130,43 +145,39 @@ public class ComponentTracingAspect {
         }
     }
 
-    private void collectCorrelation(CorrelationTags tags, Object value) {
-        if (value == null) {
+    private void collectCorrelation(CorrelationTags tags, Object value, int depth) {
+        if (value == null || depth > 6 || tags.visited++ >= 128) {
             return;
         }
 
         if (value instanceof Object[] values) {
             for (Object item : values) {
-                collectCorrelation(tags, item);
+                if (tags.visited >= 128) break;
+                collectCorrelation(tags, item, depth + 1);
             }
             return;
         }
 
         if (value instanceof Optional<?> optional) {
-            optional.ifPresent(item -> collectCorrelation(tags, item));
+            optional.ifPresent(item -> collectCorrelation(tags, item, depth + 1));
             return;
         }
 
-        if (value instanceof Iterable<?> iterable) {
+        if (value instanceof Collection<?> iterable) {
             for (Object item : iterable) {
-                collectCorrelation(tags, item);
-            }
-            return;
-        }
-
-        if (value instanceof Iterator<?> iterator) {
-            while (iterator.hasNext()) {
-                collectCorrelation(tags, iterator.next());
+                if (tags.visited >= 128) break;
+                collectCorrelation(tags, item, depth + 1);
             }
             return;
         }
 
         if (value instanceof Map<?, ?> map) {
             for (Map.Entry<?, ?> entry : map.entrySet()) {
+                if (tags.visited >= 128) break;
                 if (entry.getKey() instanceof String key) {
                     collectJsonField(tags, key, entry.getValue());
                 }
-                collectCorrelation(tags, entry.getValue());
+                collectCorrelation(tags, entry.getValue(), depth + 1);
             }
             return;
         }
@@ -175,7 +186,7 @@ public class ComponentTracingAspect {
             if (queueMessage.getQueueName() != null) {
                 tags.queueNames.add(queueMessage.getQueueName().name());
             }
-            collectCorrelation(tags, queueMessage.getPayload());
+            collectCorrelation(tags, queueMessage.getPayload(), depth + 1);
             return;
         }
 
@@ -213,6 +224,7 @@ public class ComponentTracingAspect {
     }
 
     private void collectFromText(CorrelationTags tags, String raw) {
+        if (raw.length() > 65536) return;
         TextPayloadCorrelation correlation = textPayloadCorrelationReader.extract(raw);
 
         if (correlation.tradeId() != null) {
@@ -248,7 +260,7 @@ public class ComponentTracingAspect {
 
         String stringValue = value instanceof JsonNode node && !node.isContainerNode()
                 ? node.asText()
-                : String.valueOf(value);
+                : value instanceof CharSequence || value instanceof Number ? String.valueOf(value) : "";
         if (stringValue == null || stringValue.isBlank()) {
             return;
         }
@@ -343,11 +355,12 @@ public class ComponentTracingAspect {
         }
         String stringValue = String.valueOf(value).trim();
         if (!stringValue.isEmpty()) {
-            target.add(stringValue);
+            target.add(stringValue.substring(0, Math.min(stringValue.length(), 256)));
         }
     }
 
     private static final class CorrelationTags {
+        private int visited;
         private final LinkedHashSet<String> tradeIds = new LinkedHashSet<>();
         private final LinkedHashSet<String> messageIds = new LinkedHashSet<>();
         private final LinkedHashSet<String> queueNames = new LinkedHashSet<>();

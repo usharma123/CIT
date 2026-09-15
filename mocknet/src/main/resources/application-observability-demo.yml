@@ -1,0 +1,37 @@
+management:
+  server:
+    address: 127.0.0.1
+    port: 18082
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: never
+  metrics:
+    tags:
+      service: mocknet
+      environment: local-demo
+      version: ${MOCKNET_VERSION:l3-demo-v1}
+      app_instance: ${MOCKNET_INSTANCE:local-1}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: ${MOCKNET_DB_POOL:16}
+      minimum-idle: 4
+      connection-timeout: 2000
+  jpa:
+    open-in-view: false
+mocknet:
+  instance: ${MOCKNET_INSTANCE:local-1}
+  threads:
+    ingestion: ${MOCKNET_INGESTION_WORKERS:8}
+    matching: ${MOCKNET_MATCHING_WORKERS:8}
+    netting: ${MOCKNET_NETTING_WORKERS:6}
+    settlement: ${MOCKNET_SETTLEMENT_WORKERS:2}
+  broker:
+    poll-interval-millis: 250

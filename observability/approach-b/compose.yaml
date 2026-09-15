@@ -1,0 +1,33 @@
+name: cit-observability-b
+services:
+  postgres-b:
+    image: postgres:17.6-alpine
+    environment:
+      POSTGRES_DB: mocknet_b
+      POSTGRES_USER: mocknet_b
+      POSTGRES_PASSWORD: ${MOCKNET_DB_PASSWORD:?Use the shared local secret file}
+    ports: ["127.0.0.1:15442:5432"]
+    volumes: ["postgres-b-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mocknet_b -d mocknet_b"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+  collector-b:
+    image: otel/opentelemetry-collector-contrib:0.147.0
+    command: ["--config=/etc/collector-b.yaml"]
+    volumes: ["./collector.yaml:/etc/collector-b.yaml:ro"]
+    ports: ["127.0.0.1:14328:4318", "127.0.0.1:13143:13133"]
+    restart: unless-stopped
+  prometheus-b:
+    image: prom/prometheus:v3.5.0
+    command: ["--config.file=/etc/prometheus-b.yaml", "--storage.tsdb.retention.time=72h", "--storage.tsdb.retention.size=1GB"]
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus-b.yaml:ro
+      - prometheus-b-data:/prometheus
+    ports: ["127.0.0.1:19091:9090"]
+    restart: unless-stopped
+volumes:
+  postgres-b-data:
+  prometheus-b-data:

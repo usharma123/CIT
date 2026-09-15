@@ -1,0 +1,938 @@
+{
+  "uid": "mocknet-operation",
+  "title": "Approach A | Operation investigation",
+  "schemaVersion": 40,
+  "version": 1,
+  "editable": false,
+  "tags": [
+    "mocknet",
+    "L3",
+    "Approach A",
+    "provisioned"
+  ],
+  "timezone": "browser",
+  "refresh": "10s",
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "links": [
+    {
+      "title": "Service overview",
+      "type": "link",
+      "url": "/d/mocknet-traces",
+      "includeVars": true,
+      "keepTime": true
+    },
+    {
+      "title": "Stage diagnostics",
+      "type": "link",
+      "url": "/d/mocknet-stages",
+      "includeVars": true,
+      "keepTime": true
+    },
+    {
+      "title": "Operation investigation",
+      "type": "link",
+      "url": "/d/mocknet-operation",
+      "includeVars": true,
+      "keepTime": true
+    },
+    {
+      "title": "Compare Approach B",
+      "type": "link",
+      "url": "/d/mocknet-b-overview",
+      "keepTime": true
+    },
+    {
+      "title": "Compare Approach C",
+      "type": "link",
+      "url": "http://localhost:3302/d/mocknet-c-overview",
+      "keepTime": true
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "environment",
+        "label": "Environment",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "mocknet-prometheus"
+        },
+        "query": "label_values(mocknet_snapshot_timestamp, environment)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "multi": false
+      },
+      {
+        "name": "service",
+        "label": "Service",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "mocknet-prometheus"
+        },
+        "query": "label_values(mocknet_snapshot_timestamp, service)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "multi": false
+      },
+      {
+        "name": "version",
+        "label": "Version",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "mocknet-prometheus"
+        },
+        "query": "label_values(mocknet_snapshot_timestamp, version)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "multi": false
+      },
+      {
+        "name": "app_instance",
+        "label": "Instance",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "mocknet-prometheus"
+        },
+        "query": "label_values(mocknet_snapshot_timestamp, app_instance)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "multi": false
+      },
+      {
+        "name": "stage",
+        "label": "Stage",
+        "type": "custom",
+        "query": "INGESTION,MATCHING,NETTING,SETTLEMENT,DEAD_LETTER",
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "business_id",
+        "label": "Trade or operation ID",
+        "type": "textbox",
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        }
+      },
+      {
+        "name": "trace_id",
+        "label": "Trace ID",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "mocknet-operations"
+        },
+        "refresh": 1,
+        "query": "WITH selected AS (SELECT operation_id FROM support.operations WHERE (${business_id:sqlstring}='' OR business_id=${business_id:sqlstring} OR operation_id=${business_id:sqlstring}) ORDER BY accepted_at DESC LIMIT 50), related AS (SELECT operation_id FROM selected UNION SELECT related_operation_id FROM support.operation_links WHERE operation_id IN (SELECT operation_id FROM selected)) SELECT DISTINCT trace_id AS __text,trace_id AS __value FROM support.queue_messages WHERE operation_id IN (SELECT operation_id FROM related) AND trace_id IS NOT NULL ORDER BY 1 LIMIT 100",
+        "current": {
+          "text": "",
+          "value": ""
+        }
+      },
+      {
+        "name": "traceql",
+        "label": "Advanced TraceQL",
+        "type": "textbox",
+        "query": "{ resource.service.name = \"mocknet\" && name = \"QueueMessage.process\" }",
+        "current": {
+          "text": "{ resource.service.name = \"mocknet\" && name = \"QueueMessage.process\" }",
+          "value": "{ resource.service.name = \"mocknet\" && name = \"QueueMessage.process\" }"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Operation and trace",
+      "type": "table",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 5
+      },
+      "description": "Current database outcome and originating request trace. Click the full Trace ID to select this operation and load its waterfall. COMPLETED means local instruction generation, not external settlement. An ID proves correlation; an expired or not-yet-exported trace may be unavailable in Tempo.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "trace_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open request waterfall",
+                    "url": "/d/mocknet-operation?from=${__data.fields.trace_from}&to=now&var-trace_id=${__value.raw}&var-business_id=${__data.fields.operation_id}&var-environment=${environment:percentencode}&var-service=${service:percentencode}&var-version=${version:percentencode}&var-app_instance=${app_instance:percentencode}&var-stage=${stage:percentencode}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "outcome"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "FAILED": {
+                        "color": "red",
+                        "index": 0
+                      },
+                      "REJECTED": {
+                        "color": "orange",
+                        "index": 1
+                      },
+                      "COMPLETED": {
+                        "color": "green",
+                        "index": 2
+                      },
+                      "AWAITING_COUNTERPARTY": {
+                        "color": "blue",
+                        "index": 3
+                      },
+                      "retried": {
+                        "color": "orange",
+                        "index": 4
+                      },
+                      "failed": {
+                        "color": "red",
+                        "index": 5
+                      },
+                      "completed": {
+                        "color": "green",
+                        "index": 6
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "trace_id"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Trace ID"
+              },
+              {
+                "id": "custom.width",
+                "value": 285
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "business_id"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Trade"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "outcome"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "State"
+              },
+              {
+                "id": "custom.width",
+                "value": 115
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "last_progress_at"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Last progress"
+              },
+              {
+                "id": "custom.width",
+                "value": 175
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "terminal_seconds"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Total time"
+              },
+              {
+                "id": "custom.width",
+                "value": 100
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "observed_at"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Observed at"
+              },
+              {
+                "id": "custom.width",
+                "value": 175
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "operation_id"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "trace_from"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT trace_id,business_id,outcome,last_progress_at,round(terminal_latency_seconds::numeric,3) AS terminal_seconds,now() AS observed_at,operation_id,(extract(epoch FROM accepted_at)*1000-60000)::bigint AS trace_from FROM support.operations WHERE (${business_id:sqlstring}='' OR business_id=${business_id:sqlstring} OR operation_id=${business_id:sqlstring}) ORDER BY accepted_at DESC LIMIT 50",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-operations"
+      }
+    },
+    {
+      "id": 2,
+      "title": "Related operations \u2022 both sides of a matched trade",
+      "type": "table",
+      "gridPos": {
+        "x": 0,
+        "y": 38,
+        "w": 24,
+        "h": 6
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "trace_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open request trace",
+                    "url": "/d/mocknet-operation?${__url_time_range}&var-trace_id=${__value.raw}&var-business_id=${business_id:percentencode}&var-environment=${environment:percentencode}&var-service=${service:percentencode}&var-version=${version:percentencode}&var-app_instance=${app_instance:percentencode}&var-stage=${stage:percentencode}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "operation_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Select operation",
+                    "url": "/d/mocknet-operation?${__url_time_range}&var-business_id=${__value.raw}&var-environment=${environment:percentencode}&var-service=${service:percentencode}&var-version=${version:percentencode}&var-app_instance=${app_instance:percentencode}&var-stage=${stage:percentencode}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "outcome"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "FAILED": {
+                        "color": "red",
+                        "index": 0
+                      },
+                      "REJECTED": {
+                        "color": "orange",
+                        "index": 1
+                      },
+                      "COMPLETED": {
+                        "color": "green",
+                        "index": 2
+                      },
+                      "AWAITING_COUNTERPARTY": {
+                        "color": "blue",
+                        "index": 3
+                      },
+                      "retried": {
+                        "color": "orange",
+                        "index": 4
+                      },
+                      "failed": {
+                        "color": "red",
+                        "index": 5
+                      },
+                      "completed": {
+                        "color": "green",
+                        "index": 6
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "trace_id"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Trace ID"
+              },
+              {
+                "id": "custom.width",
+                "value": 285
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "WITH selected AS (SELECT operation_id FROM support.operations WHERE (${business_id:sqlstring}='' OR business_id=${business_id:sqlstring} OR operation_id=${business_id:sqlstring}) ORDER BY accepted_at DESC LIMIT 50), related AS (SELECT operation_id FROM selected UNION SELECT related_operation_id FROM support.operation_links WHERE operation_id IN (SELECT operation_id FROM selected)) SELECT o.trace_id,o.business_id,o.operation_id,o.outcome FROM support.operations o JOIN related r USING(operation_id) ORDER BY o.accepted_at LIMIT 100",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-operations"
+      }
+    },
+    {
+      "id": 3,
+      "title": "Attempt timeline \u2022 persisted across retries and process restarts",
+      "type": "table",
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 24,
+        "h": 8
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "trace_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open attempt waterfall",
+                    "url": "/d/mocknet-operation?${__url_time_range}&var-trace_id=${__value.raw}&var-business_id=${business_id:percentencode}&var-environment=${environment:percentencode}&var-service=${service:percentencode}&var-version=${version:percentencode}&var-app_instance=${app_instance:percentencode}&var-stage=${stage:percentencode}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "outcome"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "FAILED": {
+                        "color": "red",
+                        "index": 0
+                      },
+                      "REJECTED": {
+                        "color": "orange",
+                        "index": 1
+                      },
+                      "COMPLETED": {
+                        "color": "green",
+                        "index": 2
+                      },
+                      "AWAITING_COUNTERPARTY": {
+                        "color": "blue",
+                        "index": 3
+                      },
+                      "retried": {
+                        "color": "orange",
+                        "index": 4
+                      },
+                      "failed": {
+                        "color": "red",
+                        "index": 5
+                      },
+                      "completed": {
+                        "color": "green",
+                        "index": 6
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "trace_id"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Trace ID"
+              },
+              {
+                "id": "custom.width",
+                "value": 285
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "WITH selected AS (SELECT operation_id FROM support.operations WHERE (${business_id:sqlstring}='' OR business_id=${business_id:sqlstring} OR operation_id=${business_id:sqlstring}) ORDER BY accepted_at DESC LIMIT 50), related AS (SELECT operation_id FROM selected UNION SELECT related_operation_id FROM support.operation_links WHERE operation_id IN (SELECT operation_id FROM selected)) SELECT a.trace_id,a.claimed_at,a.stage,a.attempt_number AS attempt,a.outcome,round(a.wait_seconds::numeric,3) AS ready_wait_s,round(a.processing_seconds::numeric,3) AS handler_s,a.reason,a.worker,a.service_version FROM support.attempts a JOIN related r USING(operation_id) ORDER BY a.claimed_at LIMIT 200",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-operations"
+      }
+    },
+    {
+      "id": 4,
+      "title": "Queue disposition \u2022 includes work with no consumer span yet",
+      "type": "table",
+      "gridPos": {
+        "x": 0,
+        "y": 44,
+        "w": 24,
+        "h": 8
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "trace_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open originating trace",
+                    "url": "/d/mocknet-operation?${__url_time_range}&var-trace_id=${__value.raw}&var-business_id=${business_id:percentencode}&var-environment=${environment:percentencode}&var-service=${service:percentencode}&var-version=${version:percentencode}&var-app_instance=${app_instance:percentencode}&var-stage=${stage:percentencode}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "trace_id"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Trace ID"
+              },
+              {
+                "id": "custom.width",
+                "value": 285
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "WITH selected AS (SELECT operation_id FROM support.operations WHERE (${business_id:sqlstring}='' OR business_id=${business_id:sqlstring} OR operation_id=${business_id:sqlstring}) ORDER BY accepted_at DESC LIMIT 50), related AS (SELECT operation_id FROM selected UNION SELECT related_operation_id FROM support.operation_links WHERE operation_id IN (SELECT operation_id FROM selected)) SELECT q.trace_id,q.id,q.stage,q.status,q.outcome,q.failed_attempts,q.created_at,q.available_at,q.claimed_at,q.completed_at FROM support.queue_messages q JOIN related r USING(operation_id) ORDER BY q.created_at LIMIT 200",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-operations"
+      }
+    },
+    {
+      "id": 5,
+      "title": "Selected trace waterfall",
+      "type": "traces",
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 24,
+        "h": 15
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
+        },
+        "overrides": []
+      },
+      "options": {},
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "traceql",
+          "query": "$trace_id",
+          "tableType": "traces"
+        }
+      ],
+      "datasource": {
+        "type": "tempo",
+        "uid": "mocknet-tempo"
+      }
+    },
+    {
+      "id": 6,
+      "title": "Correlated application logs",
+      "type": "logs",
+      "gridPos": {
+        "x": 0,
+        "y": 28,
+        "w": 24,
+        "h": 10
+      },
+      "description": "Select a trace for exact log correlation. With no trace selected, shows queue events for the chosen business or operation ID. IDs are structured metadata, not stream labels.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "enableLogDetails": true,
+        "dedupStrategy": "none"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{service_name=~\".+\",service_name=~\"$service\",deployment_environment_name=~\"$environment\"} | trace_id =~ \"${trace_id:regex}.*\" | operation_id =~ \"${business_id:regex}.*\" or business_id =~ \"${business_id:regex}.*\" | line_format \"{{.stage}} {{.outcome}} {{.reason}} | {{ __line__ }}\"",
+          "queryType": "range"
+        }
+      ],
+      "datasource": {
+        "type": "loki",
+        "uid": "mocknet-loki"
+      }
+    },
+    {
+      "id": 7,
+      "title": "Advanced trace search",
+      "type": "table",
+      "gridPos": {
+        "x": 0,
+        "y": 52,
+        "w": 24,
+        "h": 10
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "traceID"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open waterfall",
+                    "url": "/d/mocknet-operation?${__url_time_range}&var-trace_id=${__value.raw}&var-business_id=${business_id:percentencode}&var-environment=${environment:percentencode}&var-service=${service:percentencode}&var-version=${version:percentencode}&var-app_instance=${app_instance:percentencode}&var-stage=${stage:percentencode}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "trace_id"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Trace ID"
+              },
+              {
+                "id": "custom.width",
+                "value": 285
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "traceql",
+          "query": "$traceql",
+          "limit": 50,
+          "tableType": "traces"
+        }
+      ],
+      "datasource": {
+        "type": "tempo",
+        "uid": "mocknet-tempo"
+      }
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "name": "First observed worker version",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "mocknet-operations"
+        },
+        "enable": true,
+        "hide": false,
+        "iconColor": "#B877D9",
+        "rawQuery": true,
+        "rawSql": "SELECT observed AS time, 'First observed ' || service_version AS text, instance AS tags FROM (SELECT min(claimed_at) AS observed,service_version,instance FROM support.attempts WHERE service_version IS NOT NULL GROUP BY service_version,instance) versions WHERE $__timeFilter(observed)"
+      }
+    ]
+  }
+}

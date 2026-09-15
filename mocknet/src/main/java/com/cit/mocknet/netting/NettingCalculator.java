@@ -107,7 +107,7 @@ public class NettingCalculator {
                         queueMessageTracing.markFailure(processingSpan, failureContext, disposition);
                     }
                 } finally {
-                    processingSpan.end();
+                    queueMessageTracing.endProcessingSpan(processingSpan);
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();

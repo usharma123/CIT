@@ -1,0 +1,623 @@
+{
+  "uid": "mocknet-b-runtime",
+  "title": "Approach B | JVM runtime diagnostics",
+  "schemaVersion": 40,
+  "version": 1,
+  "editable": false,
+  "tags": [
+    "mocknet",
+    "Approach B",
+    "JVM only"
+  ],
+  "timezone": "browser",
+  "refresh": "10s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "description": "Strict JVM-only evidence from the OpenTelemetry Java agent. No application metrics, SQL, logs, spans or span-derived metrics. Queue state, trade outcomes and individual request causes are not observable. Compare time trends before and during an incident. Missing data is not zero.",
+  "templating": {
+    "list": [
+      {
+        "name": "environment",
+        "label": "Environment",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "mocknet-b-metrics"
+        },
+        "query": "label_values(jvm_memory_used_bytes{service_name=\"mocknet-b\"}, deployment_environment_name)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "service",
+        "label": "Service",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "mocknet-b-metrics"
+        },
+        "query": "label_values(jvm_memory_used_bytes{service_name=\"mocknet-b\"}, service_name)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "version",
+        "label": "Version",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "mocknet-b-metrics"
+        },
+        "query": "label_values(jvm_memory_used_bytes{service_name=\"mocknet-b\"}, service_version)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "app_instance",
+        "label": "JVM instance",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "mocknet-b-metrics"
+        },
+        "query": "label_values(jvm_memory_used_bytes{service_name=\"mocknet-b\"}, service_instance_id)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      }
+    ]
+  },
+  "links": [
+    {
+      "title": "B overview",
+      "type": "link",
+      "url": "/d/mocknet-b-overview",
+      "includeVars": true,
+      "keepTime": true
+    },
+    {
+      "title": "B runtime diagnostics",
+      "type": "link",
+      "url": "/d/mocknet-b-runtime",
+      "includeVars": true,
+      "keepTime": true
+    },
+    {
+      "title": "B incident investigation",
+      "type": "link",
+      "url": "/d/mocknet-b-investigation",
+      "includeVars": true,
+      "keepTime": true
+    },
+    {
+      "title": "Compare Approach A",
+      "type": "link",
+      "url": "/d/mocknet-traces",
+      "keepTime": true
+    },
+    {
+      "title": "Compare Approach C",
+      "type": "link",
+      "url": "/d/mocknet-c-overview",
+      "keepTime": true
+    }
+  ],
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Memory used by pool",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-b-metrics"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "description": "",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "jvm_memory_used_bytes{service_name=~\"$service\",deployment_environment_name=~\"$environment\",service_version=~\"$version\",service_instance_id=~\"$app_instance\",otel_scope_name=\"io.opentelemetry.runtime-telemetry\"}",
+          "legendFormat": "{{service_instance_id}} {{jvm_memory_pool_name}}",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Memory committed by pool",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-b-metrics"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "description": "",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "jvm_memory_committed_bytes{service_name=~\"$service\",deployment_environment_name=~\"$environment\",service_version=~\"$version\",service_instance_id=~\"$app_instance\",otel_scope_name=\"io.opentelemetry.runtime-telemetry\"}",
+          "legendFormat": "{{service_instance_id}} {{jvm_memory_pool_name}}",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "GC duration per event \u00b7 p95",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-b-metrics"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "description": "Histogram estimate of GC-event duration. No events means no quantile; it is not zero.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95,sum by(le,service_instance_id,jvm_gc_name)(rate(jvm_gc_duration_seconds_bucket{service_name=~\"$service\",deployment_environment_name=~\"$environment\",service_version=~\"$version\",service_instance_id=~\"$app_instance\",otel_scope_name=\"io.opentelemetry.runtime-telemetry\"}[$__rate_interval])))",
+          "legendFormat": "{{service_instance_id}} {{jvm_gc_name}}",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "min": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "GC events per second",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-b-metrics"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "description": "",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(service_instance_id,jvm_gc_name)(rate(jvm_gc_duration_seconds_count{service_name=~\"$service\",deployment_environment_name=~\"$environment\",service_version=~\"$version\",service_instance_id=~\"$app_instance\",otel_scope_name=\"io.opentelemetry.runtime-telemetry\"}[$__rate_interval]))",
+          "legendFormat": "{{service_instance_id}} {{jvm_gc_name}}",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "min": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Threads by state",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-b-metrics"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "description": "",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(service_instance_id,jvm_thread_state)(jvm_thread_count{service_name=~\"$service\",deployment_environment_name=~\"$environment\",service_version=~\"$version\",service_instance_id=~\"$app_instance\",otel_scope_name=\"io.opentelemetry.runtime-telemetry\"})",
+          "legendFormat": "{{service_instance_id}} {{jvm_thread_state}}",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "JVM and host CPU",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-b-metrics"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "description": "Host CPU includes other processes, including Approach A. It cannot attribute contention to a particular service.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "jvm_cpu_recent_utilization_ratio{service_name=~\"$service\",deployment_environment_name=~\"$environment\",service_version=~\"$version\",service_instance_id=~\"$app_instance\",otel_scope_name=\"io.opentelemetry.runtime-telemetry\"}",
+          "legendFormat": "JVM {{service_instance_id}}",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "expr": "jvm_system_cpu_utilization_ratio{service_name=~\"$service\",deployment_environment_name=~\"$environment\",service_version=~\"$version\",service_instance_id=~\"$app_instance\",otel_scope_name=\"io.opentelemetry.runtime-telemetry\"}",
+          "legendFormat": "host as seen by {{service_instance_id}}",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Direct and mapped buffer memory",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-b-metrics"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "description": "",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "jvm_buffer_memory_used_bytes{service_name=~\"$service\",deployment_environment_name=~\"$environment\",service_version=~\"$version\",service_instance_id=~\"$app_instance\",otel_scope_name=\"io.opentelemetry.runtime-telemetry\"}",
+          "legendFormat": "{{service_instance_id}} {{jvm_buffer_pool_name}}",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "Open file descriptors",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-b-metrics"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "description": "JVM descriptor count. It does not distinguish database sockets, files or telemetry connections.",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "jvm_file_descriptor_count{service_name=~\"$service\",deployment_environment_name=~\"$environment\",service_version=~\"$version\",service_instance_id=~\"$app_instance\",otel_scope_name=\"io.opentelemetry.runtime-telemetry\"}",
+          "legendFormat": "{{service_instance_id}}",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "title": "Loaded classes",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-b-metrics"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 32,
+        "w": 12,
+        "h": 8
+      },
+      "description": "",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "jvm_class_count{service_name=~\"$service\",deployment_environment_name=~\"$environment\",service_version=~\"$version\",service_instance_id=~\"$app_instance\",otel_scope_name=\"io.opentelemetry.runtime-telemetry\"}",
+          "legendFormat": "{{service_instance_id}}",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "title": "Class loading and unloading",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-b-metrics"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 32,
+        "w": 12,
+        "h": 8
+      },
+      "description": "",
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(jvm_class_loaded_total{service_name=~\"$service\",deployment_environment_name=~\"$environment\",service_version=~\"$version\",service_instance_id=~\"$app_instance\",otel_scope_name=\"io.opentelemetry.runtime-telemetry\"}[$__rate_interval])",
+          "legendFormat": "loaded {{service_instance_id}}",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "expr": "rate(jvm_class_unloaded_total{service_name=~\"$service\",deployment_environment_name=~\"$environment\",service_version=~\"$version\",service_instance_id=~\"$app_instance\",otel_scope_name=\"io.opentelemetry.runtime-telemetry\"}[$__rate_interval])",
+          "legendFormat": "unloaded {{service_instance_id}}",
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "min": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    }
+  ]
+}

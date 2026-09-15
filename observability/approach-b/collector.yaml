@@ -1,0 +1,39 @@
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 128
+    spike_limit_mib: 32
+  filter/jvm_only:
+    error_mode: propagate
+    metrics:
+      metric:
+        - 'not IsMatch(name, "^jvm[.]")'
+        - 'not IsMatch(instrumentation_scope.name, "^io[.]opentelemetry[.]runtime-telemetry")'
+  transform/resource:
+    metric_statements:
+      - context: resource
+        statements:
+          - 'keep_keys(attributes, ["service.name", "service.instance.id", "service.version", "deployment.environment.name"])'
+  batch:
+    timeout: 1s
+exporters:
+  prometheus:
+    endpoint: 0.0.0.0:9464
+    metric_expiration: 30s
+    resource_to_telemetry_conversion:
+      enabled: true
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+service:
+  extensions: [health_check]
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, filter/jvm_only, transform/resource, batch]
+      exporters: [prometheus]
