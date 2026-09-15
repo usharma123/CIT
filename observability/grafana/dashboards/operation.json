@@ -334,11 +334,11 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "Total time"
+                "value": "Elapsed to outcome"
               },
               {
                 "id": "custom.width",
-                "value": 100
+                "value": 145
               },
               {
                 "id": "unit",
@@ -566,7 +566,7 @@
         "w": 24,
         "h": 8
       },
-      "description": "",
+      "description": "One row per durable attempt ID, across the selected operation and its related trade leg, up to 200 rows. Attempt number restarts for each queue message. Shared work is included once by identity, not once per related leg. Attempt elapsed runs from claim to recorded disposition, including bookkeeping; it differs from the narrower consumer span. Ready wait is separate. Processing/abandoned durations are unknown and displayed blank.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -662,6 +662,174 @@
                 "value": 285
               }
             ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "claimed_at"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Claimed"
+              },
+              {
+                "id": "custom.width",
+                "value": 180
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "leg"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Trade leg"
+              },
+              {
+                "id": "custom.width",
+                "value": 85
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "stage"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Stage"
+              },
+              {
+                "id": "custom.width",
+                "value": 105
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "attempt"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Attempt"
+              },
+              {
+                "id": "custom.width",
+                "value": 75
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "outcome"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Outcome"
+              },
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ready_wait_s"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Ready wait"
+              },
+              {
+                "id": "custom.width",
+                "value": 100
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "handler_s"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Attempt elapsed"
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "reason"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Reason"
+              },
+              {
+                "id": "custom.width",
+                "value": 180
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "attempt_id"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Attempt ID"
+              },
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "queue_message_id"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Message ID"
+              },
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
           }
         ]
       },
@@ -675,7 +843,7 @@
       "targets": [
         {
           "refId": "A",
-          "rawSql": "WITH selected AS (SELECT operation_id FROM support.operations WHERE (${business_id:sqlstring}='' OR business_id=${business_id:sqlstring} OR operation_id=${business_id:sqlstring}) ORDER BY accepted_at DESC LIMIT 50), related AS (SELECT operation_id FROM selected UNION SELECT related_operation_id FROM support.operation_links WHERE operation_id IN (SELECT operation_id FROM selected)) SELECT a.trace_id,a.claimed_at,a.stage,a.attempt_number AS attempt,a.outcome,round(a.wait_seconds::numeric,3) AS ready_wait_s,round(a.processing_seconds::numeric,3) AS handler_s,a.reason,a.worker,a.service_version FROM support.attempts a JOIN related r USING(operation_id) ORDER BY a.claimed_at LIMIT 200",
+          "rawSql": "WITH selected AS (SELECT operation_id FROM support.operations WHERE (${business_id:sqlstring}='' OR business_id=${business_id:sqlstring} OR operation_id=${business_id:sqlstring}) ORDER BY accepted_at DESC LIMIT 50), related AS (SELECT operation_id FROM selected UNION SELECT related_operation_id FROM support.operation_links WHERE operation_id IN (SELECT operation_id FROM selected)) SELECT a.claimed_at,CASE WHEN a.operation_id IN (SELECT operation_id FROM selected) THEN 'Selected' ELSE 'Related' END AS leg,a.stage,a.attempt_number AS attempt,a.outcome,round(a.wait_seconds::numeric,3) AS ready_wait_s,round(a.processing_seconds::numeric,3) AS handler_s,a.reason,a.trace_id,a.id AS attempt_id,a.operation_id,a.queue_message_id,a.worker,a.service_version FROM support.attempts a JOIN related r USING(operation_id) ORDER BY a.claimed_at LIMIT 200",
           "format": "table",
           "editorMode": "code",
           "rawQuery": true
@@ -696,7 +864,7 @@
         "w": 24,
         "h": 8
       },
-      "description": "",
+      "description": "One row per queue message ID, across both related operations, up to 200 rows. Repeated queue stages can belong to different trade legs; inspect operation_id and message ID.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -753,7 +921,7 @@
       "targets": [
         {
           "refId": "A",
-          "rawSql": "WITH selected AS (SELECT operation_id FROM support.operations WHERE (${business_id:sqlstring}='' OR business_id=${business_id:sqlstring} OR operation_id=${business_id:sqlstring}) ORDER BY accepted_at DESC LIMIT 50), related AS (SELECT operation_id FROM selected UNION SELECT related_operation_id FROM support.operation_links WHERE operation_id IN (SELECT operation_id FROM selected)) SELECT q.trace_id,q.id,q.stage,q.status,q.outcome,q.failed_attempts,q.created_at,q.available_at,q.claimed_at,q.completed_at FROM support.queue_messages q JOIN related r USING(operation_id) ORDER BY q.created_at LIMIT 200",
+          "rawSql": "WITH selected AS (SELECT operation_id FROM support.operations WHERE (${business_id:sqlstring}='' OR business_id=${business_id:sqlstring} OR operation_id=${business_id:sqlstring}) ORDER BY accepted_at DESC LIMIT 50), related AS (SELECT operation_id FROM selected UNION SELECT related_operation_id FROM support.operation_links WHERE operation_id IN (SELECT operation_id FROM selected)) SELECT q.trace_id,q.id,q.operation_id,q.stage,q.status,q.outcome,q.failed_attempts,q.created_at,q.available_at,q.claimed_at,q.completed_at FROM support.queue_messages q JOIN related r USING(operation_id) ORDER BY q.created_at LIMIT 200",
           "format": "table",
           "editorMode": "code",
           "rawQuery": true
@@ -774,7 +942,7 @@
         "w": 24,
         "h": 15
       },
-      "description": "",
+      "description": "One HTTP trace, including asynchronous attempts linked to it. Spans are nested inclusive durations: never sum parent and child times or count spans as operations. Actual JDBC calls remain visible. Related trade legs can have separate traces. Older stored traces retain their original instrumentation.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -835,7 +1003,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "{service_name=~\".+\",service_name=~\"$service\",deployment_environment_name=~\"$environment\"} | trace_id =~ \"${trace_id:regex}.*\" | operation_id =~ \"${business_id:regex}.*\" or business_id =~ \"${business_id:regex}.*\" | line_format \"{{.stage}} {{.outcome}} {{.reason}} | {{ __line__ }}\"",
+          "expr": "{service_name=~\".+\",service_name=~\"$service\",deployment_environment_name=~\"$environment\"} | label_format selection_trace=${trace_id:doublequote}, selection_business=${business_id:doublequote} | (selection_trace!=\"\" and trace_id=${trace_id:doublequote}) or (selection_trace=\"\" and (selection_business=\"\" or operation_id=${business_id:doublequote} or business_id=${business_id:doublequote})) | line_format \"{{.stage}} {{.outcome}} {{.reason}} | {{ __line__ }}\"",
           "queryType": "range"
         }
       ],

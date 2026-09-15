@@ -175,7 +175,7 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "**Rising queue age:** check workers and database waiters. **Long handler time:** inspect SQL and the first error in its trace. **Retries:** read the reason and final disposition.\n\nCheck snapshot age before trusting queue values. Alert history includes recovered incidents. Stalls and connection-pressure controls expire automatically."
+        "content": "**Rising queue age:** check workers and database waiters. **Long attempt elapsed:** inspect SQL and the first error in its trace. **Retries:** read the reason and final disposition.\n\nCheck snapshot age before trusting queue values. Alert history includes recovered incidents. Stalls and connection-pressure controls expire automatically."
       },
       "targets": []
     },
@@ -189,7 +189,7 @@
         "w": 12,
         "h": 7
       },
-      "description": "Shared database scope. max avoids duplicate snapshots from multiple app instances; version/instance filters apply to handler metrics, not shared queues.",
+      "description": "Shared database scope. max avoids duplicate snapshots from multiple app instances; version/instance filters apply to attempt metrics, not shared queues. Only successful scrapes with database snapshots less than 15 seconds old are used. A gap means unavailable evidence.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -215,7 +215,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "max by(stage,state)(mocknet_queue_messages{service=~\"$service\",environment=~\"$environment\",stage=~\"$stage\",stage!=\"DEAD_LETTER\",state=~\"ready|scheduled|processing\"})",
+          "expr": "max by(stage,state)((mocknet_queue_messages{service=~\"$service\",environment=~\"$environment\",stage=~\"$stage\",stage!=\"DEAD_LETTER\",state=~\"ready|scheduled|processing\"} and on(job,instance) (time()-mocknet_snapshot_timestamp{service=~\"$service\",environment=~\"$environment\"} < 15) and on(job,instance) (up{job=\"mocknet\"} == 1)))",
           "legendFormat": "{{stage}} {{outcome}} {{state}}",
           "instant": false,
           "range": true
@@ -236,7 +236,7 @@
         "w": 12,
         "h": 7
       },
-      "description": "",
+      "description": " Only successful scrapes with database snapshots less than 15 seconds old are used. A gap means unavailable evidence.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -262,7 +262,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "max by(stage,state)(mocknet_queue_oldest_seconds{service=~\"$service\",environment=~\"$environment\",stage=~\"$stage\",stage!=\"DEAD_LETTER\"})",
+          "expr": "max by(stage,state)((mocknet_queue_oldest_seconds{service=~\"$service\",environment=~\"$environment\",stage=~\"$stage\",stage!=\"DEAD_LETTER\"} and on(job,instance) (time()-mocknet_snapshot_timestamp{service=~\"$service\",environment=~\"$environment\"} < 15) and on(job,instance) (up{job=\"mocknet\"} == 1)))",
           "legendFormat": "{{stage}} {{outcome}} {{state}}",
           "instant": false,
           "range": true
@@ -327,7 +327,7 @@
     },
     {
       "id": 5,
-      "title": "Handler duration \u2022 p95 by stage",
+      "title": "Attempt elapsed \u2022 p95 by stage",
       "type": "timeseries",
       "gridPos": {
         "x": 12,
@@ -335,7 +335,7 @@
         "w": 12,
         "h": 7
       },
-      "description": "",
+      "description": "Claim to recorded disposition; includes handler and bookkeeping, excludes ready wait and final commit/export. A percentile estimate from histogram buckets; no sample for an abandoned attempt.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -409,19 +409,19 @@
         {
           "refId": "A",
           "expr": "hikaricp_connections_active{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\"}",
-          "legendFormat": "active",
+          "legendFormat": "active {{app_instance}} {{pool}}",
           "range": true
         },
         {
           "refId": "B",
           "expr": "hikaricp_connections_idle{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\"}",
-          "legendFormat": "idle",
+          "legendFormat": "idle {{app_instance}} {{pool}}",
           "range": true
         },
         {
           "refId": "C",
           "expr": "hikaricp_connections_pending{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\"}",
-          "legendFormat": "pending",
+          "legendFormat": "pending {{app_instance}} {{pool}}",
           "range": true
         }
       ],
@@ -467,7 +467,7 @@
         {
           "refId": "A",
           "expr": "hikaricp_connections_acquire_seconds_max{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\"}",
-          "legendFormat": "{{stage}} {{outcome}} {{state}}",
+          "legendFormat": "{{stage}} {{app_instance}} {{instance}}",
           "instant": false,
           "range": true
         }
@@ -549,7 +549,7 @@
             "lineWidth": 2,
             "fillOpacity": 8
           },
-          "unit": "s"
+          "unit": "suffix:s/s"
         },
         "overrides": []
       },
@@ -615,7 +615,7 @@
         {
           "refId": "A",
           "expr": "mocknet_worker_configured{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\",stage=~\"$stage\",stage!=\"DEAD_LETTER\"}",
-          "legendFormat": "{{stage}} {{outcome}} {{state}}",
+          "legendFormat": "{{stage}} {{app_instance}} {{instance}}",
           "instant": true,
           "range": false
         }
@@ -664,7 +664,7 @@
         {
           "refId": "A",
           "expr": "time()-mocknet_worker_heartbeat_timestamp{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\",stage=~\"$stage\",stage!=\"DEAD_LETTER\"}",
-          "legendFormat": "{{stage}} {{outcome}} {{state}}",
+          "legendFormat": "{{stage}} {{app_instance}} {{instance}}",
           "instant": true,
           "range": false
         }
@@ -713,7 +713,7 @@
         {
           "refId": "A",
           "expr": "mocknet_worker_paused{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\",stage=~\"$stage\",stage!=\"DEAD_LETTER\"}",
-          "legendFormat": "{{stage}} {{outcome}} {{state}}",
+          "legendFormat": "{{stage}} {{app_instance}} {{instance}}",
           "instant": true,
           "range": false
         }
@@ -809,7 +809,7 @@
       "targets": [
         {
           "refId": "A",
-          "rawSql": "SELECT stage,reason,outcome,count(*) AS attempts,count(DISTINCT operation_id) AS operations,max(finished_at) AS last_seen FROM support.attempts WHERE $__timeFilter(claimed_at) AND stage ~ '^(${stage:regex})$' AND outcome IN ('failed','retried','abandoned') GROUP BY stage,reason,outcome ORDER BY attempts DESC LIMIT 30",
+          "rawSql": "SELECT stage,reason,outcome,count(*) AS attempts,count(DISTINCT operation_id) AS operations,max(finished_at) AS last_seen FROM support.attempts WHERE $__timeFilter(claimed_at) AND stage ~ '^(${stage:regex})$' AND (${business_id:sqlstring}='' OR business_id=${business_id:sqlstring} OR operation_id=${business_id:sqlstring}) AND outcome IN ('failed','retried','abandoned') GROUP BY stage,reason,outcome ORDER BY attempts DESC LIMIT 30",
           "format": "table",
           "editorMode": "code",
           "rawQuery": true
@@ -822,7 +822,7 @@
     },
     {
       "id": 14,
-      "title": "Slow / failed / recovered attempts \u2022 trace drilldown",
+      "title": "Recent attempts \u2022 trace drilldown",
       "type": "table",
       "gridPos": {
         "x": 0,
@@ -830,7 +830,7 @@
         "w": 24,
         "h": 10
       },
-      "description": "",
+      "description": "Latest 100 attempts by claim time, including successful attempts. This is a bounded event table, not an operation count.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -940,7 +940,7 @@
       "targets": [
         {
           "refId": "A",
-          "rawSql": "SELECT claimed_at,business_id,stage,attempt_number AS attempt,outcome,round(wait_seconds::numeric,3) AS wait_s,round(processing_seconds::numeric,3) AS process_s,reason,trace_id FROM support.attempts WHERE $__timeFilter(claimed_at) AND stage ~ '^(${stage:regex})$' ORDER BY claimed_at DESC LIMIT 100",
+          "rawSql": "SELECT claimed_at,business_id,stage,attempt_number AS attempt,outcome,round(wait_seconds::numeric,3) AS wait_s,round(processing_seconds::numeric,3) AS process_s,reason,trace_id FROM support.attempts WHERE $__timeFilter(claimed_at) AND stage ~ '^(${stage:regex})$' AND (${business_id:sqlstring}='' OR business_id=${business_id:sqlstring} OR operation_id=${business_id:sqlstring}) ORDER BY claimed_at DESC LIMIT 100",
           "format": "table",
           "editorMode": "code",
           "rawQuery": true
@@ -1135,7 +1135,7 @@
         {
           "refId": "A",
           "expr": "time()-mocknet_snapshot_timestamp{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\"}",
-          "legendFormat": "{{stage}} {{outcome}} {{state}}",
+          "legendFormat": "{{stage}} {{app_instance}} {{instance}}",
           "instant": false,
           "range": true
         }

@@ -10,6 +10,8 @@ For a production service, my preferred design is standard OpenTelemetry runtime/
 
 ## Diagnostic coverage
 
+C now also has a Python/Gunicorn support API, local database and delayed ODS adapters, configuration inspection and recorded read-only diagnostics. Grafana still reads the reporting store. These additions adapt the Citrix draft; they do not connect COR, LG2, UDG or the real ODS. The application-cost measurements below predate this backend and exclude its overhead. See [the updated C architecture](approach-c/backend/README.md).
+
 | L3 question | A: spans, metrics, logs and durable history | B: JVM runtime metrics only | C: pooled component logs and MQ journals |
 | --- | --- | --- | --- |
 | Which trade or operation is affected? | Business/operation lookup and related operations | Unavailable | Explicit operation/business IDs in logs and journals |
@@ -32,6 +34,14 @@ For a production service, my preferred design is standard OpenTelemetry runtime/
 | Lowest JVM memory in this local sample | **C.** See the bounded comparison below. This excludes reporting infrastructure. |
 | Lowest CPU or latency | **No defensible general winner from this sample.** Small runs, retry races, JVM warmup and shared-host activity affect the results. |
 | Best incident diagnosis per engineering effort | **A for this service.** C is credible where agent constraints justify maintaining a reconstruction pipeline. B alone misses business and queue incidents. |
+
+## Engineering effort
+
+Budget **15–25 person-days for A** or **25–45 person-days for C** to take the existing implementation to a controlled hosted pilot. These are planning estimates for remaining work, not recorded build time or a production commitment. They assume one service, the current PostgreSQL queue and source contracts, an available approved platform and reuse of the existing IDs, history, dashboards and tests. Grafana is retained; alarms and notifications are excluded.
+
+A mostly needs hosted integration, access control and operational validation. C also needs ownership of its custom collection, replay, reconstruction, source adapters and support API. The totals describe the current designs, which have different coverage: A supplies JDBC/runtime signals absent from C; C has source/API features that could also be reused with A. Real MQ, ODS, COR, LG2 and UDG need separate contracts and estimates.
+
+See the report's [work-package estimates](../report.md#engineering-effort-a-versus-c) and [technical implementation](../report.md#technical-implementation-and-delivery) for architecture flowcharts, staffing scenarios, ownership, counting rules and pilot exit criteria. Shared work is counted once within each alternative; do not add the two totals when selecting an approach.
 
 ## Controlled local application-cost test
 
@@ -86,3 +96,7 @@ IBM's supported application activity trace can provide more detailed MQ activity
 Grafana advises against using operation/trace IDs as index labels. C keeps them in searchable reporting fields. [Grafana label guidance](https://grafana.com/docs/loki/latest/get-started/labels/bp-labels/)
 
 Logback documents the blocking/dropping tradeoff of asynchronous logging. C disables discarding and accepts backpressure if its bounded queue fills. [Logback asynchronous appenders](https://logback.qos.ch/manual/appenders-async-sift.html)
+
+## Trace detail and counting review
+
+A now uses explicit business boundaries while retaining HTTP, consumer and JDBC spans. Comparable matched traces dropped from 112 to 57 spans with all 45 JDBC spans retained. Six audited operations produced 13 committed attempts, matching metric increments and consumer spans exactly. See the [review](approach-a/TRACE-DATA-REVIEW.md) for timing definitions, C evidence limits, and validation. Earlier overhead measurements above predate this instrumentation change.

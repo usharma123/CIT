@@ -72,6 +72,8 @@ public class OperationalTelemetry {
     public void claimed(QueueMessage m) {
         Instant now = m.getClaimedAt();
         // A crashed worker's previous claim remains visible as abandoned, with its original timing.
+        // No completion was observed. Leave duration unknown rather than reporting
+        // a zero-second handler or treating the reclaim interval as execution time.
         jdbc.update("update processing_attempts set outcome='abandoned', finished_at=? where queue_message_id=? and outcome='processing'", Timestamp.from(now), m.getId());
         jdbc.update("insert into processing_attempts (queue_message_id,operation_id,queue_name,claimed_at,attempt_number,wait_seconds,processing_seconds,outcome,worker,instance,service_version) values (?,?,?,?,?,?,?,?,?,?,?)",
             m.getId(), m.getOperationId(), m.getQueueName().name(), Timestamp.from(now), m.getAttempts()+1,

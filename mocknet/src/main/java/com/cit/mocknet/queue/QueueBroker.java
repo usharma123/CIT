@@ -46,6 +46,7 @@ public class QueueBroker {
     }
 
     @Transactional
+    @com.cit.mocknet.config.TraceBoundary
     public QueueMessage publish(QueueName queueName, String payload) {
         QueueMessage message = new QueueMessage();
         Instant now = Instant.now();

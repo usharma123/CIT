@@ -39,6 +39,13 @@
     },
     {
       "type": "link",
+      "title": "C sources and diagnostics",
+      "url": "/d/mocknet-c-sources",
+      "includeVars": true,
+      "keepTime": true
+    },
+    {
+      "type": "link",
       "title": "Compare A",
       "url": "http://localhost:3300/d/mocknet-traces",
       "keepTime": true
@@ -79,7 +86,7 @@
   "annotations": {
     "list": []
   },
-  "description": "Reconstructed evidence from component logs and committed MQ journals. No application spans or Java agent. Current-state tables are latest collected state; graphs follow the selected interval. A returned method is not proof of transaction commit. Missing evidence stays explicit.",
+  "description": "Logs, committed queue journals and support backend source snapshots. Grafana reads only the reporting store. Current-state tables are latest collected state; graphs follow the selected interval. A returned method is not proof of transaction commit. Missing evidence stays explicit.",
   "panels": [
     {
       "id": 1,
@@ -117,7 +124,48 @@
             "spanNulls": false
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "wait_seconds"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Ready wait"
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "noValue",
+                "value": "Unknown"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "duration_seconds"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Attempt elapsed"
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "noValue",
+                "value": "Unknown"
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "showHeader": true,
@@ -203,7 +251,48 @@
             "spanNulls": false
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "wait_seconds"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Ready wait"
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "noValue",
+                "value": "Unknown"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "duration_seconds"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Attempt elapsed"
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "noValue",
+                "value": "Unknown"
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "showHeader": true,
@@ -249,7 +338,48 @@
             "spanNulls": false
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "wait_seconds"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Ready wait"
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "noValue",
+                "value": "Unknown"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "duration_seconds"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Attempt elapsed"
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "noValue",
+                "value": "Unknown"
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "showHeader": true,
@@ -295,7 +425,48 @@
             "spanNulls": false
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "wait_seconds"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Ready wait"
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "noValue",
+                "value": "Unknown"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "duration_seconds"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Attempt elapsed"
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "noValue",
+                "value": "Unknown"
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "showHeader": true,
@@ -341,7 +512,48 @@
             "spanNulls": false
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "wait_seconds"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Ready wait"
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "noValue",
+                "value": "Unknown"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "duration_seconds"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Attempt elapsed"
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "noValue",
+                "value": "Unknown"
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "showHeader": true,
@@ -387,7 +599,48 @@
             "spanNulls": false
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "wait_seconds"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Ready wait"
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "noValue",
+                "value": "Unknown"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "duration_seconds"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Attempt elapsed"
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "noValue",
+                "value": "Unknown"
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "showHeader": true,

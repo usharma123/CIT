@@ -1,0 +1,10 @@
+{
+  "mode": "local-emulation",
+  "source_poll_seconds": 10,
+  "ods_refresh_seconds": 30,
+  "source_stale_seconds": 45,
+  "max_rows": 100,
+  "database": {"host": "127.0.0.1", "port": 15452, "name": "mocknet_c"},
+  "reporting_database": "telemetry_c",
+  "application_health_url": "http://127.0.0.1:18102/actuator/health"
+}

@@ -1,12 +1,16 @@
-# Approach C: component logs and MQ journals
+# Approach C: support backend, source adapters and Grafana
 
-Approach C reconstructs service activity from structured component logs and committed queue journals. The application runs without a Java agent. Grafana queries a separate reporting database populated by our collector. No OpenTelemetry spans, trace-derived metrics, business database queries from Grafana, or JVM metrics supply C panels.
+Approach C combines reconstructed log/journal evidence with a Python/Gunicorn support backend for database, ODS, configuration and read-only L3 diagnostics. Grafana queries a separate reporting database populated by our collector. The application runs without a Java agent. No OpenTelemetry spans, trace-derived metrics, business database queries from Grafana, or JVM metrics supply C panels.
+
+This adapts the Citrix slide "Tech Stack – Approach C (draft for discussion)" in "Architect Input-USP Service Dashboard", keeping Grafana and the reporting store. Database access uses an aggregate view of the local Mocknet application. ODS is an explicitly labelled, delayed local export. COR, LG2 and UDG are shown as not configured; no corporate schema mapping or connection is claimed. Alarm and notification integration is outside this implementation.
 
 ## Open
 
 - [Service evidence overview](http://localhost:3302/d/mocknet-c-overview)
 - [Queue journal diagnostics](http://localhost:3302/d/mocknet-c-queues)
 - [Reconstructed operation](http://localhost:3302/d/mocknet-c-investigation)
+- [Sources and L3 diagnostics](http://localhost:3302/d/mocknet-c-sources)
+- [Backend API, access and deployment](backend/README.md)
 - [Comparison and measured application cost](../APPROACH-COMPARISON.md)
 
 The overview starts with operations, waiting work, failure reasons and component timings. Operation IDs link to a time window around the operation. Investigation combines component execution, queue wait and processing intervals, retries, parent call IDs and the original source records. No stat-card grid is used.
@@ -22,6 +26,13 @@ flowchart LR
   JOURNAL --> REPORTER
   REPORTER --> STORE[Separate telemetry_c database]
   STORE --> GRAFANA[Grafana read-only views]
+  DB[Local database aggregate view] --> API[Python REST / Gunicorn]
+  ODS[Delayed local ODS file export] --> API
+  CONFIG[Allowlisted backend configuration] --> API
+  API -->|Authenticated source snapshots| SOURCES[Independent source collection worker]
+  SOURCES --> STORE
+  OPERATOR[Authenticated operator] -->|Run read-only diagnostic| API
+  API -->|Recorded diagnostic request and result| STORE
 ```
 
 This repository models MQ using PostgreSQL. The journal adapter captures its queue and durable attempt tables with transaction-local triggers. It is not an IBM MQ recovery-log reader. For IBM MQ, use supported activity/accounting records and a broker-specific adapter; do not assume proprietary recovery journals expose the same fields. IBM describes application activity trace as a more detailed diagnostic source than its other monitoring sources. [IBM MQ application activity trace](https://www.ibm.com/docs/en/ibm-mq/10.0.x?topic=network-application-activity-trace)
@@ -40,7 +51,9 @@ bash script/mocknet-approach-c.sh status
 
 `bun run mocknet:grafana:c` is an alias for the launcher. Stop only its feed with `stream-stop`; stop only collection with `reporter-stop`. Use `reporter-start` to catch up. `stop` stops C's application, feed, collector, Grafana and PostgreSQL containers. A and B remain independent.
 
-C uses Grafana port 3302, application port 18101, management health port 18102 and PostgreSQL port 15452. Host ports bind to loopback. PostgreSQL hosts distinct application and reporting databases. The JVM has a 128 MiB initial heap, 512 MiB maximum, 24 consumers and 16 application database connections. The reporter uses two persistent connections and batches up to 500 journal entries and 1,000 lines per file per pass. Its local state is under `.bootstrap/observability/approach-c/`.
+C uses Grafana port 3302, application port 18101, management health port 18102, support REST port 18103 and PostgreSQL port 15452. Host ports bind to loopback. PostgreSQL hosts distinct application and reporting databases. The JVM has a 128 MiB initial heap, 512 MiB maximum, 24 consumers and 16 application database connections. The journal/log reporter uses two persistent connections and batches up to 500 journal entries and 1,000 lines per file per pass. Source collection uses a separate worker and reporting connection, so an unavailable REST backend cannot block journal ingestion. Its local state is under `.bootstrap/observability/approach-c/`.
+
+The backend samples sources on request. The collector requests snapshots every ten seconds and exports the local ODS substitute every thirty seconds. The source dashboard shows source time, collection time, last successful read and errors. Failed adapters retain clearly labelled last known values; a stopped source collector becomes stale after 45 seconds. These snapshots add business database evidence without changing the origin of the log/journal waterfall.
 
 Regenerate dashboards with `python3 script/build-mocknet-approach-c.py`. Provisioned JSON, SQL definitions and log configuration live in this directory. Runtime logs, generated secrets and experiment outputs stay under `.bootstrap/`.
 
@@ -92,7 +105,7 @@ Logback uses an 8,192-entry asynchronous queue with discarding disabled. It bloc
 - Collector age over ten seconds means current-state views may be stale. Queue graphs sample reconstructed state every five seconds. A collector outage produces a gap; the implementation does not invent historical queue-depth samples while it was offline.
 - Hourly maintenance removes detailed reporting history and acknowledged source journal records older than 72 hours. Latest queue/attempt records remain for current-state context; unacknowledged journal records remain pending. This is not a regulatory archive.
 
-Grafana's `grafana_c` role has read-only reporting access, a ten-second query timeout, and no permission to connect to the application database. The collector's source role can read, acknowledge and prune the dedicated journal, and cannot read business tables. Its reporting role owns only the reporting database. Local generated passwords are outside version control.
+Grafana's `grafana_c` role has read-only reporting access, a ten-second query timeout, and no permission to connect to the application database. The collector's source role can read, acknowledge and prune the dedicated journal, and cannot read business tables. Its reporting role owns only the reporting database. The backend's separate source reader can query only an approved aggregate view; its reporting reader can query approved diagnostic views, and its audit writer can insert/update diagnostic run records. Local generated passwords and distinct API reader/operator tokens are outside version control. These local service credentials are not enterprise SSO or individual user attribution.
 
 ## What L3 can and cannot establish
 
@@ -100,4 +113,4 @@ C can establish queue disposition, ready wait, worker ownership, retries, reason
 
 C has no JVM heap/GC view, no automatic JDBC spans or SQL text, no HTTP dependency trace, and no thread dump. It does not reconstruct the external settlement system or a complete matched-pair business lifecycle. `queue work finished` means the observed queue work finished. It does not mean the trade settled. The separate SETTLEMENT queue is idle in the seeded workflow; instruction generation occurs inside NETTING.
 
-Before production rollout, validate the real broker adapter and clocks, load-test the reporting queries and retention, test disk-full and ungraceful-kill behavior, and integrate the store with managed authentication, backups and alerting. The local demonstration and recovery checks do not certify a production deployment.
+Before production rollout, validate the real database/ODS/broker adapters and clocks, load-test the reporting queries and retention, test disk-full and ungraceful-kill behavior, and integrate managed authentication and backups. The local demonstration and recovery checks do not certify a production deployment. Alarms and notifications are excluded from this work.

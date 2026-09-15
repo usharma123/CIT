@@ -59,7 +59,8 @@ WITH calls AS MATERIALIZED (
   jsonb_strip_nulls(jsonb_build_object('evidence.source','MQ journal','evidence.kind','synthetic attempt grouping',
    'attempt_id',a.attempt_id,'message_id',a.message_id,'attempt',a.attempt,'worker',a.worker,
    'outcome',a.outcome,'reason',a.reason,'error',a.outcome IN('failed','retried','abandoned'))),
-  CASE WHEN a.finished_at IS NULL THEN '["No committed finish; bar extends to collector observation"]'::jsonb ELSE '[]'::jsonb END
+  CASE WHEN a.outcome='abandoned' THEN '["Reclaim interval only; actual completion and execution duration are unknown"]'::jsonb
+       WHEN a.finished_at IS NULL THEN '["No committed finish; bar extends to collector observation"]'::jsonb ELSE '[]'::jsonb END
  FROM attempts a CROSS JOIN observation o
  UNION ALL
  SELECT 'wait:'||a.attempt_id,'attempt:'||a.attempt_id,'MQ READY WAIT',a.stage,a.ready_at,a.started_at,NULL,
@@ -76,7 +77,8 @@ WITH calls AS MATERIALIZED (
   jsonb_strip_nulls(jsonb_build_object('evidence.source','committed MQ attempt journal','message_id',a.message_id,
    'attempt_id',a.attempt_id,'worker',a.worker,'outcome',a.outcome,'reason',a.reason,
    'error',a.outcome IN('failed','retried','abandoned'))),
-  CASE WHEN a.finished_at IS NULL THEN '["No committed finish; duration is an observed lower bound"]'::jsonb ELSE '[]'::jsonb END
+  CASE WHEN a.outcome='abandoned' THEN '["Reclaim interval only; actual completion and execution duration are unknown"]'::jsonb
+       WHEN a.finished_at IS NULL THEN '["Unfinished attempt interval to collector observation; execution may have stopped"]'::jsonb ELSE '[]'::jsonb END
  FROM attempts a CROSS JOIN observation o
 )
 SELECT md5('c-reconstruction:'||selected_operation),left(md5(selected_operation||':'||id),16),

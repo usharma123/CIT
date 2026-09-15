@@ -39,6 +39,12 @@ with psycopg.connect(host='127.0.0.1', port=15452, dbname='telemetry_c', user='m
               {'queue_message_id':operation,'queue_name':'INGESTION','attempt_number':n,
                'claimed_at':at(start).isoformat(),'finished_at':at(end).isoformat(),
                'wait_seconds':wait,'processing_seconds':end-start,'outcome':outcome,'worker':'worker-1'},n)
+    event('mq_journal','processing_attempts',operation+'abandoned',5,
+          {'queue_message_id':operation+'other','queue_name':'MATCHING','attempt_number':1,
+           'claimed_at':at(4).isoformat(),'finished_at':at(5).isoformat(),
+           'wait_seconds':0,'processing_seconds':0,'outcome':'abandoned','worker':'lost-worker'},3)
+    assert db.execute('SELECT duration_seconds FROM c_attempt WHERE attempt_id=%s',
+                      (operation+'abandoned',)).fetchone()[0] is None
     # Verify the exact role Grafana uses, without giving it write privileges.
     db.execute('RESET ROLE')
     db.execute('SET LOCAL ROLE grafana_c')
@@ -68,9 +74,12 @@ with psycopg.connect(host='127.0.0.1', port=15452, dbname='telemetry_c', user='m
     assert named('end-only')['warnings'] and abs(named('end-only')['duration']-200)<.001
     assert named('clock-skew')['warnings']
     assert any(t['key']=='error' and t['value'] is True for t in named('MQ PROCESS / retried')['tags'])
+    assert named('MQ PROCESS / abandoned')['warnings']
+    assert abs(named('MQ PROCESS / abandoned')['duration']-1000)<.001
     result={'passed':True,'checks':['Grafana read-only role','stable unique IDs','single root','acyclic parents',
         'recorded child parent','attempt association','millisecond duration','retry backoff',
-        'missing parent','missing start','missing end','clock inconsistency','retry error marker','unknown operation'],
+        'missing parent','missing start','missing end','clock inconsistency','retry error marker','unknown operation',
+        'abandoned duration unknown','abandoned bar explicitly marked as reclaim interval'],
         'fixtureRows':len(rows),'fixturesRolledBack':True}
     db.rollback()
 (ROOT/'.bootstrap/observability/approach-c/waterfall-contract-validation.json').write_text(json.dumps(result,indent=2)+'\n')

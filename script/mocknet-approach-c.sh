@@ -4,9 +4,12 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STATE="$ROOT/.bootstrap/observability/approach-c"
 SECRETS="$ROOT/.bootstrap/observability/grafana.env"
 mkdir -p "$STATE/logs"
-if ! grep -q '^MOCKNET_C_COLLECTOR_PASSWORD=' "$SECRETS"; then
-  (umask 077; printf 'MOCKNET_C_COLLECTOR_PASSWORD=%s\n' "$(openssl rand -hex 24)" >> "$SECRETS")
-fi
+if [[ ! -f "$SECRETS" ]]; then (umask 077; touch "$SECRETS"); fi
+for key in MOCKNET_DB_PASSWORD MOCKNET_READER_PASSWORD GRAFANA_ADMIN_PASSWORD MOCKNET_C_COLLECTOR_PASSWORD MOCKNET_C_BACKEND_DB_PASSWORD MOCKNET_C_API_READER_TOKEN MOCKNET_C_API_OPERATOR_TOKEN; do
+  if ! grep -q "^${key}=" "$SECRETS"; then
+    (umask 077; printf '%s=%s\n' "$key" "$(openssl rand -hex 24)" >> "$SECRETS")
+  fi
+done
 set -a
 source "$SECRETS"
 set +a
@@ -20,7 +23,7 @@ case "${1:-start}" in
  start)
   compose up -d --wait
   if [[ ! -x "$STATE/venv/bin/python" ]]; then python3 -m venv "$STATE/venv"; fi
-  "$STATE/venv/bin/python" -c 'import psycopg' 2>/dev/null || "$STATE/venv/bin/pip" install 'psycopg[binary]==3.2.10'
+  "$STATE/venv/bin/pip" install -q -r "$ROOT/observability/approach-c/backend/requirements.txt"
   if ! running; then
     if lsof -nP -iTCP:18101 -sTCP:LISTEN >/dev/null 2>&1; then echo 'Port 18101 is occupied' >&2; exit 1; fi
     mvn -q -f "$ROOT/mocknet/pom.xml" -DskipTests package
@@ -38,22 +41,27 @@ case "${1:-start}" in
   fi
   ready http://127.0.0.1:18101/api/status
   "$STATE/venv/bin/python" "$ROOT/script/mocknet-c-store.py"
+  "$STATE/venv/bin/python" "$ROOT/script/mocknet-c-api.py" start
+  "$STATE/venv/bin/python" "$ROOT/script/mocknet-c-reporter.py" stop
   "$STATE/venv/bin/python" "$ROOT/script/mocknet-c-reporter.py" start
   ready http://127.0.0.1:3302/api/health
   echo 'Approach C backend: http://localhost:18101/api/status'
   echo 'Approach C Grafana: http://localhost:3302/d/mocknet-c-overview'
+  echo 'Approach C support API: http://localhost:18103/health'
   ;;
  stop)
   python3 "$ROOT/script/mocknet-stream.py" stop --approach C
   if running; then kill "$(cat "$STATE/app.pid")"; for _ in $(seq 1 30); do running || break; sleep 1; done; fi
   if running; then echo 'C JVM did not stop' >&2; exit 1; fi
   "$STATE/venv/bin/python" "$ROOT/script/mocknet-c-reporter.py" stop
+  "$STATE/venv/bin/python" "$ROOT/script/mocknet-c-api.py" stop
   compose down
   ;;
- status) compose ps; if running; then echo "C JVM PID $(cat "$STATE/app.pid")"; fi; "$STATE/venv/bin/python" "$ROOT/script/mocknet-c-reporter.py" status ;;
+ status) compose ps; if running; then echo "C JVM PID $(cat "$STATE/app.pid")"; fi; "$STATE/venv/bin/python" "$ROOT/script/mocknet-c-reporter.py" status; "$STATE/venv/bin/python" "$ROOT/script/mocknet-c-api.py" status ;;
  stream-start) python3 "$ROOT/script/mocknet-stream.py" start --approach C --rate "${MOCKNET_SEED_RATE:-1}" ;;
  stream-stop) python3 "$ROOT/script/mocknet-stream.py" stop --approach C ;;
  stream-status) python3 "$ROOT/script/mocknet-stream.py" status --approach C ;;
  reporter-start|reporter-stop) "$STATE/venv/bin/python" "$ROOT/script/mocknet-c-reporter.py" "${1#reporter-}" ;;
- *) echo 'Usage: mocknet-approach-c.sh start|stop|status|stream-start|stream-stop|stream-status|reporter-start|reporter-stop'; exit 1 ;;
+ api-start|api-stop) "$STATE/venv/bin/python" "$ROOT/script/mocknet-c-api.py" "${1#api-}" ;;
+ *) echo 'Usage: mocknet-approach-c.sh start|stop|status|stream-start|stream-stop|stream-status|reporter-start|reporter-stop|api-start|api-stop'; exit 1 ;;
 esac

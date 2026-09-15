@@ -11,7 +11,9 @@ import signal
 import subprocess
 import sys
 import time
+import threading
 import uuid
+import urllib.request
 import psycopg
 from psycopg.types.json import Jsonb
 
@@ -19,6 +21,52 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 STATE = ROOT / '.bootstrap/observability/approach-c'
 SCRIPT = pathlib.Path(__file__).resolve()
 RUNNING = True
+BACKEND_CONFIG = json.loads((ROOT / 'observability/approach-c/backend/settings.json').read_text())
+SOURCE_STOP = threading.Event()
+
+def source_loop():
+    # A slow/unavailable REST source must never block the committed journal consumer.
+    while not SOURCE_STOP.is_set():
+        try:
+            with connect('telemetry_c','c_reporter') as report:
+                report.autocommit=True
+                collect_sources(report)
+        except (OSError,ValueError,KeyError,psycopg.Error) as error:
+            print(json.dumps({'source_collection_error':type(error).__name__}),flush=True)
+        SOURCE_STOP.wait(BACKEND_CONFIG['source_poll_seconds'])
+
+def collect_sources(report):
+    """Isolate API outages from durable journal/log collection."""
+    secret = dict(x.split('=',1) for x in (ROOT / '.bootstrap/observability/grafana.env').read_text().splitlines())
+    request = urllib.request.Request('http://127.0.0.1:18103/api/v1/sources',
+        headers={'Authorization':'Bearer '+secret['MOCKNET_C_API_READER_TOKEN']})
+    try:
+        with urllib.request.urlopen(request,timeout=15) as response:
+            snapshots = json.load(response)['sources']
+    except (OSError,ValueError,KeyError) as error:
+        print(json.dumps({'source_api_error':type(error).__name__}),flush=True)
+        return
+    with report.transaction():
+        for sample in snapshots:
+            report.execute("""INSERT INTO source_snapshots
+                (source_id,label,provenance,status,attempted_at,sampled_at,last_success_at,rows,error_code,stale_after_seconds)
+                VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT(source_id) DO UPDATE SET
+                label=excluded.label,provenance=excluded.provenance,status=excluded.status,
+                attempted_at=excluded.attempted_at,sampled_at=CASE WHEN excluded.status IN('ok','stale') THEN excluded.sampled_at ELSE source_snapshots.sampled_at END,
+                last_success_at=coalesce(excluded.last_success_at,source_snapshots.last_success_at),
+                rows=CASE WHEN excluded.status IN('ok','stale') THEN excluded.rows ELSE source_snapshots.rows END,error_code=excluded.error_code,
+                stale_after_seconds=excluded.stale_after_seconds""",
+                (sample['source_id'],sample['label'],sample['provenance'],sample['status'],sample['attempted_at'],sample['sampled_at'],
+                 sample['attempted_at'] if sample['status'] in ('ok','stale') else None,Jsonb(sample['rows']),sample['error_code'],BACKEND_CONFIG['source_stale_seconds']))
+    # Emulate a separate ODS export with its own observation clock and refresh delay.
+    database=next((s for s in snapshots if s['source_id']=='database' and s['status']=='ok'),None)
+    path=STATE/'ods/snapshot.json'
+    if database and (not path.exists() or time.time()-path.stat().st_mtime>=BACKEND_CONFIG['ods_refresh_seconds']):
+        path.parent.mkdir(exist_ok=True)
+        temporary=path.with_suffix('.tmp')
+        temporary.write_text(json.dumps({'schema_version':1,'provenance':'local-emulation',
+            'sampled_at':database['sampled_at'],'rows':database['rows']})+'\n')
+        temporary.replace(path)
 
 def connect(database, user):
     secret = dict(x.split('=', 1) for x in (ROOT / '.bootstrap/observability/grafana.env').read_text().splitlines())
@@ -113,11 +161,14 @@ def maintain(source, report):
             SELECT 1 FROM evidence newer WHERE newer.source=e.source AND newer.kind=e.kind
               AND newer.entity_id=e.entity_id AND newer.sequence>e.sequence)))""")
         report.execute("DELETE FROM queue_samples WHERE at<now()-interval '72 hours'")
+        report.execute("DELETE FROM tool_runs WHERE requested_at<now()-interval '72 hours'")
+        report.execute("UPDATE tool_runs SET status='interrupted',error_code='completion not recorded' WHERE status='running' AND requested_at<now()-interval '2 minutes'")
     source.execute("DELETE FROM c_mq_journal WHERE delivered_at<now()-interval '72 hours'")
 
 def stop_signal(*_):
     global RUNNING
     RUNNING = False
+    SOURCE_STOP.set()
 
 def run():
     signal.signal(signal.SIGTERM, stop_signal)
@@ -126,6 +177,8 @@ def run():
     source = report = None
     last_sample = 0
     last_maintenance = time.monotonic()
+    sources_thread=threading.Thread(target=source_loop,daemon=True,name='c-source-collector')
+    sources_thread.start()
     try:
         while RUNNING:
             try:
@@ -158,6 +211,7 @@ def run():
                 source = report = None
             time.sleep(1)
     finally:
+        SOURCE_STOP.set()
         for db in (source,report):
             if db is not None: db.close()
         (STATE / 'reporter.pid').unlink(missing_ok=True)

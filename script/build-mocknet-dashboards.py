@@ -9,6 +9,10 @@ L={'type':'loki','uid':'mocknet-loki'}
 filters='service=~"$service",environment=~"$environment",version=~"$version",app_instance=~"$app_instance"'
 # These gauges describe one shared database, not work owned by each exporter.
 queue_filters='service=~"$service",environment=~"$environment",stage=~"$stage",stage!="DEAD_LETTER"'
+# Reject failed scrapes and snapshots older than three scrape/refresh intervals.
+# Match the exporter identity before aggregating the shared database gauges.
+def fresh_queue(metric):
+ return f'({metric} and on(job,instance) (time()-mocknet_snapshot_timestamp{{service=~"$service",environment=~"$environment"}} < 15) and on(job,instance) (up{{job="mocknet"}} == 1))'
 timefilter='$__timeFilter(accepted_at)'
 business="(${business_id:sqlstring}='' OR business_id=${business_id:sqlstring} OR operation_id=${business_id:sqlstring})"
 scope=f'{timefilter} AND {business}'
@@ -70,32 +74,32 @@ for field,label,width in [('business_id','Trade',None),('outcome','Current state
     if field=='operation_id': properties.append({'id':'custom.cellOptions','value':{'type':'data-links'}})
     p['fieldConfig']['overrides'].append({'matcher':{'id':'byName','options':field},'properties':properties})
 f=filters+',stage=~"$stage",stage!="DEAD_LETTER"'
-prom(D,'Where work is waiting',f'max by(stage)(mocknet_queue_oldest_seconds{{{queue_filters},state="ready"}})',0,9,12,8,'s',desc='Oldest ready message per stage, excluding scheduled retry delay. Shared database scope; version/instance do not partition queues. Missing telemetry is not zero.')['targets'][0]['legendFormat']='{{stage}}'
+prom(D,'Where work is waiting','max by(stage)('+fresh_queue(f'mocknet_queue_oldest_seconds{{{queue_filters},state="ready"}}')+')',0,9,12,8,'s',desc='Oldest ready message per stage, excluding scheduled retry delay. Shared database scope; version/instance do not partition queues. Missing telemetry is not zero.')['targets'][0]['legendFormat']='{{stage}}'
 prom(D,'Failed and retried attempts',f'sum by(stage,outcome)(rate(mocknet_processing_seconds_count{{{f},outcome=~"failed|retried"}}[$__rate_interval]))',12,9,12,8,'ops',desc='Failed means terminal attempt failure. Retried means processing will try again; investigate the operation for its final outcome.')['targets'][0]['legendFormat']='{{stage}} {{outcome}}'
 p=sql(D,'Failure reasons',"SELECT stage,reason,outcome,count(DISTINCT operation_id) AS affected_operations,count(*) AS attempts,max(finished_at) AS last_seen FROM support.attempts WHERE $__timeFilter(claimed_at) AND stage ~ '^(${stage:regex})$' AND outcome IN ('failed','retried','abandoned') AND (${business_id:sqlstring}='' OR business_id=${business_id:sqlstring} OR operation_id=${business_id:sqlstring}) GROUP BY stage,reason,outcome ORDER BY affected_operations DESC LIMIT 20",0,17,16,8,
     desc='Groups committed attempt failures by stage and reason. One operation can appear in multiple signatures. Retry counts are separate from terminal failures.')
 statuscolors(p)
 p=sql(D,'Outcome summary',f"SELECT outcome AS state,count(*) AS operations,count(*) FILTER (WHERE recovered) AS recovered FROM support.operations WHERE {scope} GROUP BY outcome ORDER BY count(*) DESC",16,17,8,8,
     desc='Current outcome of submissions accepted in the selected interval. Recovered is a subset, not another operation. COMPLETED means netting and instruction generation finished; external settlement is outside this service.')
-prom(D,'Waiting work by stage',f'max by(stage,state)(mocknet_queue_messages{{{queue_filters},state=~"ready|scheduled|processing"}})',0,25,12,8,desc='Ready, scheduled retry and active processing are separate. Shared database gauges use max across exporters to avoid counting the same queue twice; not a sum across independent databases.')['targets'][0]['legendFormat']='{{stage}} {{state}}'
-prom(D,'Processing duration by stage · p95',f'histogram_quantile(0.95,sum by(le,stage)(rate(mocknet_processing_seconds_bucket{{{f}}}[$__rate_interval])))',12,25,12,8,'s',desc='Handler duration excludes ready queue waiting. Compare it with queue age to distinguish slow execution from work not being claimed.')['targets'][0]['legendFormat']='{{stage}}'
+prom(D,'Waiting work by stage','max by(stage,state)('+fresh_queue(f'mocknet_queue_messages{{{queue_filters},state=~"ready|scheduled|processing"}}')+')',0,25,12,8,desc='Ready, scheduled retry and active processing are separate. Shared database gauges use max across exporters to avoid counting the same queue twice; not a sum across independent databases.')['targets'][0]['legendFormat']='{{stage}} {{state}}'
+prom(D,'Attempt elapsed by stage · p95',f'histogram_quantile(0.95,sum by(le,stage)(rate(mocknet_processing_seconds_bucket{{{f}}}[$__rate_interval])))',12,25,12,8,'s',desc='Claim to recorded disposition time, including handler and bookkeeping before that timestamp. Excludes ready wait, scheduled delay and final commit/export. Quantiles estimate completed/rejected/retried/failed attempts; abandoned attempts have no completion sample.')['targets'][0]['legendFormat']='{{stage}}'
 # Stage diagnosis
 E=dash('mocknet-stages','Approach A | Queue and stage diagnostics')
-text(E,'Runbook • locate the bottleneck','**Rising queue age:** check workers and database waiters. **Long handler time:** inspect SQL and the first error in its trace. **Retries:** read the reason and final disposition.\n\nCheck snapshot age before trusting queue values. Alert history includes recovered incidents. Stalls and connection-pressure controls expire automatically.',0,4)
+text(E,'Runbook • locate the bottleneck','**Rising queue age:** check workers and database waiters. **Long attempt elapsed:** inspect SQL and the first error in its trace. **Retries:** read the reason and final disposition.\n\nCheck snapshot age before trusting queue values. Alert history includes recovered incidents. Stalls and connection-pressure controls expire automatically.',0,4)
 f=filters+',stage=~"$stage",stage!="DEAD_LETTER"'
-prom(E,'Queue depth • ready, scheduled retries, processing',f'max by(stage,state)(mocknet_queue_messages{{{queue_filters},state=~"ready|scheduled|processing"}})',0,4,desc='Shared database scope. max avoids duplicate snapshots from multiple app instances; version/instance filters apply to handler metrics, not shared queues.')
-prom(E,'Oldest work • waiting versus processing',f'max by(stage,state)(mocknet_queue_oldest_seconds{{{queue_filters}}})',12,4,unit='s')
+prom(E,'Queue depth • ready, scheduled retries, processing','max by(stage,state)('+fresh_queue(f'mocknet_queue_messages{{{queue_filters},state=~"ready|scheduled|processing"}}')+')',0,4,desc='Shared database scope. max avoids duplicate snapshots from multiple app instances; version/instance filters apply to attempt metrics, not shared queues.')
+prom(E,'Oldest work • waiting versus processing','max by(stage,state)('+fresh_queue(f'mocknet_queue_oldest_seconds{{{queue_filters}}}')+')',12,4,unit='s')
 prom(E,'Processing rate',f'sum by(stage,outcome)(rate(mocknet_processing_seconds_count{{{f}}}[$__rate_interval]))',0,11,unit='ops')
-prom(E,'Handler duration • p50 and p95 by stage',f'histogram_quantile(0.95,sum by(le,stage)(rate(mocknet_processing_seconds_bucket{{{f}}}[$__rate_interval])))',12,11,unit='s')['title']='Handler duration • p95 by stage'
-prom(E,'Database pool • active / idle / pending',f'hikaricp_connections_active{{{filters}}}',0,18)['targets']=[{'refId':r,'expr':f'hikaricp_connections_{k}{{{filters}}}','legendFormat':k,'range':True} for r,k in zip('ABC',['active','idle','pending'])]
+prom(E,'Attempt elapsed • p50 and p95 by stage',f'histogram_quantile(0.95,sum by(le,stage)(rate(mocknet_processing_seconds_bucket{{{f}}}[$__rate_interval])))',12,11,unit='s')['title']='Attempt elapsed • p95 by stage'
+prom(E,'Database pool • active / idle / pending',f'hikaricp_connections_active{{{filters}}}',0,18)['targets']=[{'refId':r,'expr':f'hikaricp_connections_{k}{{{filters}}}','legendFormat':k+' {{app_instance}} {{pool}}','range':True} for r,k in zip('ABC',['active','idle','pending'])]
 prom(E,'Database connection acquisition • maximum',f'hikaricp_connections_acquire_seconds_max{{{filters}}}',12,18,unit='s')
 prom(E,'JVM heap used / max',f'sum(jvm_memory_used_bytes{{{filters},area="heap"}})',0,25,unit='bytes')['targets']=[{'refId':r,'expr':f'sum(jvm_memory_{k}_bytes{{{filters},area="heap"}})','legendFormat':k,'range':True} for r,k in zip('AB',['used','max'])]
-prom(E,'GC pause • seconds / second',f'sum(rate(jvm_gc_pause_seconds_sum{{{filters}}}[$__rate_interval]))',12,25,unit='s')
+prom(E,'GC pause • seconds / second',f'sum(rate(jvm_gc_pause_seconds_sum{{{filters}}}[$__rate_interval]))',12,25,unit='suffix:s/s')
 prom(E,'Configured workers',f'mocknet_worker_configured{{{f}}}',0,32,8,5,stat=True)
 prom(E,'Worker loop heartbeat age',f'time()-mocknet_worker_heartbeat_timestamp{{{f}}}',8,32,8,5,'s',True, 'Latest poll from any worker in the stage; not proof that every configured worker is alive.')
 prom(E,'Paused consumers',f'mocknet_worker_paused{{{f}}}',16,32,8,5,stat=True)
 p=sql(E,'Failure signatures • committed attempt history',"SELECT stage,reason,outcome,count(*) AS attempts,count(DISTINCT operation_id) AS operations,max(finished_at) AS last_seen FROM support.attempts WHERE $__timeFilter(claimed_at) AND stage ~ '^(${stage:regex})$' AND outcome IN ('failed','retried','abandoned') GROUP BY stage,reason,outcome ORDER BY attempts DESC LIMIT 30",0,37,24,7);statuscolors(p)
-p=sql(E,'Slow / failed / recovered attempts • trace drilldown',"SELECT claimed_at,business_id,stage,attempt_number AS attempt,outcome,round(wait_seconds::numeric,3) AS wait_s,round(processing_seconds::numeric,3) AS process_s,reason,trace_id FROM support.attempts WHERE $__timeFilter(claimed_at) AND stage ~ '^(${stage:regex})$' ORDER BY claimed_at DESC LIMIT 100",0,44,24,10);fieldlink(p,'trace_id',traceurl,'Open trace');fieldlink(p,'business_id','/d/mocknet-operation?${__url_time_range}&var-business_id=${__value.raw}','Investigate trade');statuscolors(p)
+p=sql(E,'Recent attempts • trace drilldown',"SELECT claimed_at,business_id,stage,attempt_number AS attempt,outcome,round(wait_seconds::numeric,3) AS wait_s,round(processing_seconds::numeric,3) AS process_s,reason,trace_id FROM support.attempts WHERE $__timeFilter(claimed_at) AND stage ~ '^(${stage:regex})$' ORDER BY claimed_at DESC LIMIT 100",0,44,24,10);fieldlink(p,'trace_id',traceurl,'Open trace');fieldlink(p,'business_id','/d/mocknet-operation?${__url_time_range}&var-business_id=${__value.raw}','Investigate trade');statuscolors(p)
 prom(E,'Telemetry scrape health','up{job=~"mocknet|collector|tempo|loki|prometheus"}',0,54)['targets'][0]['legendFormat']='{{job}}'
 prom(E,'Collector persistent export backlog','otelcol_exporter_queue_size',12,54)['targets'][0]['legendFormat']='{{exporter}}'
 prom(E,'Collector rejected / failed exports','sum by(exporter)(rate(otelcol_exporter_send_failed_spans[1m]))',0,61)['targets'].append({'refId':'B','expr':'sum by(exporter)(rate(otelcol_exporter_send_failed_log_records[1m]))','legendFormat':'{{exporter}} logs','range':True})
@@ -179,7 +183,7 @@ p=sql(F,'Operation and trace',f"SELECT trace_id,business_id,outcome,last_progres
  desc='Current database outcome and originating request trace. Click the full Trace ID to select this operation and load its waterfall. COMPLETED means local instruction generation, not external settlement. An ID proves correlation; an expired or not-yet-exported trace may be unavailable in Tempo.')
 request_trace_url='/d/mocknet-operation?from=${__data.fields.trace_from}&to=now&var-trace_id=${__value.raw}&var-business_id=${__data.fields.operation_id}'+selection
 fieldlink(p,'trace_id',request_trace_url,'Open request waterfall');statuscolors(p)
-for name,label,width in [('trace_id','Trace ID',285),('business_id','Trade',None),('outcome','State',115),('last_progress_at','Last progress',175),('terminal_seconds','Total time',100),('observed_at','Observed at',175)]:
+for name,label,width in [('trace_id','Trace ID',285),('business_id','Trade',None),('outcome','State',115),('last_progress_at','Last progress',175),('terminal_seconds','Elapsed to outcome',145),('observed_at','Observed at',175)]:
  props=[{'id':'displayName','value':label}]
  if width: props.append({'id':'custom.width','value':width})
  if name=='terminal_seconds': props.append({'id':'unit','value':'s'})
@@ -188,14 +192,14 @@ for name in ['operation_id','trace_from']:
  p['fieldConfig']['overrides'].append({'matcher':{'id':'byName','options':name},'properties':[{'id':'custom.hidden','value':True}]})
 related="WITH selected AS (SELECT operation_id FROM support.operations WHERE "+business+" ORDER BY accepted_at DESC LIMIT 50), related AS (SELECT operation_id FROM selected UNION SELECT related_operation_id FROM support.operation_links WHERE operation_id IN (SELECT operation_id FROM selected)) "
 p=sql(F,'Related operations • both sides of a matched trade',related+"SELECT o.trace_id,o.business_id,o.operation_id,o.outcome FROM support.operations o JOIN related r USING(operation_id) ORDER BY o.accepted_at LIMIT 100",0,12,24,6);fieldlink(p,'trace_id',traceurl,'Open request trace');fieldlink(p,'operation_id',opurl,'Select operation');statuscolors(p)
-p=sql(F,'Attempt timeline • persisted across retries and process restarts',related+"SELECT a.trace_id,a.claimed_at,a.stage,a.attempt_number AS attempt,a.outcome,round(a.wait_seconds::numeric,3) AS ready_wait_s,round(a.processing_seconds::numeric,3) AS handler_s,a.reason,a.worker,a.service_version FROM support.attempts a JOIN related r USING(operation_id) ORDER BY a.claimed_at LIMIT 200",0,18,24,10);fieldlink(p,'trace_id',traceurl,'Open attempt waterfall');statuscolors(p)
-p=sql(F,'Queue disposition • includes work with no consumer span yet',related+"SELECT q.trace_id,q.id,q.stage,q.status,q.outcome,q.failed_attempts,q.created_at,q.available_at,q.claimed_at,q.completed_at FROM support.queue_messages q JOIN related r USING(operation_id) ORDER BY q.created_at LIMIT 200",0,28,24,8);fieldlink(p,'trace_id',traceurl,'Open originating trace')
-p=panel(F,'Selected trace waterfall','traces',T,0,36,24,15);p['targets']=[{'refId':'A','queryType':'traceql','query':'$trace_id','tableType':'traces'}]
+p=sql(F,'Attempt timeline • persisted across retries and process restarts',related+"SELECT a.claimed_at,CASE WHEN a.operation_id IN (SELECT operation_id FROM selected) THEN 'Selected' ELSE 'Related' END AS leg,a.stage,a.attempt_number AS attempt,a.outcome,round(a.wait_seconds::numeric,3) AS ready_wait_s,round(a.processing_seconds::numeric,3) AS handler_s,a.reason,a.trace_id,a.id AS attempt_id,a.operation_id,a.queue_message_id,a.worker,a.service_version FROM support.attempts a JOIN related r USING(operation_id) ORDER BY a.claimed_at LIMIT 200",0,18,24,10);fieldlink(p,'trace_id',traceurl,'Open attempt waterfall');statuscolors(p)
+p=sql(F,'Queue disposition • includes work with no consumer span yet',related+"SELECT q.trace_id,q.id,q.operation_id,q.stage,q.status,q.outcome,q.failed_attempts,q.created_at,q.available_at,q.claimed_at,q.completed_at FROM support.queue_messages q JOIN related r USING(operation_id) ORDER BY q.created_at LIMIT 200",0,28,24,8);fieldlink(p,'trace_id',traceurl,'Open originating trace')
+# Grafana's frontend accepts traceql, recognizes a hexadecimal ID, and sends traceId to its backend.
+p=panel(F,'Selected trace waterfall','traces',T,0,36,24,15,'One HTTP trace, including asynchronous attempts linked to it. Spans are nested inclusive durations: never sum parent and child times or count spans as operations. Actual JDBC calls remain visible. Related trade legs can have separate traces. Older stored traces retain their original instrumentation.');p['targets']=[{'refId':'A','queryType':'traceql','query':'$trace_id','tableType':'traces'}]
 p=panel(F,'Correlated application logs','logs',L,0,51,24,12,'Select a trace for exact log correlation. With no trace selected, shows queue events for the chosen business or operation ID. IDs are structured metadata, not stream labels.');p['targets']=[{'refId':'A','expr':'{service_name=~".+",service_name=~"$service",deployment_environment_name=~"$environment"} | trace_id =~ "${trace_id:regex}.*" |~ ""','queryType':'range'}]
-# Filter IDs with structured metadata, escaping through Grafana JSON interpolation.
-p['targets'][0]['expr']='{service_name=~".+",service_name=~"$service",deployment_environment_name=~"$environment"} | trace_id =~ "${trace_id:regex}.*" | operation_id =~ ".*" | business_id =~ ".*"'
-# Logs use operation_id/business_id OR expression; an empty selection matches all correlated events.
-p['targets'][0]['expr']='{service_name=~".+",service_name=~"$service",deployment_environment_name=~"$environment"} | trace_id =~ "${trace_id:regex}.*" | operation_id =~ "${business_id:regex}.*" or business_id =~ "${business_id:regex}.*"'
+# Exact IDs: a selected trace takes precedence, including logs from its related trade leg.
+# Doublequote interpolation quotes scalar IDs; temporary labels exist only during this query.
+p['targets'][0]['expr']='{service_name=~".+",service_name=~"$service",deployment_environment_name=~"$environment"} | label_format selection_trace=${trace_id:doublequote}, selection_business=${business_id:doublequote} | (selection_trace!="" and trace_id=${trace_id:doublequote}) or (selection_trace="" and (selection_business="" or operation_id=${business_id:doublequote} or business_id=${business_id:doublequote}))'
 p['targets'][0]['expr'] += ' | line_format "{{.stage}} {{.outcome}} {{.reason}} | {{ __line__ }}"'
 p['options']={'showTime':True,'showLabels':False,'wrapLogMessage':True,'sortOrder':'Descending','enableLogDetails':True,'dedupStrategy':'none'}
 p=panel(F,'Advanced trace search','table',T,0,63,24,10);p['targets']=[{'refId':'A','queryType':'traceql','query':'$traceql','limit':50,'tableType':'traces'}];p['options']={'showHeader':True};fieldlink(p,'traceID',traceurl,'Open waterfall')
@@ -212,6 +216,29 @@ for item in F['panels']:
 for item in F['panels']: item['gridPos']['y']-=2
 for dashboard in [D,E,F]:
  dashboard['annotations']['list']=[{'name':'First observed worker version','datasource':S,'enable':True,'hide':False,'iconColor':'#B877D9','rawQuery':True,'rawSql':"SELECT observed AS time, 'First observed ' || service_version AS text, instance AS tags FROM (SELECT min(claimed_at) AS observed,service_version,instance FROM support.attempts WHERE service_version IS NOT NULL GROUP BY service_version,instance) versions WHERE $__timeFilter(observed)"}]
+for dashboard in [D,E,F]:
+ for item in dashboard['panels']:
+  if any('mocknet_queue_' in t.get('expr','') and 'mocknet_snapshot_timestamp' in t.get('expr','') for t in item.get('targets',[])):
+   item['description'] += ' Only successful scrapes with database snapshots less than 15 seconds old are used. A gap means unavailable evidence.'
+  if item['title'] in ['Configured workers','Worker loop heartbeat age','Paused consumers','Database connection acquisition • maximum','Queue data age']:
+   item['targets'][0]['legendFormat']='{{stage}} {{app_instance}} {{instance}}'
+  if item['title']=='Attempt elapsed • p95 by stage':
+   item['description']='Claim to recorded disposition; includes handler and bookkeeping, excludes ready wait and final commit/export. A percentile estimate from histogram buckets; no sample for an abandoned attempt.'
+  if item['title']=='Outcome summary':
+   item['description'] += ' All stages; stage/version/instance do not partition admitted operations in this local database. Each matched pair has two submitted operations.'
+  if item['title'].startswith('Attempt timeline'):
+   item['description']='One row per durable attempt ID, across the selected operation and its related trade leg, up to 200 rows. Attempt number restarts for each queue message. Shared work is included once by identity, not once per related leg. Attempt elapsed runs from claim to recorded disposition, including bookkeeping; it differs from the narrower consumer span. Ready wait is separate. Processing/abandoned durations are unknown and displayed blank.'
+   for name,label,width in [('claimed_at','Claimed',180),('leg','Trade leg',85),('stage','Stage',105),('attempt','Attempt',75),('outcome','Outcome',100),('ready_wait_s','Ready wait',100),('handler_s','Attempt elapsed',120),('reason','Reason',180),('attempt_id','Attempt ID',100),('queue_message_id','Message ID',100)]:
+    properties=[{'id':'displayName','value':label},{'id':'custom.width','value':width}]
+    if name in ['ready_wait_s','handler_s']:properties.append({'id':'unit','value':'s'})
+    item['fieldConfig']['overrides'].append({'matcher':{'id':'byName','options':name},'properties':properties})
+  if item['title'].startswith('Queue disposition'):
+
+   item['description']='One row per queue message ID, across both related operations, up to 200 rows. Repeated queue stages can belong to different trade legs; inspect operation_id and message ID.'
+  if item['title'] in ['Failure signatures • committed attempt history','Recent attempts • trace drilldown']:
+   item['targets'][0]['rawSql']=item['targets'][0]['rawSql'].replace("AND stage ~ '^(${stage:regex})$'", "AND stage ~ '^(${stage:regex})$' AND "+business)
+  if item['title']=='Recent attempts • trace drilldown':
+   item['description']='Latest 100 attempts by claim time, including successful attempts. This is a bounded event table, not an operation count.'
 for d,name in [(D,'mocknet.json'),(E,'stages.json'),(F,'operation.json')]:
  (OUT/name).write_text(json.dumps(d,indent=2)+'\n')
 print('Generated 3 dashboards with',sum(len(d['panels']) for d in [D,E,F]),'panels')

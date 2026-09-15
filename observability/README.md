@@ -2,7 +2,7 @@
 
 - [Approach A](approach-a/README.md): application-aware L3 diagnosis with traces, queue history, metrics and logs.
 - [Approach B](approach-b/README.md): strictly OpenTelemetry JVM runtime metrics, with its own backend and metrics store.
-- [Approach C](approach-c/README.md): reconstructed component timelines and queue diagnostics from pooled logs and journals, with no Java agent.
+- [Approach C](approach-c/README.md): Grafana with a Python support API, database/ODS source adapters, read-only L3 diagnostics and reconstructed log/journal timelines, with no Java agent.
 - [Comparison and measured costs](APPROACH-COMPARISON.md): diagnostic coverage, application changes, storage and operating effort.
 
 The instructions below describe Approach A.
@@ -43,7 +43,7 @@ The feed waits during backend outages and pauses at 1,000 unfinished queue messa
 
 ### Coverage boundary
 
-Stage diagnostics includes a **Queue inventory** for INGESTION, MATCHING, NETTING, SETTLEMENT and DEAD_LETTER, including empty queues. The active path has HTTP, queue publish/consume, public Spring component and JDBC spans, plus durable attempts and correlated logs. Queue state remains visible without a consumer span.
+Stage diagnostics includes a **Queue inventory** for INGESTION, MATCHING, NETTING, SETTLEMENT and DEAD_LETTER, including empty queues. The active path has HTTP, queue publish/consume, explicit business-boundary and JDBC spans, plus durable attempts and correlated logs. Queue state remains visible without a consumer span.
 
 The standard flow executes ingestion → matching → netting and generates settlement instructions inside netting. It does **not** enqueue the separate SETTLEMENT consumer. DEAD_LETTER is a parking queue with no consumer. Private methods and self-invocations do not each receive separate aspect spans. These are coverage limits; an empty queue or absent component span is not evidence that every code path has been tested.
 
@@ -70,7 +70,7 @@ The operation page intentionally shows **current database state**, even if the s
 | Rejected operation | Business validation rejected the trade |
 | Awaiting counterparty | Validation and matching check finished; no counterpart exists yet |
 | Recovered operations | Subset with retried processing that has drained without terminal failure; may still await a counterpart |
-| Attempt rates / handler histograms | Micrometer measurements after the queue disposition transaction commits; independent of trace sampling |
+| Attempt rates / claim-to-disposition histograms | Micrometer measurements after the queue disposition transaction commits; independent of trace sampling |
 | Queue depth / age | Database snapshot every 5 seconds, with a timestamp and failure metric; ready and scheduled retries are distinct |
 | Attempt history | Persisted with queue claims/dispositions, including worker, version, reason and trace correlation |
 | Logs | Java agent → OTLP Collector → Loki; trace, span, operation and trade IDs in structured metadata |
@@ -147,3 +147,15 @@ In Approach A investigation, expand a span and click **Logs for this span**. Gra
 The local Grafana 12.4.1 container enables `GF_USERS_VIEWERS_CAN_EDIT=true` so anonymous support viewers can enter Explore. Without it, the built-in trace-to-logs link redirects Viewer sessions to Home. Viewer dashboard saves remain disallowed. This setting is deprecated upstream; for a production deployment use authenticated support accounts and the appropriate Explore permission for the deployed Grafana edition. See [Grafana Explore access](https://grafana.com/docs/grafana-cloud/learn-and-build/visualizations/explore/get-started-with-explore/).
 
 Verified the actual span link in the browser after the change: Explore displayed four log records with the selected incident's trace ID, covering two ingestion retries, successful ingestion and matching. Evidence is saved locally in `.bootstrap/observability/log-link-validation.json`.
+
+The [trace and data review](approach-a/TRACE-DATA-REVIEW.md) records the concise A instrumentation, counting rules, timing boundaries, and current A/C validation.
+
+## Built-in Traces Drilldown
+
+Grafana's Drilldown > Traces page runs TraceQL metrics queries such as `rate()` and `histogram_over_time(duration)`. Tempo 2.9 requires the metrics generator with `local-blocks`, in addition to its trace store. `tempo.yaml` enables it with persistent local storage, all span kinds, and historical block flushing. No additional span-derived counters are exported into the application's Prometheus metrics.
+
+Run `python3 script/check-mocknet-traces-drilldown.py` after fresh traffic reaches the generator. This separately checks root/all-span rates, error rate, duration histogram, p90 and Grafana's datasource API. The ordinary dashboard query checker alone does not cover this plugin.
+
+The generator was first enabled locally at 2026-09-15 17:57 UTC. Earlier traces remain searchable, but newly generated metric history does not backfill that earlier period. Root-span errors reflect root span status, usually HTTP admission here; they do not represent final asynchronous trade outcomes. All-spans rate counts component/SQL/consumer spans, not distinct operations. Use the service dashboard's committed operation and attempt history for business counts.
+
+Configuration follows the [Tempo 2.9 TraceQL metrics instructions](https://github.com/grafana/tempo/blob/v2.9.0/docs/sources/tempo/metrics-from-traces/metrics-queries/configure-traceql-metrics.md).

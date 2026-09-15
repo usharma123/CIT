@@ -6,6 +6,7 @@ import com.cit.mocknet.model.QueueMessage;
 import com.cit.mocknet.model.QueueName;
 import com.cit.mocknet.model.SettlementInstruction;
 import com.cit.mocknet.model.Trade;
+import com.cit.mocknet.observability.ProcessingContext;
 import com.cit.mocknet.shared.payload.TextPayloadCorrelation;
 import com.cit.mocknet.shared.payload.TextPayloadCorrelationReader;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -56,6 +57,9 @@ public class ComponentTracingAspect {
     private final Tracer tracer;
     private final TextPayloadCorrelationReader textPayloadCorrelationReader;
 
+    @org.springframework.beans.factory.annotation.Value("${mocknet.tracing.verbose-components:false}")
+    private boolean verboseComponents;
+
     public ComponentTracingAspect(OpenTelemetry openTelemetry) {
         this.tracer = openTelemetry.getTracer("com.cit.mocknet.component-tracing");
         this.textPayloadCorrelationReader = new TextPayloadCorrelationReader();
@@ -77,6 +81,13 @@ public class ComponentTracingAspect {
         String componentKind = resolveComponentKind(declaringType, targetType);
         if (componentKind == null || (!"controller".equals(componentKind)
                 && !Span.current().getSpanContext().isValid())) {
+            return joinPoint.proceed();
+        }
+        // The Java agent already records JDBC calls. Repository wrappers and small
+        // helpers obscure the business steps without representing more work.
+        var method = AopUtils.getMostSpecificMethod(signature.getMethod(), targetType);
+        if (!verboseComponents && !"controller".equals(componentKind)
+                && !AnnotatedElementUtils.hasAnnotation(method, TraceBoundary.class)) {
             return joinPoint.proceed();
         }
         String stage = resolveStage(declaringType, targetType, componentKind);
@@ -333,8 +344,11 @@ public class ComponentTracingAspect {
         if ("repository".equals(componentKind)) {
             return "DATABASE";
         }
+        if (ProcessingContext.current() != null) {
+            return ProcessingContext.current().getQueueName().name();
+        }
         String typeName = (declaringType.getName() + " " + targetType.getName()).toLowerCase();
-        if (typeName.contains("settlement") || typeName.contains("twophase")) {
+        if (typeName.contains("settlement")) {
             return "SETTLEMENT";
         }
         if (typeName.contains("ingestion")) {

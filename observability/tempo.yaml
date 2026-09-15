@@ -13,6 +13,21 @@ ingester:
 compactor:
   compaction:
     block_retention: 72h
+# Traces Drilldown uses TraceQL metrics, in addition to ordinary trace lookup.
+# Keep all span kinds so the UI's Root spans / All spans switch is meaningful.
+metrics_generator:
+  storage:
+    path: /var/tempo/generator/wal
+  traces_storage:
+    path: /var/tempo/generator/traces
+  processor:
+    local_blocks:
+      filter_server_spans: false
+      flush_to_storage: true
+overrides:
+  defaults:
+    metrics_generator:
+      processors: [local-blocks]
 storage:
   trace:
     backend: local

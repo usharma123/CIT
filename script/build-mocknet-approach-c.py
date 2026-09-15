@@ -9,7 +9,7 @@ DS={'type':'grafana-postgresql-datasource','uid':'mocknet-c-reporting'}
 stage="stage ~ ${stage:sqlstring}"
 operation="operation_id=${operation:sqlstring}"
 search="(${search:sqlstring}='' OR operation_id=${search:sqlstring} OR business_id=${search:sqlstring})"
-links=[{'type':'link','title':title,'url':'/d/'+uid,'includeVars':True,'keepTime':True} for title,uid in [('C overview','mocknet-c-overview'),('C queues','mocknet-c-queues'),('C investigation','mocknet-c-investigation')]]
+links=[{'type':'link','title':title,'url':'/d/'+uid,'includeVars':True,'keepTime':True} for title,uid in [('C overview','mocknet-c-overview'),('C queues','mocknet-c-queues'),('C investigation','mocknet-c-investigation'),('C sources and diagnostics','mocknet-c-sources')]]
 links += [{'type':'link','title':'Compare '+name,'url':'http://localhost:3300/d/'+uid,'keepTime':True} for name,uid in [('A','mocknet-traces'),('B','mocknet-b-overview')]]
 variables=[{'name':'stage','label':'Queue / stage','type':'custom','query':'INGESTION,MATCHING,NETTING,SETTLEMENT,DEAD_LETTER','includeAll':True,'allValue':"'.*'",'current':{'text':'All','value':'$__all'}},
  {'name':'search','label':'Find trade / operation','description':'Filters operation lists and the investigation selector. Overview charts remain stage-wide.','type':'textbox','query':'','current':{'text':'','value':''}}]
@@ -20,7 +20,7 @@ def dashboard(uid,title,investigation=False):
         v.append({'name':'operation','label':'Operation','type':'query','datasource':DS,'query':f"SELECT coalesce(business_id,'unparsed') || ' | ' || operation_id AS __text, operation_id AS __value FROM c_operations WHERE {search} ORDER BY admitted_at DESC LIMIT 1000",'refresh':1})
     return {'uid':uid,'title':title,'schemaVersion':40,'version':1,'editable':False,'tags':['mocknet','Approach C','logs and journals'],
       'timezone':'browser','refresh':'10s','time':{'from':'now-15m','to':'now'},'links':links,'templating':{'list':v},'annotations':{'list':[]},
-      'description':'Reconstructed evidence from component logs and committed MQ journals. No application spans or Java agent. Current-state tables are latest collected state; graphs follow the selected interval. A returned method is not proof of transaction commit. Missing evidence stays explicit.','panels':[]}
+      'description':'Logs, committed queue journals and support backend source snapshots. Grafana reads only the reporting store. Current-state tables are latest collected state; graphs follow the selected interval. A returned method is not proof of transaction commit. Missing evidence stays explicit.','panels':[]}
 
 def panel(d,title,query,x,y,w=24,h=8,kind='table',unit='short',description=''):
     p={'id':len(d['panels'])+1,'title':title,'type':kind,'datasource':DS,'gridPos':{'x':x,'y':y,'w':w,'h':h},'description':description,
@@ -62,7 +62,8 @@ Q=dashboard('mocknet-c-queues','Approach C | Queue journal diagnostics')
 panel(Q,'Queue inventory from the journal',inventory,0,0,24,8,description='Current state reconstructed from the latest committed journal record for each message. SETTLEMENT is an idle separate queue in this workload; instruction generation runs within NETTING.')
 p=panel(Q,'Current waiting work and dead letters',f"SELECT business_id,stage,state,worker,retries,available_at,message_id,operation_id FROM c_queue WHERE {stage} AND {search} AND (state IN('ready','scheduled','processing') OR stage='DEAD_LETTER') ORDER BY created_at LIMIT 200",0,8,24,9);drill(p)
 panel(Q,'Ready, scheduled and processing',f"SELECT at AS time,ready::double precision AS value,stage || ' ready' AS metric FROM queue_samples WHERE $__timeFilter(at) AND {stage} UNION ALL SELECT at,scheduled,stage || ' scheduled' FROM queue_samples WHERE $__timeFilter(at) AND {stage} UNION ALL SELECT at,processing,stage || ' processing' FROM queue_samples WHERE $__timeFilter(at) AND {stage} ORDER BY 1",0,17,12,8,'timeseries')
-panel(Q,'Wait versus handler duration · p95',f"SELECT to_timestamp(floor(extract(epoch FROM finished_at)/30)*30) AS time,percentile_cont(.95) WITHIN GROUP(ORDER BY wait_seconds) AS value,stage || ' wait' AS metric FROM c_attempt WHERE $__timeFilter(finished_at) AND {stage} GROUP BY 1,3 UNION ALL SELECT to_timestamp(floor(extract(epoch FROM finished_at)/30)*30),percentile_cont(.95) WITHIN GROUP(ORDER BY duration_seconds),stage || ' handler' FROM c_attempt WHERE $__timeFilter(finished_at) AND {stage} GROUP BY 1,3 ORDER BY 1",12,17,12,8,'timeseries','s')
+panel(Q,'Wait versus attempt elapsed · p95',f"SELECT to_timestamp(floor(extract(epoch FROM finished_at)/30)*30) AS time,percentile_cont(.95) WITHIN GROUP(ORDER BY wait_seconds) AS value,stage || ' wait' AS metric FROM c_attempt WHERE $__timeFilter(finished_at) AND {stage} GROUP BY 1,3 UNION ALL SELECT to_timestamp(floor(extract(epoch FROM finished_at)/30)*30),percentile_cont(.95) WITHIN GROUP(ORDER BY duration_seconds),stage || ' attempt elapsed' FROM c_attempt WHERE $__timeFilter(finished_at) AND {stage} GROUP BY 1,3 ORDER BY 1",12,17,12,8,'timeseries','s')
+Q['panels'][-1]['description']='Ready wait and claim-to-disposition elapsed are separate. Elapsed includes handler/bookkeeping before disposition, excludes final commit/export. Exact sample percentile per 30-second bucket; not directly comparable to A histogram estimates over its rate window. Abandoned attempts have unknown duration and are excluded from elapsed percentiles.'
 p=panel(Q,'Retry and failure history',f"SELECT started_at,stage,attempt,wait_seconds,duration_seconds,outcome,reason,worker,message_id,operation_id FROM c_attempt WHERE $__timeFilter(started_at) AND {stage} AND outcome IN('retried','failed','abandoned','rejected') ORDER BY started_at DESC LIMIT 150",0,25,24,9);drill(p)
 panel(Q,'Evidence completeness',health,0,34,24,5,description='Collector age over 10 seconds means the reconstructed state may be stale. Incomplete calls can mean active work, crash loss or absent logging; inspect their start/end records. Quarantined lines are excluded, never silently accepted.')
 
@@ -81,7 +82,35 @@ panel(I,'MQ state transitions',f"SELECT at,sequence,body->>'queue_name' AS queue
 panel(I,'Source records and collection delay',f"SELECT at,observed_at,round(extract(epoch FROM observed_at-at)::numeric,3) AS collection_delay_seconds,source,kind,event_id,body::text AS record FROM evidence WHERE {operation} ORDER BY at LIMIT 400",0,46,24,10)
 panel(I,'Evidence completeness',health,0,56,24,5)
 for item in I['panels'][2:]: item['gridPos']['y']+=6
-for d in (D,Q,I):
+S=dashboard('mocknet-c-sources','Approach C | Sources and L3 diagnostics')
+S['templating']['list']=[]
+p=panel(S,'Source availability and freshness',"SELECT label AS source,status,round(source_age_seconds::numeric,1) AS source_age_seconds,sampled_at,attempted_at,last_success_at,error_code FROM c_source_status ORDER BY source_id",0,0,24,10,
+ description='Database and ODS are local substitutes. COR, LG2 and UDG are not connected. Source time identifies when data was captured; collection time identifies when it was checked. Last known values remain visible after a failure, with source status and time.')
+panel(S,'Database and delayed ODS snapshot',"SELECT v.label AS source,s.status,v.sampled_at,v.category,v.item,v.value FROM c_source_values v JOIN c_source_status s USING(source_id) WHERE v.source_id IN('database','ods') ORDER BY v.category,v.item,v.source_id",0,10,24,12,
+ description='The ODS emulator exports the database summary at a slower cadence. Differences can reflect that delay. These are aggregate local business/queue counts, separate from the journal-derived waterfall.')
+panel(S,'Application evidence and backend configuration',"SELECT v.label AS source,s.status,v.sampled_at,v.category,v.item,v.value FROM c_source_values v JOIN c_source_status s USING(source_id) WHERE v.source_id IN('application','configuration') ORDER BY v.source_id,v.item",0,22,24,10,
+ description='Application evidence is derived from collected logs and journals. Configuration lists only allowlisted effective backend settings.')
+panel(S,'Read-only L3 diagnostic runs',"SELECT tool,CASE WHEN status='running' AND requested_at<now()-interval '2 minutes' THEN 'interrupted' ELSE status END AS status,requested_at,result::text,operation_id,requested_by,finished_at,error_code,run_id FROM tool_runs ORDER BY requested_at DESC LIMIT 50",0,32,24,12,
+ description='Authenticated operators invoke application health, queue diagnostics or operation evidence through the support API. Each invocation is recorded before it runs. Grafana shows the latest 50 results; no arbitrary shell commands or SQL are accepted.')
+for item in S['panels']:
+    for field,label,width in [('source','Source',190),('status','Status',140),('source_age_seconds','Age (seconds)',110),
+                               ('sampled_at','Source time',185),('attempted_at','Checked',185),('last_success_at','Last successful read',185),
+                               ('item','Item',200),('value','Value',90),('tool','Diagnostic',180),('result','Result',400),
+                               ('requested_at','Requested',185),('requested_by','Requested by',150),('finished_at','Finished',185)]:
+        item['fieldConfig']['overrides'].append({'matcher':{'id':'byName','options':field},'properties':[
+            {'id':'displayName','value':label},{'id':'custom.width','value':width}]})
+    status_colors=[('ok','green'),('completed','green'),('stale','yellow'),('collector stale','yellow'),
+                   ('unavailable','red'),('failed','red'),('interrupted','yellow'),('not configured','text')]
+    mappings={state:{'text':state,'color':color} for state,color in status_colors}
+    item['fieldConfig']['overrides'].append({'matcher':{'id':'byName','options':'status'},'properties':[
+        {'id':'mappings','value':[{'type':'value','options':mappings}]}]})
+for d in (Q,I):
+    for item in d['panels']:
+        if item['type']=='table':
+            for name,label in [('wait_seconds','Ready wait'),('duration_seconds','Attempt elapsed')]:
+                item['fieldConfig']['overrides'].append({'matcher':{'id':'byName','options':name},'properties':[
+                    {'id':'displayName','value':label},{'id':'unit','value':'s'},{'id':'noValue','value':'Unknown'}]})
+for d in (D,Q,I,S):
     OUT.mkdir(parents=True,exist_ok=True)
     (OUT/(d['uid']+'.json')).write_text(json.dumps(d,indent=2)+'\n')
-print('Generated C dashboards:',sum(len(d['panels']) for d in (D,Q,I)),'panels')
+print('Generated C dashboards:',sum(len(d['panels']) for d in (D,Q,I,S)),'panels')

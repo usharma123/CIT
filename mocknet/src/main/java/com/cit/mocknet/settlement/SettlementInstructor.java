@@ -132,6 +132,7 @@ public class SettlementInstructor {
         }
     }
 
+    @com.cit.mocknet.config.TraceBoundary
     public void processSettlementMessage(String message) {
         transactionTemplate.executeWithoutResult(status -> {
             try {

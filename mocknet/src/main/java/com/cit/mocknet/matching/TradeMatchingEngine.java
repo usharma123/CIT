@@ -132,6 +132,7 @@ public class TradeMatchingEngine {
         }
     }
 
+    @com.cit.mocknet.config.TraceBoundary
     public void processMatchingMessage(String message) {
         String result = tryMatch(matchingMessageParser.parseTradeId(message));
         if (result == null) {

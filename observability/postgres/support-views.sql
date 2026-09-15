@@ -27,7 +27,8 @@ FROM queues LEFT JOIN public.queue_messages q ON q.queue_name=queues.stage AND q
 GROUP BY queues.stage,queues.path;
 CREATE OR REPLACE VIEW support.attempts AS
 SELECT a.id, a.queue_message_id, a.operation_id, q.business_id, a.queue_name AS stage,
-       a.claimed_at, a.finished_at, a.attempt_number, a.wait_seconds, a.processing_seconds,
+       a.claimed_at, a.finished_at, a.attempt_number, a.wait_seconds,
+       CASE WHEN a.outcome IN ('processing','abandoned') THEN NULL ELSE a.processing_seconds END AS processing_seconds,
        a.outcome, a.reason, a.worker, a.instance, a.trace_id, a.span_id, a.service_version
 FROM public.processing_attempts a JOIN public.queue_messages q ON q.id=a.queue_message_id;
 CREATE OR REPLACE VIEW support.operation_links AS

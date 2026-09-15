@@ -27,7 +27,8 @@ SELECT entity_id AS attempt_id, operation_id, body->>'queue_message_id' AS messa
  body->>'queue_name' AS stage, (body->>'attempt_number')::int AS attempt,
  (body->>'claimed_at')::timestamptz AS started_at, (body->>'finished_at')::timestamptz AS finished_at,
  (body->>'wait_seconds')::double precision AS wait_seconds,
- (body->>'processing_seconds')::double precision AS duration_seconds,
+ CASE WHEN body->>'outcome' IN ('processing','abandoned') THEN NULL
+      ELSE (body->>'processing_seconds')::double precision END AS duration_seconds,
  body->>'outcome' AS outcome, body->>'reason' AS reason, body->>'worker' AS worker
 FROM (SELECT DISTINCT ON(entity_id) * FROM evidence WHERE source='mq_journal' AND kind='processing_attempts'
       ORDER BY entity_id,sequence DESC) e;

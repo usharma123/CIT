@@ -20,18 +20,28 @@ class OperationalHistoryTest {
     @Autowired QueueBroker broker;
     @Autowired JdbcTemplate jdbc;
     @Autowired TransactionTemplate tx;
+    @Autowired io.micrometer.core.instrument.MeterRegistry registry;
+
+    private long count(String outcome) {
+        return registry.get("mocknet.processing").tags("stage", "DEAD_LETTER", "outcome", outcome).timer().count();
+    }
 
     @Test void rollbackDoesNotPublishSuccessfulHistory() {
+        long before = count("completed");
         QueueMessage published=broker.publish(QueueName.DEAD_LETTER,"{}");
         QueueMessage claim=broker.claimNext(QueueName.DEAD_LETTER,"history-rollback").orElseThrow();
         tx.executeWithoutResult(status -> { broker.complete(claim); status.setRollbackOnly(); });
+        assertThat(count("completed")).isEqualTo(before);
         assertThat(jdbc.queryForObject("select status from queue_messages where id=?",String.class,published.getId())).isEqualTo("PROCESSING");
         assertThat(jdbc.queryForObject("select outcome from processing_attempts where queue_message_id=?",String.class,published.getId())).isEqualTo("processing");
         broker.complete(claim);
+        broker.complete(claim); // Repeating the acknowledgement must not count twice.
+        assertThat(count("completed")).isEqualTo(before + 1);
         assertThat(jdbc.queryForObject("select outcome from processing_attempts where queue_message_id=?",String.class,published.getId())).isEqualTo("completed");
     }
 
     @Test void successfulThirdAttemptRetainsBothRetryReasons() {
+        long retriesBefore = count("retried"), completionsBefore = count("completed");
         QueueMessage published=broker.publish(QueueName.DEAD_LETTER,"{}");
         for(int i=0;i<2;i++) {
             QueueMessage claim=broker.claimNext(QueueName.DEAD_LETTER,"history-retry").orElseThrow();
@@ -39,6 +49,8 @@ class OperationalHistoryTest {
         }
         QueueMessage claim=broker.claimNext(QueueName.DEAD_LETTER,"history-retry").orElseThrow();
         broker.complete(claim);
+        assertThat(count("retried")).isEqualTo(retriesBefore + 2);
+        assertThat(count("completed")).isEqualTo(completionsBefore + 1);
         assertThat(jdbc.queryForList("select outcome from processing_attempts where queue_message_id=? order by id",String.class,published.getId())).containsExactly("retried","retried","completed");
         assertThat(jdbc.queryForObject("select count(*) from processing_attempts where queue_message_id=? and reason=?",Integer.class,published.getId(),FailureReason.CONCURRENCY_CONFLICT.code())).isEqualTo(2);
         assertThat(jdbc.queryForObject("select status from queue_messages where id=?",String.class,published.getId())).isEqualTo("DONE");

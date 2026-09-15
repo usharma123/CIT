@@ -198,7 +198,7 @@ class EndToEndTest {
         assertHasStageTaggedSpan("TradeIngestionService.processTradeXml", "INGESTION", "service");
         assertHasStageTaggedSpan("TradeMatchingEngine.processMatchingMessage", "MATCHING", "service");
         assertHasStageTaggedSpan("NettingCalculator.processNettingMessage", "NETTING", "service");
-        assertHasStageTaggedSpan("TwoPhaseCommitCoordinator.executeTransaction", "SETTLEMENT", "service");
+        assertHasStageTaggedSpan("TwoPhaseCommitCoordinator.executeTransaction", "NETTING", "service");
 
         assertHasCorrelatedSpan("TradeSubmissionController.submitTrade", "TRD-TEST-001", "MSG-TEST-001");
         assertHasCorrelatedSpan("TradeSubmissionController.submitTrade", "TRD-TEST-002", "MSG-TEST-002");
@@ -211,9 +211,8 @@ class EndToEndTest {
                         && "TRD-TEST-001".equals(span.getAttributes().get(AttributeKey.stringKey("trade.id")))
                         && "MSG-TEST-001".equals(span.getAttributes().get(AttributeKey.stringKey("message.id")))));
 
-        assertTrue(spans.stream().anyMatch(span ->
-                "repository".equals(span.getAttributes().get(AttributeKey.stringKey("component.kind")))
-                        && "DATABASE".equals(span.getAttributes().get(AttributeKey.stringKey("component.stage")))));
+        assertTrue(spans.stream().noneMatch(span ->
+                "repository".equals(span.getAttributes().get(AttributeKey.stringKey("component.kind")))));
     }
 
     @Test
@@ -265,13 +264,12 @@ class EndToEndTest {
         assertTrue(deadLetterMessage.getPayload().contains("\"reasonCode\":\"missing_trade_id\""));
         assertTrue(deadLetterMessage.getPayload().contains("\"originalQueue\":\"INGESTION\""));
 
-        awaitCondition("failure spans to flush", STATE_TIMEOUT, () -> hasSpan("QueueBroker.fail"));
+        awaitCondition("failure spans to flush", STATE_TIMEOUT, () -> hasSpan("QueueMessage.process"));
         assertHasAttribute("QueueMessage.process", "processing.outcome", "failed");
         assertHasAttribute("QueueMessage.process", "failure.reason_code", "missing_trade_id");
         assertSameTraceForMessage("MSG-BAD-002",
                 "QueueMessage.process",
-                "TradeIngestionService.processTradeXml",
-                "QueueBroker.fail");
+                "TradeIngestionService.processTradeXml");
     }
 
     @Test

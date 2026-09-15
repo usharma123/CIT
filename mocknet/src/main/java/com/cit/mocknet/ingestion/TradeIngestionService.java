@@ -132,6 +132,7 @@ public class TradeIngestionService {
         }
     }
 
+    @com.cit.mocknet.config.TraceBoundary
     public IngestionOutcome processTradeXml(String xml) {
         String operationId = com.cit.mocknet.observability.ProcessingContext.operationId();
         if (operationId != null) {

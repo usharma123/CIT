@@ -80,6 +80,7 @@ public class TwoPhaseCommitCoordinator {
         this.settlementInstructionFactory = settlementInstructionFactory;
     }
 
+    @com.cit.mocknet.config.TraceBoundary
     public boolean executeTransaction(Long matchedTradeId) {
         // A committed netting result can be redelivered after a worker loses its queue acknowledgement.
         if (matchedTradeRepository.findById(matchedTradeId)

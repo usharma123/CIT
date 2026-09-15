@@ -118,6 +118,7 @@ public class NettingCalculator {
         }
     }
 
+    @com.cit.mocknet.config.TraceBoundary
     public void processNettingMessage(String message) {
         try {
             Long matchedTradeId = nettingMessageParser.parseMatchedTradeId(message);

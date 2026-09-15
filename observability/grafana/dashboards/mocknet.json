@@ -400,7 +400,7 @@
         "w": 12,
         "h": 8
       },
-      "description": "Oldest ready message per stage, excluding scheduled retry delay. Shared database scope; version/instance do not partition queues. Missing telemetry is not zero.",
+      "description": "Oldest ready message per stage, excluding scheduled retry delay. Shared database scope; version/instance do not partition queues. Missing telemetry is not zero. Only successful scrapes with database snapshots less than 15 seconds old are used. A gap means unavailable evidence.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -426,7 +426,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "max by(stage)(mocknet_queue_oldest_seconds{service=~\"$service\",environment=~\"$environment\",stage=~\"$stage\",stage!=\"DEAD_LETTER\",state=\"ready\"})",
+          "expr": "max by(stage)((mocknet_queue_oldest_seconds{service=~\"$service\",environment=~\"$environment\",stage=~\"$stage\",stage!=\"DEAD_LETTER\",state=\"ready\"} and on(job,instance) (time()-mocknet_snapshot_timestamp{service=~\"$service\",environment=~\"$environment\"} < 15) and on(job,instance) (up{job=\"mocknet\"} == 1)))",
           "legendFormat": "{{stage}}",
           "instant": false,
           "range": true
@@ -591,7 +591,7 @@
         "w": 8,
         "h": 8
       },
-      "description": "Current outcome of submissions accepted in the selected interval. Recovered is a subset, not another operation. COMPLETED means netting and instruction generation finished; external settlement is outside this service.",
+      "description": "Current outcome of submissions accepted in the selected interval. Recovered is a subset, not another operation. COMPLETED means netting and instruction generation finished; external settlement is outside this service. All stages; stage/version/instance do not partition admitted operations in this local database. Each matched pair has two submitted operations.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -635,7 +635,7 @@
         "w": 12,
         "h": 8
       },
-      "description": "Ready, scheduled retry and active processing are separate. Shared database gauges use max across exporters to avoid counting the same queue twice; not a sum across independent databases.",
+      "description": "Ready, scheduled retry and active processing are separate. Shared database gauges use max across exporters to avoid counting the same queue twice; not a sum across independent databases. Only successful scrapes with database snapshots less than 15 seconds old are used. A gap means unavailable evidence.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -661,7 +661,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "max by(stage,state)(mocknet_queue_messages{service=~\"$service\",environment=~\"$environment\",stage=~\"$stage\",stage!=\"DEAD_LETTER\",state=~\"ready|scheduled|processing\"})",
+          "expr": "max by(stage,state)((mocknet_queue_messages{service=~\"$service\",environment=~\"$environment\",stage=~\"$stage\",stage!=\"DEAD_LETTER\",state=~\"ready|scheduled|processing\"} and on(job,instance) (time()-mocknet_snapshot_timestamp{service=~\"$service\",environment=~\"$environment\"} < 15) and on(job,instance) (up{job=\"mocknet\"} == 1)))",
           "legendFormat": "{{stage}} {{state}}",
           "instant": false,
           "range": true
@@ -674,7 +674,7 @@
     },
     {
       "id": 7,
-      "title": "Processing duration by stage \u00b7 p95",
+      "title": "Attempt elapsed by stage \u00b7 p95",
       "type": "timeseries",
       "gridPos": {
         "x": 12,
@@ -682,7 +682,7 @@
         "w": 12,
         "h": 8
       },
-      "description": "Handler duration excludes ready queue waiting. Compare it with queue age to distinguish slow execution from work not being claimed.",
+      "description": "Claim to recorded disposition time, including handler and bookkeeping before that timestamp. Excludes ready wait, scheduled delay and final commit/export. Quantiles estimate completed/rejected/retried/failed attempts; abandoned attempts have no completion sample.",
       "fieldConfig": {
         "defaults": {
           "color": {
