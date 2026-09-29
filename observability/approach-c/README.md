@@ -6,6 +6,7 @@ This adapts the Citrix slide "Tech Stack – Approach C (draft for discussion)" 
 
 ## Open
 
+- [Dashboard screenshots captured September 29, 2026](screenshots/2026-09-29/README.md)
 - [Trade operations home](http://localhost:3302/d/mocknet-c-business)
 - [Selected process timeline](http://localhost:3302/d/mocknet-c-process)
 - [Business milestones, SLA rules and retention](BUSINESS-PROCESS.md)
