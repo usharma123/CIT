@@ -6,9 +6,9 @@ This project compares three ways to support incident diagnosis in the Mocknet Ja
 
 **Approach A is the recommended basis for L3 support.** It combines business identifiers, durable queue history, runtime metrics, dependency spans and correlated logs. Approach B requires the fewest application changes but cannot diagnose business or queue failures on its own. Approach C is useful when agents are prohibited and sufficiently detailed logs and journals are available, but it requires a custom collection and reconstruction system.
 
-C now has the same native Grafana waterfall renderer as A. Equal visual quality does not make the underlying evidence equivalent: C cannot reveal an SQL call or dependency that its source records never captured.
+C now has Grafana Traces, Logs and Metrics Drilldown, correlated logs, runtime/queue metrics, related-operation navigation and the same native waterfall renderer as A. Equal visual quality does not make the underlying evidence equivalent: C cannot reveal an SQL call or dependency that its source records never captured.
 
-For the remaining work from this repository to a controlled hosted pilot, budget **15–25 person-days for A** or **25–45 person-days for C**. These are engineering planning estimates, not recorded implementation time or a production delivery commitment. The [effort breakdown](#engineering-effort-a-versus-c) defines the scope, assumptions and additional integration work. Grafana is retained; alarms and notifications are outside the scope.
+For the remaining work from this repository to a controlled hosted pilot, budget **15–25 person-days for A** or **32–55 person-days for C**. These are engineering planning estimates, not recorded implementation time or a production delivery commitment. The [effort breakdown](#engineering-effort-a-versus-c) defines the scope, assumptions and additional integration work. Grafana is retained; alarms and notifications are outside the scope.
 
 These are local implementation and incident exercises. They do not certify production capacity, full distributed coverage, external settlement, or a general performance winner.
 
@@ -73,7 +73,7 @@ B is stopped at the user's request. Its database volumes, dashboard definitions 
 ### Implementation
 
 - C now adapts the Citrix Approach C draft with a Python/Gunicorn REST backend while retaining Grafana. Database, delayed local ODS export, application evidence and configuration adapters feed the reporting store. COR, LG2 and UDG are explicitly not connected; local substitutes do not establish their schemas or runtime behavior.
-- An independent collection worker prevents REST source outages from blocking log/journal ingestion. Source age, last successful read, errors and last known values appear in a fourth Grafana dashboard, "Sources and L3 diagnostics".
+- An independent collection worker prevents REST source outages from blocking log/journal ingestion. Source age, last successful read, errors and last known values appear in the Grafana dashboard, "Sources and L3 diagnostics".
 - The backend supports authenticated read-only application health, queue and operation diagnostics. Requests and results are recorded before/after execution. Distinct local reader/operator tokens and restricted database roles enforce access. Enterprise SSO is not configured. Alarm and notification work is excluded.
 - The application runs without a Java agent and with application tracing disabled. A logging aspect emits structured component start, end and failure records.
 - Records carry call/parent IDs, operation/message IDs, stage, worker, timestamps, monotonic duration and exception classes. Empty queue polls are not logged; failed claims identify their queue without inventing an operation association.
@@ -81,7 +81,7 @@ B is stopped at the user's request. Its database volumes, dashboard definitions 
 - A checkpointed Python collector pools component logs and committed journals into the separate `telemetry_c` reporting database. Grafana's read-only role cannot connect to the application database.
 - Journal records are committed to reporting before source acknowledgement. Unique event IDs make replay idempotent. Collection does not rely on a sequence high-water mark, so lower sequence numbers committed late are still collected.
 - Log checkpoints and inserts commit together. Partial lines wait for completion; rotated files retain identity. Malformed records are quarantined by position and hash. Retention removes older detailed evidence while preserving latest reconstructed queue state.
-- `c_waterfall(operation_id)` converts reporting records into the native Grafana trace-frame format at query time. No Tempo instance or extra application instrumentation supplies C's waterfall.
+- `c_waterfall(operation_id)` converts reporting records into the native Grafana trace-frame format at query time. This live SQL waterfall remains available independently of the separate Tempo export.
 
 Main files: `ComponentJournalAspect.java`, `observability/approach-c/journal.sql`, `reporting.sql`, `waterfall.sql`, `logback.xml`, `script/mocknet-c-reporter.py`, `script/build-mocknet-approach-c.py`, and the [support backend](observability/approach-c/backend/README.md) in `observability/approach-c/backend/`.
 
@@ -91,9 +91,17 @@ C's waterfall automatically fits the selected operation, independent of the dash
 
 Recorded parent-call IDs determine component nesting. Top-level calls join an attempt only when message ID, worker and time interval identify exactly one candidate. This inferred association is labeled. Missing parents, missing starts, open/missing ends and clock inconsistencies remain explicit.
 
-The renderer calls these display rows spans and displays deterministic reconstruction IDs. These are not emitted OpenTelemetry IDs. Stage/evidence groups supply its service colors; the displayed service count is not a count of deployed services. Critical-path calculations describe only the reconstructed tree.
+The renderer displays deterministic reconstruction IDs, also used by the collector's OTLP export. The application does not emit trace context. Every row belongs to the one deployed service, `mocknet`; `component.stage` identifies internal stages. Critical-path calculations describe only the reconstructed tree.
 
 The retry example rendered 28 rows and two approximately 500 ms backoff intervals. Seven recorded scenarios, including a roughly 20-second queue stall, were checked. Waterfall queries took approximately 0.2–0.3 seconds in that local snapshot. Those timings are not a production benchmark.
+
+### Exploration parity added on September 15
+
+C now runs its own Tempo, Loki and Prometheus instances. Five dashboards contain 55 panels. The new runtime dashboard measures JVM heap/non-heap, GC, CPU, threads, HTTP admission, connection pools, queues and committed attempts. Structured application diagnostics and source evidence reach Loki with exact operation/trace links. Business views include committed trade state, recovery as a subset, and both recorded matched-leg IDs. Individual SQL-call timing is excluded.
+
+A separate exporter reads the reporting store and freezes one settled-operation snapshot after a quiet interval. Stable IDs and a durable export ledger prevent routine replay from sending the same trace twice. Interrupted or ambiguous delivery is quarantined for reconciliation; it is not blindly resent. Later evidence is flagged and remains visible in the live SQL waterfall. This intentionally trades automatic recovery of ambiguous deliveries for avoiding duplicate trace metrics; it is not an exactly-once network-delivery guarantee.
+
+Tempo uses a one-hour timestamp allowance for delayed reconstruction in its metric generator and trace WAL. Old data exported before that configuration was corrected may have incomplete time-bounded search or metrics. Original reporting evidence is retained. Trace rate counts exported observations; committed business views remain the source of operation totals. C's root duration is an operation envelope and is not comparable to A's HTTP entry-span latency. See the [parity implementation and checks](observability/approach-c/telemetry/README.md).
 
 ### Findings
 
@@ -101,7 +109,7 @@ The main C incident exercise admitted 128 deliberate requests alongside its back
 
 A 12-second collector outage left newly processed operations absent from reporting until collection resumed. Replay, late commits, rollback, partial lines, duplicate lines, rotation, missing ends and quarantine behavior were exercised. A separate pressure check recorded failed claims in all four worker stages with transaction/connection exception classes.
 
-C can reconstruct useful transaction and queue history. It still cannot supply unlogged SQL calls, JVM resource behavior or unobserved external dependencies. It reuses operation IDs and durable attempt/context structures developed for A, so it is not an independent zero-change instrumentation baseline.
+C can reconstruct useful transaction and queue history. It now supplies JVM, CPU, HTTP and pool metrics through agent-free Micrometer. It cannot supply individual SQL-call timing or unobserved external dependencies. It reuses operation IDs and durable attempt/context structures developed for A, so it is not an independent zero-change instrumentation baseline.
 
 The asynchronous logger can block application threads when full. Process termination, disk failure or rotation before collection can lose evidence. Gap counters cannot detect every missing tail or entirely lost file. The collector, retention, reconstruction rules, schema evolution and broker adapters require ongoing ownership.
 
@@ -126,16 +134,18 @@ Each column is an alternative project estimate. Shared work appears once within 
 | Work package | A: person-days | C: person-days | Work to finish for the pilot |
 | --- | ---: | ---: | --- |
 | Evidence contract and application integration | 2–3 | 3–5 | Validate IDs, async boundaries, outcomes and field allowlists in the hosted service. A checks agent compatibility and selective spans. C versions log/journal contracts and validates pairing and trigger permissions. |
-| Collection and storage deployment | 2–4 | 5–9 | A configures Collector, Tempo, Loki and Prometheus retention/export recovery. C packages collector/backend workers, migrations, checkpoints, replay, quarantine and source freshness for unattended operation. |
-| Reporting and Grafana acceptance | 2–3 | 4–7 | Validate counts, units, selected/related operations and retained-volume queries. A includes native traces, logs and built-in Drilldown. C additionally verifies reconstruction provenance, partial evidence and source diagnostics. |
-| Access control and release automation | 3–5 | 4–7 | Managed login, TLS, private datasource access, credential rotation, reproducible deployment and rollback. C also maps individual API users to reader/operator roles and diagnostic audit records. |
-| Failure, capacity and recovery validation | 4–6 | 6–11 | Establish ingestion lag, query latency, storage growth and application overhead at agreed load. Exercise restarts, dependency outages and restore. C additionally proves replay/checkpoint behavior across process kills, rotation, partial records and late commits. |
+| Collection and storage deployment | 2–4 | 8–14 | A configures Collector, Tempo, Loki and Prometheus retention/export recovery. C additionally packages collector/backend/export workers, Tempo/Loki/Prometheus, migrations, checkpoints, immutable snapshots, delivery reconciliation and source freshness. |
+| Reporting and Grafana acceptance | 2–3 | 5–9 | Validate counts, units, selected/related operations and retained-volume queries. A includes native traces, logs and built-in Drilldown. C additionally verifies reconstructed TraceQL counts, trace/log links, provenance, partial evidence and source diagnostics. |
+| Access control and release automation | 3–5 | 5–8 | Managed login, TLS, private datasource access, credential rotation, reproducible deployment and rollback. C also maps individual API users to reader/operator roles and diagnostic audit records. |
+| Failure, capacity and recovery validation | 4–6 | 8–13 | Establish ingestion lag, query latency, storage growth and application overhead at agreed load. Exercise restarts, dependency outages and restore. C additionally proves replay/checkpoint behavior across process kills, rotation, partial records and late commits. |
 | Documentation and support handover | 2–4 | 3–6 | Record deployment/recovery procedures, evidence limitations and diagnostic examples; run support-user acceptance. C includes adapter/schema changes, reprocessing and reconstruction troubleshooting. |
-| **Total remaining pilot effort** | **15–25** | **25–45** | **A: 3–5 person-weeks. C: 5–9 person-weeks.** |
+| **Total remaining pilot effort** | **15–25** | **32–55** | **A: 3–5 person-weeks. C: 6.4–11 person-weeks.** |
 
-With one dedicated engineer, these correspond to roughly **3–5 working weeks for A** and **5–9 for C**, plus external waits. With two engineers, an illustrative schedule is **2–4 weeks for A** and **4–6 for C**, assuming about 1.5 effective full-time contributors after coordination and sequential work. More people do not remove contract, access or validation dependencies. These schedules are staffing scenarios, not promised dates.
+With one dedicated engineer, these correspond to roughly **3–5 working weeks for A** and **about 7–11 for C**, plus external waits. With two engineers, an illustrative schedule is **2–4 weeks for A** and **5–8 for C**, assuming about 1.5 effective full-time contributors after coordination and sequential work. More people do not remove contract, access or validation dependencies. These schedules are staffing scenarios, not promised dates.
 
 The low ends assume the approved platform fits the existing deployment and the first acceptance run finds small issues. The high ends allow for migration/recovery defects, query tuning and access integration rework. New source contracts or architecture changes fall outside both ends. Re-estimate after the first work package confirms those assumptions. A labor budget is person-days multiplied by the team's loaded daily rate; hosting, storage and licensing costs are separate.
+
+The earlier C estimate was 25–45 person-days for a reporting-only design. The revised 32–55 range includes operating the new telemetry backends and validating delayed, immutable trace exports. It is a revised total, not an amount to add to the earlier estimate.
 
 ### Why C needs more engineering
 
@@ -143,7 +153,7 @@ A reuses a standard instrumentation and storage ecosystem for HTTP/JDBC timing, 
 
 C owns an additional evidence-processing system: event schemas, file identity, transactional journal extraction, acknowledgement ordering, replay, late records, missing evidence, reconstruction, retention and adapter/API behavior. An apparently simple logging change creates downstream compatibility obligations whenever application methods, queue schemas or source formats change.
 
-The totals compare the **current A and C designs**, not identical feature sets. C includes source-adapter/API functions that A does not currently expose. If those functions are required with A, reuse C's backend and estimate their hosted integration separately; they are not inherently tied to reconstruction. Conversely, C's estimate does not buy JDBC detail or JVM metrics that its configured sources do not capture. Requiring those signals changes C's design and needs a new estimate.
+The totals compare the **current A and C designs**, not identical feature sets. C includes source-adapter/API functions that A does not currently expose. If those functions are required with A, reuse C's backend and estimate their hosted integration separately; they are not inherently tied to reconstruction. C now includes runtime metrics and built-in exploration. Individual JDBC timing is excluded, and unrecorded dependencies remain unavailable. Similar navigation does not make its reconstructed evidence identical to A's instrumentation.
 
 ### Work that needs separate sizing
 
@@ -200,8 +210,16 @@ flowchart TD
     D --> R
     R --> V["Queue, attempt, freshness and source views"]
     R --> F["c_waterfall: recorded parents and labeled inferred associations"]
-    V --> G["Grafana: four dashboards"]
+    V --> G["Grafana: five dashboards and Drilldown"]
     F --> G
+    R --> X["Independent exporter and durable delivery ledger"]
+    X --> T["Tempo: settled reconstructed traces"]
+    X --> K["Loki: correlated logs and evidence"]
+    J --> M["Agent-free Micrometer metrics"]
+    M --> P["C Prometheus"]
+    T --> G
+    K --> G
+    P --> G
 ```
 
 Both diagrams represent observability components, not a discovered network of business microservices. In C, database/ODS snapshots enrich source diagnostics; they do not invent missing component calls. Grafana displays diagnostic results, while an authenticated CLI/API client initiates the fixed diagnostics.
@@ -212,7 +230,7 @@ Both diagrams represent observability components, not a discovered network of bu
 | --- | --- | --- | --- |
 | Application evidence | `ComponentTracingAspect` and `@TraceBoundary` record meaningful custom spans; `QueueMessageTracing` carries queue context; agent captures HTTP/JDBC. | `ComponentJournalAspect` emits correlated start/end/failure records; journal triggers capture committed queue changes. | Java/application engineer |
 | Reliable collection | Collector export queues and standard telemetry backends; explicitly size retention and sampling. Tempo local blocks support Drilldown metrics. | `mocknet-c-reporter.py` commits reporting before acknowledgement, checkpoints files, quarantines malformed records and collects sources independently. | Platform engineer for A; Python/data engineer with platform support for C |
-| Data model and queries | Restricted `support-views.sql` plus Micrometer counters published after commit. | `reporting.sql` projects latest entity state; `waterfall.sql` creates display spans without claiming emitted trace IDs. | SQL/data engineer with application owner |
+| Data model and queries | Restricted `support-views.sql` plus Micrometer counters published after commit. | `reporting.sql` projects latest entity state; `waterfall.sql` creates deterministic reconstructed spans; `telemetry/bridge.py` exports settled snapshots without claiming application-emitted trace context. | SQL/data engineer with application owner |
 | Support access | Grafana permissions and read-only datasource roles; the pilot adds managed login. | Same Grafana controls plus Flask/Gunicorn API and audited fixed diagnostics; the pilot replaces local shared tokens with individual reader/operator identity. | Platform/identity engineer |
 | Visualization | `build-mocknet-dashboards.py`: metric overview, queue diagnostics and exact trace/log links. | `build-mocknet-approach-c.py`: reconstruction, queue state and source freshness, with uncertainty visible. | Observability engineer and L3 reviewer |
 | Release and recovery | Versioned agent/backend configuration, migration order, export recovery and stable application artifacts. | Also version event contracts, preserve checkpoint compatibility and prove reprocessing after upgrades. | Release owner with the component owners above |
@@ -262,7 +280,7 @@ Medians of two runs per approach:
 
 C wrote approximately 22.3 KiB of component logs and 9.1 KiB of source journal allocation per trade, before the reporting copy. A separate live C reporter observation measured about 26 MiB RSS and 0.13 CPU seconds over 20 seconds.
 
-These measurements exclude a controlled comparison of total collector/database/Grafana cost. C's collector did not consume the isolated benchmark databases. Other live feeds ran on the shared host, contention retries varied, and there were only two samples per approach. The later C waterfall and support backend, A's selective span reduction and Tempo Drilldown configuration were not part of the original benchmark. C's smaller sampled JVM footprint does not establish the lowest total system cost. These runtime measurements are not the basis for the person-day estimates above.
+These measurements exclude a controlled comparison of total collector/database/Grafana cost. C's collector did not consume the isolated benchmark databases. Other live feeds ran on the shared host, contention retries varied, and there were only two samples per approach. The later C waterfall, support backend, application logging, Micrometer scrape, exporter and Tempo/Loki/Prometheus backends, plus A's selective span reduction and Tempo Drilldown configuration, were not part of the original benchmark. C's smaller sampled JVM footprint does not establish the lowest total system cost. These runtime measurements are not the basis for the person-day estimates above.
 
 ## Laptop resource findings
 

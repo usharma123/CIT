@@ -1,59 +1,37 @@
 {
   "uid": "mocknet-c-queues",
-  "title": "Approach C | Queue journal diagnostics",
+  "title": "Queue journal diagnostics",
   "schemaVersion": 40,
   "version": 1,
   "editable": false,
   "tags": [
     "mocknet",
-    "Approach C",
+    "observability",
     "logs and journals"
   ],
   "timezone": "browser",
-  "refresh": "10s",
+  "refresh": "",
   "time": {
-    "from": "now-15m",
-    "to": "now"
+    "from": "2026-09-29T13:11:01.973000+00:00",
+    "to": "2026-09-29T13:16:27.425000+00:00"
   },
   "links": [
     {
       "type": "link",
-      "title": "C overview",
+      "title": "Business overview",
+      "url": "/d/mocknet-c-business",
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "Service health",
       "url": "/d/mocknet-c-overview",
-      "includeVars": true,
       "keepTime": true
     },
     {
       "type": "link",
-      "title": "C queues",
+      "title": "Queue diagnostics",
       "url": "/d/mocknet-c-queues",
-      "includeVars": true,
-      "keepTime": true
-    },
-    {
-      "type": "link",
-      "title": "C investigation",
-      "url": "/d/mocknet-c-investigation",
-      "includeVars": true,
-      "keepTime": true
-    },
-    {
-      "type": "link",
-      "title": "C sources and diagnostics",
-      "url": "/d/mocknet-c-sources",
-      "includeVars": true,
-      "keepTime": true
-    },
-    {
-      "type": "link",
-      "title": "Compare A",
-      "url": "http://localhost:3300/d/mocknet-traces",
-      "keepTime": true
-    },
-    {
-      "type": "link",
-      "title": "Compare B",
-      "url": "http://localhost:3300/d/mocknet-b-overview",
       "keepTime": true
     }
   ],
@@ -74,7 +52,7 @@
       {
         "name": "search",
         "label": "Find trade / operation",
-        "description": "Filters operation lists and the investigation selector. Overview charts remain stage-wide.",
+        "description": "Find an older trade by its exact ID; selector results are independent of dashboard time.",
         "type": "textbox",
         "query": "",
         "current": {
@@ -87,7 +65,7 @@
   "annotations": {
     "list": []
   },
-  "description": "Logs, committed queue journals and support backend source snapshots. Grafana reads only the reporting store. Current-state tables are latest collected state; graphs follow the selected interval. A returned method is not proof of transaction commit. Missing evidence stays explicit.",
+  "description": "Committed journals and structured logs feed reporting, Tempo, and Loki. Agent-free Micrometer metrics feed Prometheus. Business counts use committed records; span and log rates count observations.",
   "panels": [
     {
       "id": 1,
@@ -402,7 +380,7 @@
         "w": 12,
         "h": 8
       },
-      "description": "Ready wait and claim-to-disposition elapsed are separate. Elapsed includes handler/bookkeeping before disposition, excludes final commit/export. Exact sample percentile per 30-second bucket; not directly comparable to A histogram estimates over its rate window. Abandoned attempts have unknown duration and are excluded from elapsed percentiles.",
+      "description": "Ready wait and claim-to-disposition elapsed are separate. Elapsed includes handler/bookkeeping before disposition, excludes final commit/export. Exact sample percentile per 30-second bucket. Abandoned attempts have unknown duration and are excluded from elapsed percentiles.",
       "targets": [
         {
           "refId": "A",
@@ -684,6 +662,54 @@
         "cellHeight": "sm",
         "footer": {
           "show": false
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Queue arrivals and terminal departures per minute",
+      "type": "timeseries",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 39,
+        "w": 24,
+        "h": 8
+      },
+      "description": "One arrival and one terminal departure per message. Retries are attempts, not extra departures. First/last minute buckets may be partial.",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "WITH events AS (\n        SELECT created_at AS at,stage,'arrived' AS flow FROM c_queue WHERE $__timeFilter(created_at)\n        UNION ALL SELECT last_event_at,stage,CASE WHEN status='FAILED' THEN 'failed' WHEN outcome='rejected' THEN 'rejected' ELSE 'completed' END\n        FROM c_queue WHERE status IN('DONE','FAILED') AND $__timeFilter(last_event_at))\n        SELECT date_trunc('minute',at) AS time,stage||' '||flow AS metric,count(*)::double precision AS value\n        FROM events WHERE stage ~ ${stage:sqlstring} AND stage<>'DEAD_LETTER' GROUP BY 1,2 ORDER BY 1,2",
+          "format": "time_series",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
         }
       }
     }

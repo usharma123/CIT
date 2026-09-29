@@ -1,59 +1,37 @@
 {
   "uid": "mocknet-c-investigation",
-  "title": "Approach C | Reconstructed operation",
+  "title": "Operation investigation",
   "schemaVersion": 40,
   "version": 1,
   "editable": false,
   "tags": [
     "mocknet",
-    "Approach C",
+    "observability",
     "logs and journals"
   ],
   "timezone": "browser",
-  "refresh": "10s",
+  "refresh": "",
   "time": {
-    "from": "now-15m",
-    "to": "now"
+    "from": "2026-09-29T13:11:01.973000+00:00",
+    "to": "2026-09-29T13:16:27.425000+00:00"
   },
   "links": [
     {
       "type": "link",
-      "title": "C overview",
+      "title": "Business overview",
+      "url": "/d/mocknet-c-business",
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "Service health",
       "url": "/d/mocknet-c-overview",
-      "includeVars": true,
       "keepTime": true
     },
     {
       "type": "link",
-      "title": "C queues",
+      "title": "Queue diagnostics",
       "url": "/d/mocknet-c-queues",
-      "includeVars": true,
-      "keepTime": true
-    },
-    {
-      "type": "link",
-      "title": "C investigation",
-      "url": "/d/mocknet-c-investigation",
-      "includeVars": true,
-      "keepTime": true
-    },
-    {
-      "type": "link",
-      "title": "C sources and diagnostics",
-      "url": "/d/mocknet-c-sources",
-      "includeVars": true,
-      "keepTime": true
-    },
-    {
-      "type": "link",
-      "title": "Compare A",
-      "url": "http://localhost:3300/d/mocknet-traces",
-      "keepTime": true
-    },
-    {
-      "type": "link",
-      "title": "Compare B",
-      "url": "http://localhost:3300/d/mocknet-b-overview",
       "keepTime": true
     }
   ],
@@ -62,7 +40,7 @@
       {
         "name": "search",
         "label": "Find trade / operation",
-        "description": "Filters operation lists and the investigation selector. Overview charts remain stage-wide.",
+        "description": "Find an older trade by its exact ID; selector results are independent of dashboard time.",
         "type": "textbox",
         "query": "",
         "current": {
@@ -78,7 +56,23 @@
           "type": "grafana-postgresql-datasource",
           "uid": "mocknet-c-reporting"
         },
-        "query": "SELECT coalesce(business_id,'unparsed') || ' | ' || operation_id AS __text, operation_id AS __value FROM c_operations WHERE (${search:sqlstring}='' OR operation_id=${search:sqlstring} OR business_id=${search:sqlstring}) ORDER BY admitted_at DESC LIMIT 1000",
+        "query": "SELECT coalesce(business_id,operation_id) AS __text,operation_id AS __value FROM c_operations WHERE operation_id IN ('58110252-a291-4e6f-949c-f05db4273b22','35d3df28-8389-4746-8be6-f36e15cba0f2','7613074c-d7cb-4dea-84fe-f7610c4716ab','38cfcc56-22b8-4860-a3f9-4ebceeb7433a','49a93f44-5e47-4eb6-8806-2a8170f3028d','6fea7707-7081-4444-8d57-f48b47b3de65','1f70d18a-9de1-4a50-bf7f-ac68de0c449c','7326895a-8172-4958-bb71-9cbbf3b232bc','bf7065c8-dd12-49d7-b463-e658380a80d5','101a59cb-2388-48c8-bf6d-7d6dc524e8a0','d1596ccf-047b-4f70-9008-4b1f1cc540c1','ac36dd0d-da7d-4cca-ad10-980024c9a6d4','8c2551f4-eb9b-4ae4-a0f2-1e391f5fa7af','39c3988a-f356-4910-b1cc-443210dcb0b2','2c944843-ee64-49c0-b88c-568849fb5f8f','08f363c3-0046-4822-8a22-861d96fc514f','ed0588bd-c07b-4472-a0ae-5a77cefa83ff','9a7e63d4-8a67-4fcd-a419-e7e764457dbe','d801021b-234d-40e0-93ad-2f253dc56f1f','71a7f901-ece4-4400-95fe-d38d371a0256','ac84b49a-f197-4f15-a365-d7383119dd66','3d09d7be-04bf-444d-aba4-c1728277dc59','4de202d2-44c4-421a-a0b1-778d08139594','b947b56f-93a6-4dc8-aab7-1aa4b5b452e8','6d4d3604-7b48-4372-9970-fc718683e9fe','1d11ab37-93b2-4cdb-88c0-3c86a1ca0765','244bd035-874d-4981-9455-3e422194f44a','b5aba228-0c0b-4359-8410-08b6df3511d2','4afa6a4e-2fab-4400-adcd-e839c8a8cf65','73c9b2cf-134b-45d6-a158-83efc5fa77ca','375f5671-6a8e-4821-b057-0440c327cb6c','4e6461ac-1e88-49dd-99be-af6cc6bf9d9e','11e7605f-3fa2-4ef2-98a7-19fe175bc9e8','44ae80bf-8020-4ecc-9acc-b6156b77be51','e974da81-86f6-4a71-90c5-4ad6fcc7e5e6','4bd14b6d-6e15-413c-9b46-51acb430d44c','274d8375-1a67-4478-b501-7a084d4c0f3a','fea432d3-3b15-45b5-a50a-db1cb81afcd5','48b617fa-d68b-4ca8-b948-d5d63c720fda','fa7d2834-ee0d-4c21-884b-d399ec44bc63','1d9e37d5-e392-44a9-b2f3-340ebe99b8ba','82b36bec-01a4-4969-88d3-c992766d53d1','e6719fcd-d092-4215-b962-625f249a074a','3984ba3a-d1e5-4edd-95e5-462054b701d9','d945ee9d-9f54-4482-9a48-75e21a41e599','6b7263ee-0658-435b-81e5-837c14770ca9','3c3ca132-b11d-4d1b-abbd-e171d6e8f43f','da1edfcb-a407-4ea5-a4ec-02f1ba7acb2f','6fea1a49-8359-4bca-adad-1fe39304f0f4','d1c798df-903b-4281-b326-86e77a05d3a8','4d8d6fa5-224f-4c8e-921c-f953ef9ec456','afe76d19-197c-479c-8593-ad301809759b','a8adc181-f233-46a4-9531-babf9cc46833','80c98d0b-c393-4e49-b2b1-c473c74dd604','4d634838-d275-4451-9ec7-c208190116b0','3738028a-b9bc-4e34-a998-6a0c22af9ab0','52564dfe-b2de-469f-a98b-855cfc6592d2','3c721232-44ee-4e8d-9005-1e117e4c1de6','1c05b93a-2074-4ab1-8291-c672345f6afa','16ac2d4a-8fcc-4977-ab13-da37f4f01921','f268fbe2-69da-4785-a563-3821ad7cd2bd','01b21991-9f06-4988-b6fe-164c0be95868','649593da-a401-4a04-9a25-f4c63c2a642e','3ce1a493-a775-428b-bec1-0650e57265a0','fd66e0b2-71eb-4245-97ee-f4d3344eff26','ec3c9bc1-85e1-42f3-88e1-102ac1cc8b4c','9291b7d0-d330-43b9-bacc-085f3d6e708b','8f0ce267-abc2-49f7-a899-3d44fb3d408b','32717159-255b-44cc-b0e2-8cebb35e1a74','927c50ce-6b56-40ad-ab39-8a22f35643dd','f6e48567-3f83-4511-ba95-9025b9ec9c9f','4ee35cbd-c896-4a39-9309-95e809e4b2a5','01185b3e-f207-428d-99cb-21c8317a0f11','3f98b00a-d00a-4515-8e4d-8078bfb783ba','e2f9bcbb-d02f-4e6a-a518-e12c29e06ac7','0094aebd-2810-4d5b-804c-cebdd7948dc2','b405b4fc-7f22-464d-86ac-dc76d812723c','ebb016ce-431c-4eac-ba01-a5b0f58d3904','e51869b0-4ffc-4673-a1ed-5386110dd217','64d406f0-effd-46b1-8588-26100170b73d','2282e92e-1899-4554-9ca7-9f74fb395300','9e5b6bc3-e69b-442c-8d30-1087c281fac2','3c6c53e3-5790-4a6e-80b5-4a9a38e9b1d1','63091346-163a-4060-b8d8-d0034d426e9e','f35eb85b-bd22-4207-a6b7-3318cd6bbe20','d66f90f3-6b91-4aec-a1d1-96967438f309','d1915901-fe84-4aa6-866b-340377a01232','942fa2f0-4f76-4458-8203-4b645787577f','9c81ed6c-3edc-48fd-b1aa-547fa6521acb','96549486-99f5-4ed4-8f51-24c9fef1025c','d52927d3-c739-4e60-82ff-2115d2aab9f9') AND (${search:sqlstring}='' OR operation_id=${search:sqlstring} OR business_id=${search:sqlstring}) ORDER BY admitted_at",
+        "refresh": 1,
+        "current": {
+          "text": "BIZ-20260929T131301-E9BA23-HEALTHY-1",
+          "value": "58110252-a291-4e6f-949c-f05db4273b22"
+        }
+      },
+      {
+        "name": "trace_id",
+        "label": "Reconstructed trace ID",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "mocknet-c-reporting"
+        },
+        "hide": 2,
+        "query": "SELECT md5('c-reconstruction:'||${operation:sqlstring}) AS __text,md5('c-reconstruction:'||${operation:sqlstring}) AS __value",
         "refresh": 1
       }
     ]
@@ -86,7 +80,7 @@
   "annotations": {
     "list": []
   },
-  "description": "Logs, committed queue journals and support backend source snapshots. Grafana reads only the reporting store. Current-state tables are latest collected state; graphs follow the selected interval. A returned method is not proof of transaction commit. Missing evidence stays explicit.",
+  "description": "Committed journals and structured logs feed reporting, Tempo, and Loki. Agent-free Micrometer metrics feed Prometheus. Business counts use committed records; span and log rates count observations.",
   "panels": [
     {
       "id": 1,
@@ -98,7 +92,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 0,
+        "y": 4,
         "w": 24,
         "h": 5
       },
@@ -185,11 +179,11 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 5,
+        "y": 9,
         "w": 24,
-        "h": 18
+        "h": 28
       },
-      "description": "Native Grafana waterfall reconstructed from component logs and committed MQ journals. Auto-fits the operation duration independently of the dashboard time window. Expand rows for source IDs, worker, retry reason and evidence warnings. Recorded call parents are preserved; worker/attempt grouping is explicitly inferred. Display trace/span IDs are deterministic reconstruction IDs, not OTel identifiers. Open/missing ends remain uncertain.",
+      "description": "Native Grafana waterfall reconstructed from component logs and committed MQ journals. Auto-fits the operation duration independently of the dashboard time window. Expand rows for source IDs, worker, retry reason and evidence warnings. Recorded call parents are preserved; worker/attempt grouping is explicitly inferred. Trace/span IDs are deterministic reconstruction IDs shared with the Tempo export; the application does not emit trace context. Open/missing ends remain uncertain.",
       "targets": [
         {
           "refId": "A",
@@ -225,7 +219,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 23,
+        "y": 37,
         "w": 24,
         "h": 11
       },
@@ -312,7 +306,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 34,
+        "y": 48,
         "w": 24,
         "h": 9
       },
@@ -399,7 +393,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 43,
+        "y": 57,
         "w": 24,
         "h": 9
       },
@@ -486,7 +480,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 52,
+        "y": 66,
         "w": 24,
         "h": 10
       },
@@ -573,7 +567,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 62,
+        "y": 76,
         "w": 24,
         "h": 5
       },
@@ -649,6 +643,275 @@
           "show": false
         }
       }
+    },
+    {
+      "id": 8,
+      "title": "Trace export status",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 4
+      },
+      "description": "Tempo holds one immutable settled-operation snapshot after a quiet collection interval. Unfinished work stays available in the live SQL waterfall. Changed-after-snapshot evidence remains in reporting and is flagged here. Ambiguous delivery is not blindly retried.",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT operation_id,trace_id,export_state,sent_at,error_code FROM c_operation_trace WHERE operation_id=${operation:sqlstring}",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "trace_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open in Traces Drilldown",
+                    "url": "/a/grafana-exploretraces-app/explore?var-ds=mocknet-c-tempo&traceId=${__value.raw}&var-primarySignal=nestedSetParent%3C0&var-metric=rate&var-groupBy=resource.service.name&actionView=breakdown&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 9,
+      "title": "Related operations and matched legs",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 81,
+        "w": 24,
+        "h": 7
+      },
+      "description": "Recorded matched-leg identities. Open another leg to inspect its own trace. Shared netting is not counted again in this operation.",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT l.related_operation_id,o.business_id,o.business_outcome,l.matched_trade_id FROM c_operation_links l LEFT JOIN c_business_operations o ON o.operation_id=l.related_operation_id WHERE l.operation_id=${operation:sqlstring}",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "related_operation_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Inspect related operation",
+                    "url": "/d/mocknet-c-investigation?var-operation=${__value.raw}&var-search=${__value.raw}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 10,
+      "title": "Correlated application logs and evidence",
+      "type": "logs",
+      "datasource": {
+        "type": "loki",
+        "uid": "mocknet-c-loki"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 88,
+        "w": 24,
+        "h": 12
+      },
+      "description": "Exact operation filter on structured metadata. Start/end/journal records are observations of the same work, not additional business outcomes. Application diagnostics omit raw payloads and exception messages.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "mocknet-c-loki"
+          },
+          "expr": "{service_name=\"mocknet\"} | operation_id=${operation:doublequote}",
+          "queryType": "range",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true,
+        "sortOrder": "Ascending",
+        "enableLogDetails": true
+      }
+    },
+    {
+      "id": 11,
+      "title": "Advanced reconstructed trace search",
+      "type": "table",
+      "datasource": {
+        "type": "tempo",
+        "uid": "mocknet-c-tempo"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 100,
+        "w": 24,
+        "h": 10
+      },
+      "description": "Search Tempo-backed reconstructed traces, then open a trace for full structure and trace-to-logs/metrics links.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "mocknet-c-tempo"
+          },
+          "queryType": "traceql",
+          "query": "{ span.operation_id = \"${operation}\" }",
+          "tableType": "traces",
+          "limit": 20
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 12,
+      "title": "Indexed trace waterfall",
+      "type": "traces",
+      "datasource": {
+        "type": "tempo",
+        "uid": "mocknet-c-tempo"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 110,
+        "w": 24,
+        "h": 18
+      },
+      "description": "Tempo snapshot for settled operations. The SQL waterfall above remains the current view of incomplete or later evidence. All stages belong to the single mocknet service.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "mocknet-c-tempo"
+          },
+          "queryType": "traceql",
+          "query": "${trace_id}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          }
+        },
+        "overrides": []
+      },
+      "options": {}
     }
   ]
 }

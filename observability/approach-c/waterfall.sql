@@ -7,7 +7,7 @@ RETURNS TABLE("traceID" text,"spanID" text,"parentSpanID" text,
 LANGUAGE sql STABLE AS $function$
 WITH calls AS MATERIALIZED (
  SELECT *,coalesce(started_at,finished_at-duration_ms*interval '1 millisecond',finished_at) AS begins
- FROM c_call WHERE operation_id=selected_operation
+ FROM c_calls_for(selected_operation)
 ), attempts AS MATERIALIZED (
  SELECT *,started_at-greatest(coalesce(wait_seconds,0),0)*interval '1 second' AS ready_at,
  lag(finished_at) OVER(PARTITION BY message_id ORDER BY started_at,attempt) AS previous_end,
@@ -83,10 +83,10 @@ WITH calls AS MATERIALIZED (
 )
 SELECT md5('c-reconstruction:'||selected_operation),left(md5(selected_operation||':'||id),16),
  CASE WHEN parent IS NOT NULL THEN left(md5(selected_operation||':'||parent),16) END,
- name,service,extract(epoch FROM begins)::double precision*1000,
+ name,'mocknet',extract(epoch FROM begins)::double precision*1000,
  greatest(coalesce(measured_ms,extract(epoch FROM ends-begins)::double precision*1000),0),
  (SELECT jsonb_agg(jsonb_build_object('key',key,'value',value) ORDER BY key)
-  FROM jsonb_each(attributes||jsonb_build_object('operation_id',selected_operation,'reconstructed',true))),
+  FROM jsonb_each(attributes||jsonb_build_object('operation_id',selected_operation,'reconstructed',true,'component.stage',service))),
  '[{"key":"approach","value":"C: reconstructed from logs and journals"}]'::jsonb,
  notes||CASE WHEN ends<begins THEN '["Clock/order inconsistency: negative duration clamped to zero"]'::jsonb ELSE '[]'::jsonb END
 FROM rows ORDER BY (parent IS NULL) DESC,begins,id;

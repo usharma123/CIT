@@ -1,0 +1,1638 @@
+{
+  "uid": "mocknet-c-process",
+  "title": "Process detail",
+  "schemaVersion": 40,
+  "version": 1,
+  "editable": false,
+  "tags": [
+    "mocknet",
+    "business",
+    "observability"
+  ],
+  "timezone": "browser",
+  "refresh": "",
+  "time": {
+    "from": "2026-09-29T13:11:01.973000+00:00",
+    "to": "2026-09-29T13:16:27.425000+00:00"
+  },
+  "links": [
+    {
+      "type": "link",
+      "title": "Back to overview",
+      "url": "/d/mocknet-c-business?from=${overview_from}&to=${overview_to}&var-policy=${policy}"
+    },
+    {
+      "type": "link",
+      "title": "Technical investigation",
+      "url": "/d/mocknet-c-investigation?${__url_time_range}&var-operation=${operation}&var-search=${operation}"
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "search",
+        "label": "Find trade / operation",
+        "description": "Find an older trade by its exact ID; selector results are independent of dashboard time.",
+        "type": "textbox",
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        }
+      },
+      {
+        "name": "operation",
+        "label": "Trade / operation",
+        "type": "query",
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "mocknet-c-reporting"
+        },
+        "query": "SELECT coalesce(business_id,operation_id) AS __text,operation_id AS __value FROM c_operations WHERE operation_id IN ('58110252-a291-4e6f-949c-f05db4273b22','35d3df28-8389-4746-8be6-f36e15cba0f2','7613074c-d7cb-4dea-84fe-f7610c4716ab','38cfcc56-22b8-4860-a3f9-4ebceeb7433a','49a93f44-5e47-4eb6-8806-2a8170f3028d','6fea7707-7081-4444-8d57-f48b47b3de65','1f70d18a-9de1-4a50-bf7f-ac68de0c449c','7326895a-8172-4958-bb71-9cbbf3b232bc','bf7065c8-dd12-49d7-b463-e658380a80d5','101a59cb-2388-48c8-bf6d-7d6dc524e8a0','d1596ccf-047b-4f70-9008-4b1f1cc540c1','ac36dd0d-da7d-4cca-ad10-980024c9a6d4','8c2551f4-eb9b-4ae4-a0f2-1e391f5fa7af','39c3988a-f356-4910-b1cc-443210dcb0b2','2c944843-ee64-49c0-b88c-568849fb5f8f','08f363c3-0046-4822-8a22-861d96fc514f','ed0588bd-c07b-4472-a0ae-5a77cefa83ff','9a7e63d4-8a67-4fcd-a419-e7e764457dbe','d801021b-234d-40e0-93ad-2f253dc56f1f','71a7f901-ece4-4400-95fe-d38d371a0256','ac84b49a-f197-4f15-a365-d7383119dd66','3d09d7be-04bf-444d-aba4-c1728277dc59','4de202d2-44c4-421a-a0b1-778d08139594','b947b56f-93a6-4dc8-aab7-1aa4b5b452e8','6d4d3604-7b48-4372-9970-fc718683e9fe','1d11ab37-93b2-4cdb-88c0-3c86a1ca0765','244bd035-874d-4981-9455-3e422194f44a','b5aba228-0c0b-4359-8410-08b6df3511d2','4afa6a4e-2fab-4400-adcd-e839c8a8cf65','73c9b2cf-134b-45d6-a158-83efc5fa77ca','375f5671-6a8e-4821-b057-0440c327cb6c','4e6461ac-1e88-49dd-99be-af6cc6bf9d9e','11e7605f-3fa2-4ef2-98a7-19fe175bc9e8','44ae80bf-8020-4ecc-9acc-b6156b77be51','e974da81-86f6-4a71-90c5-4ad6fcc7e5e6','4bd14b6d-6e15-413c-9b46-51acb430d44c','274d8375-1a67-4478-b501-7a084d4c0f3a','fea432d3-3b15-45b5-a50a-db1cb81afcd5','48b617fa-d68b-4ca8-b948-d5d63c720fda','fa7d2834-ee0d-4c21-884b-d399ec44bc63','1d9e37d5-e392-44a9-b2f3-340ebe99b8ba','82b36bec-01a4-4969-88d3-c992766d53d1','e6719fcd-d092-4215-b962-625f249a074a','3984ba3a-d1e5-4edd-95e5-462054b701d9','d945ee9d-9f54-4482-9a48-75e21a41e599','6b7263ee-0658-435b-81e5-837c14770ca9','3c3ca132-b11d-4d1b-abbd-e171d6e8f43f','da1edfcb-a407-4ea5-a4ec-02f1ba7acb2f','6fea1a49-8359-4bca-adad-1fe39304f0f4','d1c798df-903b-4281-b326-86e77a05d3a8','4d8d6fa5-224f-4c8e-921c-f953ef9ec456','afe76d19-197c-479c-8593-ad301809759b','a8adc181-f233-46a4-9531-babf9cc46833','80c98d0b-c393-4e49-b2b1-c473c74dd604','4d634838-d275-4451-9ec7-c208190116b0','3738028a-b9bc-4e34-a998-6a0c22af9ab0','52564dfe-b2de-469f-a98b-855cfc6592d2','3c721232-44ee-4e8d-9005-1e117e4c1de6','1c05b93a-2074-4ab1-8291-c672345f6afa','16ac2d4a-8fcc-4977-ab13-da37f4f01921','f268fbe2-69da-4785-a563-3821ad7cd2bd','01b21991-9f06-4988-b6fe-164c0be95868','649593da-a401-4a04-9a25-f4c63c2a642e','3ce1a493-a775-428b-bec1-0650e57265a0','fd66e0b2-71eb-4245-97ee-f4d3344eff26','ec3c9bc1-85e1-42f3-88e1-102ac1cc8b4c','9291b7d0-d330-43b9-bacc-085f3d6e708b','8f0ce267-abc2-49f7-a899-3d44fb3d408b','32717159-255b-44cc-b0e2-8cebb35e1a74','927c50ce-6b56-40ad-ab39-8a22f35643dd','f6e48567-3f83-4511-ba95-9025b9ec9c9f','4ee35cbd-c896-4a39-9309-95e809e4b2a5','01185b3e-f207-428d-99cb-21c8317a0f11','3f98b00a-d00a-4515-8e4d-8078bfb783ba','e2f9bcbb-d02f-4e6a-a518-e12c29e06ac7','0094aebd-2810-4d5b-804c-cebdd7948dc2','b405b4fc-7f22-464d-86ac-dc76d812723c','ebb016ce-431c-4eac-ba01-a5b0f58d3904','e51869b0-4ffc-4673-a1ed-5386110dd217','64d406f0-effd-46b1-8588-26100170b73d','2282e92e-1899-4554-9ca7-9f74fb395300','9e5b6bc3-e69b-442c-8d30-1087c281fac2','3c6c53e3-5790-4a6e-80b5-4a9a38e9b1d1','63091346-163a-4060-b8d8-d0034d426e9e','f35eb85b-bd22-4207-a6b7-3318cd6bbe20','d66f90f3-6b91-4aec-a1d1-96967438f309','d1915901-fe84-4aa6-866b-340377a01232','942fa2f0-4f76-4458-8203-4b645787577f','9c81ed6c-3edc-48fd-b1aa-547fa6521acb','96549486-99f5-4ed4-8f51-24c9fef1025c','d52927d3-c739-4e60-82ff-2115d2aab9f9') AND (${search:sqlstring}='' OR operation_id=${search:sqlstring} OR business_id=${search:sqlstring}) ORDER BY admitted_at",
+        "refresh": 2,
+        "current": {
+          "text": "BIZ-20260929T131301-E9BA23-HEALTHY-1",
+          "value": "58110252-a291-4e6f-949c-f05db4273b22"
+        }
+      },
+      {
+        "name": "policy",
+        "type": "custom",
+        "query": "validation,matching,instructions",
+        "hide": 2,
+        "current": {
+          "text": "instructions",
+          "value": "instructions"
+        }
+      },
+      {
+        "name": "overview_from",
+        "type": "textbox",
+        "query": "1790687461973",
+        "hide": 2,
+        "current": {
+          "text": "1790687461973",
+          "value": "1790687461973"
+        }
+      },
+      {
+        "name": "overview_to",
+        "type": "textbox",
+        "query": "1790687787425",
+        "hide": 2,
+        "current": {
+          "text": "1790687787425",
+          "value": "1790687787425"
+        }
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "description": "Selected trade history from committed journal evidence. The progress strip and timeline are measured from trade receipt and, like all evidence tables, are independent of the dashboard time range. The terminal state extends to the latest collector observation, not to external settlement.",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Selected trade",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 4
+      },
+      "description": "Instruction readiness confirms local output generation. External settlement is not measured.",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT business_id,business_state,received_at,retries,generated_outputs FROM c_process_summary WHERE operation_id=${operation:sqlstring}",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          },
+          "noValue": "Not recorded"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "business_id"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Trade"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "business_state"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "State"
+              },
+              {
+                "id": "custom.width",
+                "value": 200
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "received_at"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Received"
+              },
+              {
+                "id": "custom.width",
+                "value": 190
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "generated_outputs"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Instructions"
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "retries"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Retries"
+              },
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "business_state"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "Met": {
+                        "text": "Met",
+                        "color": "green"
+                      },
+                      "Breached": {
+                        "text": "Breached",
+                        "color": "orange"
+                      },
+                      "At risk": {
+                        "text": "At risk",
+                        "color": "yellow"
+                      },
+                      "Failed": {
+                        "text": "Failed",
+                        "color": "red"
+                      },
+                      "In progress": {
+                        "text": "In progress",
+                        "color": "blue"
+                      },
+                      "Unknown": {
+                        "text": "Unknown",
+                        "color": "gray"
+                      },
+                      "Stale": {
+                        "text": "Stale",
+                        "color": "gray"
+                      },
+                      "Excluded": {
+                        "text": "Excluded",
+                        "color": "gray"
+                      },
+                      "Instructions ready": {
+                        "text": "Instructions ready",
+                        "color": "green"
+                      },
+                      "Waiting for counterparty": {
+                        "text": "Waiting for counterparty",
+                        "color": "yellow"
+                      },
+                      "Rejected": {
+                        "text": "Rejected",
+                        "color": "red"
+                      },
+                      "Netted; output evidence missing": {
+                        "text": "Netted; output evidence missing",
+                        "color": "gray"
+                      },
+                      "Completed": {
+                        "text": "Completed",
+                        "color": "green"
+                      },
+                      "Observed open": {
+                        "text": "Observed open",
+                        "color": "yellow"
+                      },
+                      "Missing evidence": {
+                        "text": "Missing evidence",
+                        "color": "gray"
+                      },
+                      "Not reached": {
+                        "text": "Not reached",
+                        "color": "gray"
+                      },
+                      "Not required": {
+                        "text": "Not required",
+                        "color": "gray"
+                      },
+                      "Not applicable": {
+                        "text": "Not applicable",
+                        "color": "gray"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "footer": {
+          "show": false
+        },
+        "wrapText": true
+      }
+    },
+    {
+      "id": 2,
+      "title": "Process progress",
+      "type": "stat",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 4
+      },
+      "description": "Business milestones in order. T+ is elapsed time from trade receipt to the milestone. Green: on time. Orange: reached late, or still open past its demo SLA target. Blue: open, with time waited so far (up to the latest collector observation). Red: rejected or failed. Purple: evidence missing.",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "WITH p AS (SELECT * FROM c_process_summary WHERE operation_id=${operation:sqlstring}),st AS MATERIALIZED (SELECT * FROM c_process_stages(${operation:sqlstring})),targets AS (SELECT CASE policy_id WHEN 'validation' THEN 1 WHEN 'matching' THEN 2 WHEN 'instructions' THEN 4 END AS stage_order,target_seconds FROM c_sla_policy),steps AS (SELECT st.stage_order,CASE WHEN st.stage_order=4 AND st.readiness_at IS NOT NULL THEN CASE WHEN extract(epoch FROM st.readiness_at-p.received_at)>t.target_seconds THEN 'late|' ELSE 'done|' END||'T+'||c_format_duration(extract(epoch FROM st.readiness_at-p.received_at))||CASE WHEN extract(epoch FROM st.readiness_at-p.received_at)>t.target_seconds THEN ' \u00b7 target '||c_format_duration(t.target_seconds) ELSE '' END||CASE WHEN st.status='Not required' THEN ' \u00b7 none required' ELSE '' END WHEN st.status='Completed' THEN CASE WHEN extract(epoch FROM st.end_time-p.received_at)>t.target_seconds THEN 'late|' ELSE 'done|' END||'T+'||c_format_duration(extract(epoch FROM st.end_time-p.received_at))||CASE WHEN extract(epoch FROM st.end_time-p.received_at)>t.target_seconds THEN ' \u00b7 target '||c_format_duration(t.target_seconds) ELSE '' END WHEN st.status='Observed open' THEN CASE WHEN extract(epoch FROM st.end_time-p.received_at)>t.target_seconds THEN 'late|Overdue \u00b7 ' ELSE 'open|' END||CASE st.stage_order WHEN 2 THEN 'waiting for counterparty' ELSE 'in progress' END||' \u00b7 '||c_format_duration(st.elapsed_ms/1000) WHEN st.status='Stale' THEN 'stale|Evidence stale \u00b7 '||c_format_duration(st.elapsed_ms/1000) WHEN st.status='Rejected' THEN 'fail|Rejected at T+'||c_format_duration(extract(epoch FROM st.end_time-p.received_at)) WHEN st.status='Failed' THEN 'fail|Failed at T+'||c_format_duration(extract(epoch FROM st.end_time-p.received_at)) WHEN st.status='Missing evidence' THEN 'gap|Missing evidence' WHEN st.status='Not applicable' THEN 'skip|Not applicable' ELSE 'todo|Not reached' END AS step FROM st CROSS JOIN p LEFT JOIN targets t USING(stage_order)) SELECT CASE WHEN p.received_at IS NOT NULL THEN 'done|T+0' ELSE 'gap|Missing evidence' END AS \"Received\",(SELECT step FROM steps WHERE stage_order=1) AS \"Validated\",(SELECT step FROM steps WHERE stage_order=2) AS \"Matched\",(SELECT step FROM steps WHERE stage_order=3) AS \"Netted\",(SELECT step FROM steps WHERE stage_order=4) AS \"Instructions ready\" FROM p",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "transparent"
+          },
+          "noValue": "Not recorded",
+          "mappings": [
+            {
+              "type": "regex",
+              "options": {
+                "pattern": "^done\\|(.*)$",
+                "result": {
+                  "text": "$1",
+                  "color": "green"
+                }
+              }
+            },
+            {
+              "type": "regex",
+              "options": {
+                "pattern": "^late\\|(.*)$",
+                "result": {
+                  "text": "$1",
+                  "color": "orange"
+                }
+              }
+            },
+            {
+              "type": "regex",
+              "options": {
+                "pattern": "^open\\|(.*)$",
+                "result": {
+                  "text": "$1",
+                  "color": "blue"
+                }
+              }
+            },
+            {
+              "type": "regex",
+              "options": {
+                "pattern": "^stale\\|(.*)$",
+                "result": {
+                  "text": "$1",
+                  "color": "yellow"
+                }
+              }
+            },
+            {
+              "type": "regex",
+              "options": {
+                "pattern": "^fail\\|(.*)$",
+                "result": {
+                  "text": "$1",
+                  "color": "red"
+                }
+              }
+            },
+            {
+              "type": "regex",
+              "options": {
+                "pattern": "^gap\\|(.*)$",
+                "result": {
+                  "text": "$1",
+                  "color": "purple"
+                }
+              }
+            },
+            {
+              "type": "regex",
+              "options": {
+                "pattern": "^skip\\|(.*)$",
+                "result": {
+                  "text": "$1",
+                  "color": "#6e7079"
+                }
+              }
+            },
+            {
+              "type": "regex",
+              "options": {
+                "pattern": "^todo\\|(.*)$",
+                "result": {
+                  "text": "$1",
+                  "color": "#3a3d45"
+                }
+              }
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/",
+          "values": false
+        },
+        "orientation": "vertical",
+        "textMode": "value_and_name",
+        "colorMode": "background_solid",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "text": {
+          "titleSize": 13,
+          "valueSize": 16
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Process timeline",
+      "type": "barchart",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 24,
+        "h": 8
+      },
+      "description": "Each bar spans a stage from its first to its closing committed evidence, measured from trade receipt (T+0). Matching includes counterparty wait; instruction generation can overlap netting. Open stages end at the latest collector observation. Dashed lines: demo SLA targets (validation 5 s, matching 30 s, instruction readiness 60 s). Stages lasting milliseconds appear as thin marks; the label carries the exact duration.",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "WITH st AS MATERIALIZED (SELECT * FROM c_process_stages(${operation:sqlstring})),origin AS (SELECT coalesce((SELECT received_at FROM c_process_summary WHERE operation_id=${operation:sqlstring}),(SELECT min(start_time) FROM st)) AS t0),targets AS (SELECT CASE policy_id WHEN 'validation' THEN 1 WHEN 'matching' THEN 2 WHEN 'instructions' THEN 4 END AS stage_order,target_seconds FROM c_sla_policy),bars AS (SELECT st.*,extract(epoch FROM st.start_time-o.t0) AS offset_s,CASE WHEN st.end_time>=st.start_time THEN extract(epoch FROM st.end_time-st.start_time) END AS duration_s,coalesce(extract(epoch FROM coalesce(st.readiness_at,st.end_time)-o.t0)>t.target_seconds,false) AS late FROM st CROSS JOIN origin o LEFT JOIN targets t USING(stage_order)) SELECT stage_order||'. '||CASE stage WHEN 'Counterparty matching wait' THEN 'Counterparty matching' ELSE stage END||'  \u00b7  '||CASE WHEN status IN('Observed open','Stale') THEN 'open '||c_format_duration(duration_s) WHEN status='Rejected' THEN 'rejected after '||c_format_duration(duration_s) WHEN status='Failed' THEN 'failed after '||c_format_duration(duration_s) WHEN duration_s IS NOT NULL THEN c_format_duration(duration_s) ELSE lower(status) END AS stage,CASE WHEN duration_s IS NOT NULL THEN greatest(offset_s,0) END AS \"Start\",CASE WHEN status='Completed' AND NOT late THEN duration_s END AS \"On time\",CASE WHEN status IN('Completed','Observed open') AND late THEN duration_s END AS \"Past SLA target\",CASE WHEN status='Observed open' AND NOT late THEN duration_s END AS \"In progress\",CASE WHEN status='Stale' THEN duration_s END AS \"Stale evidence\",CASE WHEN status IN('Rejected','Failed') THEN duration_s END AS \"Rejected / failed\",NULL::double precision AS \"- - - SLA targets: 5 s \u00b7 30 s \u00b7 60 s\" FROM bars ORDER BY stage_order",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "min": 0,
+          "decimals": 1,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "transparent",
+                "value": null
+              },
+              {
+                "color": "#8e8e8e",
+                "value": 5
+              },
+              {
+                "color": "#8e8e8e",
+                "value": 30
+              },
+              {
+                "color": "#8e8e8e",
+                "value": 60
+              }
+            ]
+          },
+          "custom": {
+            "fillOpacity": 85,
+            "lineWidth": 0,
+            "gradientMode": "none",
+            "axisPlacement": "auto",
+            "axisLabel": "Time since trade received",
+            "axisSoftMin": 0,
+            "axisGridShow": true,
+            "thresholdsStyle": {
+              "mode": "dashed"
+            },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Start"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "transparent"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": true,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "^- - - SLA targets.*"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8e8e8e"
+                }
+              },
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": true,
+                  "viz": false
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "On time"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Past SLA target"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "In progress"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Stale evidence"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Rejected / failed"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xField": "stage",
+        "stacking": "normal",
+        "showValue": "never",
+        "barWidth": 0.6,
+        "groupWidth": 0.7,
+        "barRadius": 0.1,
+        "fullHighlight": false,
+        "xTickLabelRotation": 0,
+        "xTickLabelMaxLength": 0,
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Stage timing",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 24,
+        "h": 7
+      },
+      "description": "Milliseconds between recorded evidence points, not handler CPU time. Open and stale rows end at collector observation. Readiness requires Netted plus all required GENERATED instructions; it may follow the generation interval. Blank intervals have no supported duration.",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT stage,status,start_time,end_time,round(elapsed_ms::numeric,1) AS elapsed_ms,coalesce(retries::text,CASE WHEN stage_order=4 THEN 'See netting' ELSE 'Not reached' END) AS retries,max(readiness_at) OVER () AS readiness_at FROM c_process_stages(${operation:sqlstring}) ORDER BY stage_order",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          },
+          "noValue": "Not recorded"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "stage"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Stage"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "status"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Evidence"
+              },
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "start_time"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "From"
+              },
+              {
+                "id": "custom.width",
+                "value": 175
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "end_time"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "To"
+              },
+              {
+                "id": "custom.width",
+                "value": 175
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "elapsed_ms"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Duration"
+              },
+              {
+                "id": "custom.width",
+                "value": 115
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "retries"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Retries"
+              },
+              {
+                "id": "custom.width",
+                "value": 115
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "readiness_at"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Process ready at"
+              },
+              {
+                "id": "custom.width",
+                "value": 175
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "status"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "Met": {
+                        "text": "Met",
+                        "color": "green"
+                      },
+                      "Breached": {
+                        "text": "Breached",
+                        "color": "orange"
+                      },
+                      "At risk": {
+                        "text": "At risk",
+                        "color": "yellow"
+                      },
+                      "Failed": {
+                        "text": "Failed",
+                        "color": "red"
+                      },
+                      "In progress": {
+                        "text": "In progress",
+                        "color": "blue"
+                      },
+                      "Unknown": {
+                        "text": "Unknown",
+                        "color": "gray"
+                      },
+                      "Stale": {
+                        "text": "Stale",
+                        "color": "gray"
+                      },
+                      "Excluded": {
+                        "text": "Excluded",
+                        "color": "gray"
+                      },
+                      "Instructions ready": {
+                        "text": "Instructions ready",
+                        "color": "green"
+                      },
+                      "Waiting for counterparty": {
+                        "text": "Waiting for counterparty",
+                        "color": "yellow"
+                      },
+                      "Rejected": {
+                        "text": "Rejected",
+                        "color": "red"
+                      },
+                      "Netted; output evidence missing": {
+                        "text": "Netted; output evidence missing",
+                        "color": "gray"
+                      },
+                      "Completed": {
+                        "text": "Completed",
+                        "color": "green"
+                      },
+                      "Observed open": {
+                        "text": "Observed open",
+                        "color": "yellow"
+                      },
+                      "Missing evidence": {
+                        "text": "Missing evidence",
+                        "color": "gray"
+                      },
+                      "Not reached": {
+                        "text": "Not reached",
+                        "color": "gray"
+                      },
+                      "Not required": {
+                        "text": "Not required",
+                        "color": "gray"
+                      },
+                      "Not applicable": {
+                        "text": "Not applicable",
+                        "color": "gray"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "start_time"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "time:HH:mm:ss.SSS"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "end_time"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "time:HH:mm:ss.SSS"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "readiness_at"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "time:HH:mm:ss.SSS"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "readiness_at"
+            },
+            "properties": [
+              {
+                "id": "noValue",
+                "value": "Not ready"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "elapsed_ms"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "SLA milestones",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 23,
+        "w": 24,
+        "h": 6
+      },
+      "description": "Demo targets: validation 5s, matching 30s, instruction readiness 60s. Elapsed starts at receipt and includes waits. Unknown, stale, and excluded are not success.",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT label,target_seconds,round(elapsed_seconds::numeric,2) AS elapsed_seconds,sla_status,received_at,finished_at FROM c_process_sla WHERE operation_id=${operation:sqlstring} ORDER BY target_seconds",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          },
+          "noValue": "Not recorded"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "label"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Milestone"
+              },
+              {
+                "id": "custom.width",
+                "value": 230
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "target_seconds"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Target (s)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "elapsed_seconds"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Actual / observed (s)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "sla_status"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Status"
+              },
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "received_at"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Received"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "finished_at"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Completed"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "sla_status"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "Met": {
+                        "text": "Met",
+                        "color": "green"
+                      },
+                      "Breached": {
+                        "text": "Breached",
+                        "color": "orange"
+                      },
+                      "At risk": {
+                        "text": "At risk",
+                        "color": "yellow"
+                      },
+                      "Failed": {
+                        "text": "Failed",
+                        "color": "red"
+                      },
+                      "In progress": {
+                        "text": "In progress",
+                        "color": "blue"
+                      },
+                      "Unknown": {
+                        "text": "Unknown",
+                        "color": "gray"
+                      },
+                      "Stale": {
+                        "text": "Stale",
+                        "color": "gray"
+                      },
+                      "Excluded": {
+                        "text": "Excluded",
+                        "color": "gray"
+                      },
+                      "Instructions ready": {
+                        "text": "Instructions ready",
+                        "color": "green"
+                      },
+                      "Waiting for counterparty": {
+                        "text": "Waiting for counterparty",
+                        "color": "yellow"
+                      },
+                      "Rejected": {
+                        "text": "Rejected",
+                        "color": "red"
+                      },
+                      "Netted; output evidence missing": {
+                        "text": "Netted; output evidence missing",
+                        "color": "gray"
+                      },
+                      "Completed": {
+                        "text": "Completed",
+                        "color": "green"
+                      },
+                      "Observed open": {
+                        "text": "Observed open",
+                        "color": "yellow"
+                      },
+                      "Missing evidence": {
+                        "text": "Missing evidence",
+                        "color": "gray"
+                      },
+                      "Not reached": {
+                        "text": "Not reached",
+                        "color": "gray"
+                      },
+                      "Not required": {
+                        "text": "Not required",
+                        "color": "gray"
+                      },
+                      "Not applicable": {
+                        "text": "Not applicable",
+                        "color": "gray"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Business events",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 29,
+        "w": 24,
+        "h": 9
+      },
+      "description": "Retained committed events, including retries and output generation, independent of the selected time window.",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT at AS event_time,milestone,CASE WHEN baseline THEN 'Imported current state; time unknown' ELSE 'Committed journal event' END AS evidence FROM c_process_events WHERE operation_id=${operation:sqlstring} ORDER BY sequence LIMIT 200",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          },
+          "noValue": "Not recorded"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "event_time"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Time"
+              },
+              {
+                "id": "custom.width",
+                "value": 180
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "milestone"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Milestone"
+              },
+              {
+                "id": "custom.width",
+                "value": 240
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "evidence"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Evidence"
+              },
+              {
+                "id": "custom.width",
+                "value": 280
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Queue attempts and matched legs",
+      "type": "row",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 38,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 8,
+          "title": "Queue waits and retries",
+          "type": "table",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "mocknet-c-reporting"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 39,
+            "w": 24,
+            "h": 8
+          },
+          "description": "Worker attempts for this trade and its matched leg. Queue wait and attempt duration are distinct.",
+          "targets": [
+            {
+              "refId": "A",
+              "rawSql": "SELECT a.operation_id,a.stage,a.attempt,a.started_at,a.finished_at,a.wait_seconds,a.duration_seconds,a.outcome,a.reason FROM c_attempt a WHERE a.operation_id=${operation:sqlstring} OR a.operation_id IN (SELECT related_operation_id FROM c_operation_links WHERE operation_id=${operation:sqlstring}) ORDER BY a.started_at LIMIT 200",
+              "format": "table",
+              "editorMode": "code",
+              "rawQuery": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 6,
+                "spanNulls": false
+              },
+              "noValue": "Not recorded"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "operation_id"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Operation"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "stage"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Stage"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "attempt"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Attempt"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "started_at"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Started"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "finished_at"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Finished"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "wait_seconds"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Queue wait (s)"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "duration_seconds"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Attempt (s)"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "outcome"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Outcome"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "reason"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Reason"
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm",
+            "footer": {
+              "show": false
+            }
+          }
+        },
+        {
+          "id": 8,
+          "title": "Recorded event fields",
+          "type": "table",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "mocknet-c-reporting"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 47,
+            "w": 24,
+            "h": 10
+          },
+          "description": "All retained business event fields for this trade. The JSON record contains the collected source fields; absent source values are not invented.",
+          "targets": [
+            {
+              "refId": "A",
+              "rawSql": "SELECT at AS event_time,sequence,milestone,kind,entity_id,event_id,operation_id,baseline,body::text AS record FROM c_process_events WHERE operation_id=${operation:sqlstring} ORDER BY sequence",
+              "format": "table",
+              "editorMode": "code",
+              "rawQuery": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "lineWidth": 2,
+                "fillOpacity": 6,
+                "spanNulls": false
+              },
+              "noValue": "Not recorded"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "event_time"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Time"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "sequence"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Sequence"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "milestone"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Milestone"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "kind"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Source record"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "entity_id"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Entity ID"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "event_id"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Event ID"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "operation_id"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Operation"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "baseline"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Imported baseline"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "record"
+                },
+                "properties": [
+                  {
+                    "id": "displayName",
+                    "value": "Recorded fields"
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "showHeader": true,
+            "cellHeight": "sm",
+            "footer": {
+              "show": false
+            },
+            "wrapText": true
+          }
+        }
+      ]
+    }
+  ]
+}

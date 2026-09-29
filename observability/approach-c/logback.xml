@@ -16,5 +16,19 @@
     <appender-ref ref="JOURNAL"/>
   </appender>
   <logger name="mocknet.component.journal" level="INFO" additivity="false"><appender-ref ref="ASYNC_JOURNAL"/></logger>
-  <root level="WARN"><appender-ref ref="CONSOLE"/></root>
+  <appender name="APPLICATION" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${MOCKNET_COMPONENT_LOG_DIR}/application.jsonl</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+      <fileNamePattern>${MOCKNET_COMPONENT_LOG_DIR}/application.%d{yyyy-MM-dd}.%i.jsonl</fileNamePattern>
+      <maxFileSize>20MB</maxFileSize><maxHistory>7</maxHistory><totalSizeCap>256MB</totalSizeCap>
+    </rollingPolicy>
+    <encoder class="com.cit.mocknet.observability.ComponentApplicationLogEncoder"/>
+  </appender>
+  <appender name="ASYNC_APPLICATION" class="ch.qos.logback.classic.AsyncAppender">
+    <queueSize>8192</queueSize><discardingThreshold>0</discardingThreshold>
+    <neverBlock>false</neverBlock><maxFlushTime>10000</maxFlushTime>
+    <appender-ref ref="APPLICATION"/>
+  </appender>
+  <logger name="com.cit.mocknet.observability.OperationalTelemetry" level="INFO"/>
+  <root level="WARN"><appender-ref ref="CONSOLE"/><appender-ref ref="ASYNC_APPLICATION"/></root>
 </configuration>

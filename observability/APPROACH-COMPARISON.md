@@ -10,16 +10,16 @@ For a production service, my preferred design is standard OpenTelemetry runtime/
 
 ## Diagnostic coverage
 
-C now also has a Python/Gunicorn support API, local database and delayed ODS adapters, configuration inspection and recorded read-only diagnostics. Grafana still reads the reporting store. These additions adapt the Citrix draft; they do not connect COR, LG2, UDG or the real ODS. The application-cost measurements below predate this backend and exclude its overhead. See [the updated C architecture](approach-c/backend/README.md).
+C now also has a Python/Gunicorn support API, local database and delayed ODS adapters, configuration inspection and recorded read-only diagnostics. Grafana reads the reporting store plus C Tempo, Loki and Prometheus. C now has Traces, Logs and Metrics Drilldown, correlated logs and related-operation navigation. These additions adapt the Citrix draft; they do not connect COR, LG2, UDG or the real ODS. The application-cost measurements below predate this backend and the new telemetry exporter, logging, Micrometer scrape and Tempo/Loki/Prometheus stack; they exclude that overhead. See [the updated C architecture](approach-c/backend/README.md).
 
-| L3 question | A: spans, metrics, logs and durable history | B: JVM runtime metrics only | C: pooled component logs and MQ journals |
+| L3 question | A: spans, metrics, logs and durable history | B: JVM runtime metrics only | C: reconstructed traces, logs, journals and runtime metrics |
 | --- | --- | --- | --- |
 | Which trade or operation is affected? | Business/operation lookup and related operations | Unavailable | Explicit operation/business IDs in logs and journals |
 | Where is work waiting? | Queue inventory, ready age, retries and attempts | Unavailable | Reconstructed committed state and queue wait intervals |
 | Which component failed or ran slowly? | Spans, correlated logs, component and SQL timing | Unavailable | Logged component timing, exception/cause classes, journaled reasons |
 | Did the queue transition commit? | Durable queue and attempt history | Unavailable | Transactional journal, independent of method-return logs |
 | Which SQL call was slow? | JDBC span detail | Unavailable | Unavailable; only enclosing component time |
-| Is GC, heap or CPU involved? | Runtime metrics | Strongest available evidence in B | Unavailable in C's configured signal set |
+| Is GC, heap or CPU involved? | Runtime metrics | Strongest available evidence in B | Agent-free Micrometer: JVM, GC, CPU, HTTP and pool metrics |
 | How are retries or dead letters explained? | Committed attempts plus trace/log context | Unavailable | Committed attempt journal plus component evidence |
 | Is a full distributed critical path available? | Broadest coverage in this demo, with explicit uninstrumented boundaries | Unavailable | Only logged/associated calls and queue records; gaps remain gaps |
 | Does queue completion prove external settlement? | No, the external system is not observed | No | No; UI says queue work finished |
@@ -37,9 +37,9 @@ C now also has a Python/Gunicorn support API, local database and delayed ODS ada
 
 ## Engineering effort
 
-Budget **15–25 person-days for A** or **25–45 person-days for C** to take the existing implementation to a controlled hosted pilot. These are planning estimates for remaining work, not recorded build time or a production commitment. They assume one service, the current PostgreSQL queue and source contracts, an available approved platform and reuse of the existing IDs, history, dashboards and tests. Grafana is retained; alarms and notifications are excluded.
+Budget **15–25 person-days for A** or **32–55 person-days for C** to take the existing implementation to a controlled hosted pilot. These are planning estimates for remaining work, not recorded build time or a production commitment. They assume one service, the current PostgreSQL queue and source contracts, an available approved platform and reuse of the existing IDs, history, dashboards and tests. Grafana is retained; alarms and notifications are excluded.
 
-A mostly needs hosted integration, access control and operational validation. C also needs ownership of its custom collection, replay, reconstruction, source adapters and support API. The totals describe the current designs, which have different coverage: A supplies JDBC/runtime signals absent from C; C has source/API features that could also be reused with A. Real MQ, ODS, COR, LG2 and UDG need separate contracts and estimates.
+A mostly needs hosted integration, access control and operational validation. C also needs ownership of its custom collection, replay, reconstruction, source adapters and support API. The totals describe the current designs, which have different coverage: A supplies JDBC detail excluded from C; C has source/API features that could also be reused with A. Real MQ, ODS, COR, LG2 and UDG need separate contracts and estimates.
 
 See the report's [work-package estimates](../report.md#engineering-effort-a-versus-c) and [technical implementation](../report.md#technical-implementation-and-delivery) for architecture flowcharts, staffing scenarios, ownership, counting rules and pilot exit criteria. Shared work is counted once within each alternative; do not add the two totals when selecting an approach.
 
@@ -81,7 +81,7 @@ A subsequent database-pressure check captured failed claims in INGESTION, MATCHI
 
 One quarantined line was intentionally inserted by validation. Initial setup logs retain the file-stat compatibility error fixed before the scenario run. A browser check found Grafana's custom All value bypassed normal SQL quoting; the provisioned All value was corrected. The original state timeline was replaced with the native Grafana waterfall. The reporting projection preserves recorded call parents and labels inferred attempt relationships, retry delay, ready wait, and missing evidence. The twenty-second wait was visually verified.
 
-Final checks passed all 31 Java tests and 87 dashboard queries across A, B and C. C's 20 panels query only the pooled reporting store. During a separate twenty-second live-feed observation, the C reporter used about 26 MiB RSS and 0.13 CPU seconds. This excludes PostgreSQL and Grafana work. At that point C had about 12.1 MiB of source journal storage, 74.2 MiB in its reporting database, and 25.0 MiB of component files. These are a growing demo's snapshots, not steady-state capacity estimates.
+The earlier validation passed all 31 Java tests and 87 dashboard queries across A, B and C. That earlier C version had 20 reporting-only panels. The current parity version has 55 panels across five dashboards; see [current validation](approach-c/telemetry/README.md). During a separate twenty-second live-feed observation, the C reporter used about 26 MiB RSS and 0.13 CPU seconds. This excludes PostgreSQL and Grafana work. At that point C had about 12.1 MiB of source journal storage, 74.2 MiB in its reporting database, and 25.0 MiB of component files. These are a growing demo's snapshots, not steady-state capacity estimates.
 
 The growing live feed exposed two A overview queries hitting their five-second timeout. Indexes on trade operation IDs and both matched-trade legs, plus an indexed operation-ID array lookup, removed that timeout in the final check. The change is in `observability/postgres/support-views.sql`; the original A archive remains intact. Query timing evidence is in `.bootstrap/observability/approach-a/query-performance-after-indexes.json`. This is another reason to test both the instrumentation and the dashboard queries under retained data volume.
 

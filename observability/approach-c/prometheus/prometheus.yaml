@@ -1,0 +1,18 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+scrape_configs:
+  - job_name: mocknet
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: [host.docker.internal:18102]
+        labels: {service: mocknet, environment: local-demo, approach: C}
+  - job_name: tempo
+    static_configs:
+      - targets: [tempo-c:3200]
+  - job_name: loki
+    static_configs:
+      - targets: [loki-c:3100]
+  - job_name: prometheus
+    static_configs:
+      - targets: [localhost:9090]

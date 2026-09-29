@@ -1,0 +1,1396 @@
+{
+  "uid": "mocknet-c-business",
+  "title": "Business process overview",
+  "schemaVersion": 40,
+  "version": 1,
+  "editable": false,
+  "tags": [
+    "mocknet",
+    "business",
+    "observability"
+  ],
+  "timezone": "browser",
+  "refresh": "",
+  "time": {
+    "from": "2026-09-29T13:11:01.973000+00:00",
+    "to": "2026-09-29T13:16:27.425000+00:00"
+  },
+  "links": [
+    {
+      "type": "link",
+      "title": "Service health",
+      "url": "/d/mocknet-c-overview",
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "Queue diagnostics",
+      "url": "/d/mocknet-c-queues",
+      "keepTime": true
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "policy",
+        "label": "SLA milestone",
+        "type": "custom",
+        "query": "Validation : validation,Matching : matching,Instruction readiness : instructions",
+        "current": {
+          "text": "Instruction readiness",
+          "value": "instructions"
+        }
+      },
+      {
+        "name": "search",
+        "label": "Find trade / operation",
+        "type": "textbox",
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "description": "Filters the cohort and process list by exact trade or operation ID."
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "description": "One row per received trade. Dashboard time selects the admission cohort. Demo SLA targets measure receipt to validation (5s), matching (30s), and instruction readiness (60s). External settlement is outside this view. Event history retention defaults to 90 days.",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Trades received",
+      "type": "stat",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "description": "Trades admitted in the selected time range. Both legs of a matched pair count separately.",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT count(*) FROM c_process_summary WHERE $__timeFilter(admitted_at) AND (${search:sqlstring}='' OR business_id=${search:sqlstring} OR operation_id=${search:sqlstring})",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "N/A",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 2,
+      "title": "Instructions ready",
+      "type": "stat",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "description": "Local netting and required instruction generation recorded. This does not mean external settlement.",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT count(*) FROM c_process_summary WHERE $__timeFilter(admitted_at) AND (${search:sqlstring}='' OR business_id=${search:sqlstring} OR operation_id=${search:sqlstring}) AND business_state='Instructions ready'",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "N/A",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 3,
+      "title": "Completed on time",
+      "type": "stat",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "description": "Selected SLA milestone. Denominator includes only completed, known eligible processes. N/A means none completed.",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT 100.0*count(*) FILTER (WHERE sla_status='Met')/nullif(count(*) FILTER (WHERE finished_at IS NOT NULL AND sla_status IN('Met','Breached')),0) FROM c_process_sla WHERE $__timeFilter(admitted_at) AND (${search:sqlstring}='' OR business_id=${search:sqlstring} OR operation_id=${search:sqlstring}) AND policy_id=${policy:sqlstring}",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "noValue": "N/A",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 4,
+      "title": "Needs attention",
+      "type": "stat",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "description": "Selected milestone: breached, near target, or failed. Unknown and stale evidence are shown separately below.",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT count(*) FROM c_process_sla WHERE $__timeFilter(admitted_at) AND (${search:sqlstring}='' OR business_id=${search:sqlstring} OR operation_id=${search:sqlstring}) AND policy_id=${policy:sqlstring} AND sla_status IN('Breached','At risk','Failed')",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "N/A",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center"
+      }
+    },
+    {
+      "id": 5,
+      "title": "Where trades are now",
+      "type": "stat",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 24,
+        "h": 4
+      },
+      "description": "Current business state of trades admitted in the selected range, in process order. Blue stages are still in flight; purple means netting finished but instruction evidence is incomplete.",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT count(*) FILTER(WHERE business_state='Received / processing') AS \"Validating\",count(*) FILTER(WHERE business_state='Waiting for counterparty') AS \"Waiting for counterparty\",count(*) FILTER(WHERE business_state='Matched') AS \"Matched \u00b7 netting\",count(*) FILTER(WHERE business_state='Netted; output evidence missing') AS \"Output evidence missing\",count(*) FILTER(WHERE business_state='Instructions ready') AS \"Instructions ready\",count(*) FILTER(WHERE business_state='Rejected') AS \"Rejected\",count(*) FILTER(WHERE business_state='Failed') AS \"Failed\" FROM c_process_summary WHERE $__timeFilter(admitted_at) AND (${search:sqlstring}='' OR business_id=${search:sqlstring} OR operation_id=${search:sqlstring})",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "noValue": "0",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#3a3d45",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Validating"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#3a3d45",
+                      "value": null
+                    },
+                    {
+                      "color": "blue",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Waiting for counterparty"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#3a3d45",
+                      "value": null
+                    },
+                    {
+                      "color": "blue",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Matched \u00b7 netting"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#3a3d45",
+                      "value": null
+                    },
+                    {
+                      "color": "blue",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Output evidence missing"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#3a3d45",
+                      "value": null
+                    },
+                    {
+                      "color": "purple",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Instructions ready"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#3a3d45",
+                      "value": null
+                    },
+                    {
+                      "color": "green",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Rejected"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#3a3d45",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Failed"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#3a3d45",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "vertical",
+        "textMode": "value_and_name",
+        "colorMode": "background_solid",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "wideLayout": true,
+        "text": {
+          "titleSize": 13,
+          "valueSize": 26
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Time to milestone vs target",
+      "type": "barchart",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "description": "Elapsed time from receipt to the selected SLA milestone, grouped relative to its demo target, with the trade count. Open trades use time waited so far, so an open trade already past target shows as breached. Failed, rejected (excluded) and unknown trades have no meaningful duration; see Needs attention and the trade list.",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "WITH t AS (SELECT target_seconds AS x FROM c_sla_policy WHERE policy_id=${policy:sqlstring}),buckets(n,lo,hi) AS (VALUES (1,0.0,0.5),(2,0.5,1.0),(3,1.0,2.0),(4,2.0,NULL)),labelled AS (SELECT n,lo*x AS lo_s,hi*x AS hi_s,CASE n WHEN 1 THEN 'Under '||c_format_duration(hi*x) WHEN 4 THEN 'Over '||c_format_duration(lo*x) ELSE c_format_duration(lo*x)||' \u2013 '||c_format_duration(hi*x) END||CASE n WHEN 1 THEN '  (fast)' WHEN 2 THEN '  (within target)' WHEN 3 THEN '  (late)' ELSE '  (very late)' END AS bucket FROM buckets CROSS JOIN t),trades AS (SELECT elapsed_seconds,sla_status FROM c_process_sla WHERE $__timeFilter(admitted_at) AND (${search:sqlstring}='' OR business_id=${search:sqlstring} OR operation_id=${search:sqlstring}) AND policy_id=${policy:sqlstring} AND sla_status IN('Met','In progress','At risk','Breached','Stale')) SELECT l.bucket||'  \u00b7  '||count(s.*) AS bucket,count(s.*) FILTER(WHERE s.sla_status='Met') AS \"Met\",count(s.*) FILTER(WHERE s.sla_status='In progress') AS \"In progress\",count(s.*) FILTER(WHERE s.sla_status='At risk') AS \"At risk\",count(s.*) FILTER(WHERE s.sla_status='Breached') AS \"Breached\",count(s.*) FILTER(WHERE s.sla_status='Stale') AS \"Stale\" FROM labelled l LEFT JOIN trades s ON s.elapsed_seconds>=l.lo_s AND (l.hi_s IS NULL OR s.elapsed_seconds<l.hi_s) GROUP BY l.n,l.bucket ORDER BY l.n",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "min": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "gray"
+          },
+          "custom": {
+            "fillOpacity": 85,
+            "lineWidth": 0,
+            "axisLabel": "Trades",
+            "axisSoftMin": 0
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Met"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "In progress"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "At risk"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Breached"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Failed"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Stale"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8e8e8e"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Unknown"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#6e7079"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Excluded"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#4a4d55"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xField": "bucket",
+        "stacking": "normal",
+        "showValue": "never",
+        "barWidth": 0.7,
+        "groupWidth": 0.7,
+        "barRadius": 0.1,
+        "xTickLabelRotation": 0,
+        "xTickLabelMaxLength": 0,
+        "legend": {
+          "showLegend": true,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none",
+          "hideZeros": true
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Trades received by SLA outcome",
+      "type": "timeseries",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "description": "Trades by admission time, stacked by the selected milestone's SLA status. Bar width adapts to the time range. Unknown, stale and excluded stay visible instead of counting as compliant.",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT $__timeGroupAlias(admitted_at,$__interval,0),sla_status AS metric,count(*)::double precision AS value FROM c_process_sla WHERE $__timeFilter(admitted_at) AND (${search:sqlstring}='' OR business_id=${search:sqlstring} OR operation_id=${search:sqlstring}) AND policy_id=${policy:sqlstring} GROUP BY 1,2 ORDER BY 1,2",
+          "format": "time_series",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 0,
+            "fillOpacity": 85,
+            "spanNulls": false,
+            "drawStyle": "bars",
+            "barAlignment": 0,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          },
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Met"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "In progress"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "At risk"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Breached"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Failed"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Stale"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8e8e8e"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Unknown"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#6e7079"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Excluded"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#4a4d55"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc",
+          "hideZeros": true
+        }
+      },
+      "maxDataPoints": 40,
+      "interval": "5s"
+    },
+    {
+      "id": 8,
+      "title": "Trades by priority",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 24,
+        "h": 10
+      },
+      "description": "Most urgent trades first. Click a trade to open its complete process history. Empty means no admitted trades in this window or search.",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT business_id,business_state,sla_status,round(elapsed_seconds::numeric,1) AS elapsed_seconds,operation_id,(extract(epoch FROM coalesce(received_at,admitted_at))*1000-1000)::bigint::text AS window_from,(extract(epoch FROM coalesce(instructions_at,rejected_at,collected_at,admitted_at))*1000+1000)::bigint::text AS window_to FROM c_process_sla WHERE $__timeFilter(admitted_at) AND (${search:sqlstring}='' OR business_id=${search:sqlstring} OR operation_id=${search:sqlstring}) AND policy_id=${policy:sqlstring} ORDER BY CASE sla_status WHEN 'Breached' THEN 0 WHEN 'Failed' THEN 1 WHEN 'At risk' THEN 2 WHEN 'Stale' THEN 3 WHEN 'Unknown' THEN 4 ELSE 5 END, admitted_at DESC LIMIT 100",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          },
+          "noValue": "Not recorded"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "business_id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "View process",
+                    "url": "/d/mocknet-c-process?from=${__data.fields.window_from:raw}&to=${__data.fields.window_to:raw}&var-operation=${__data.fields.operation_id}&var-search=${__data.fields.operation_id}&var-policy=${policy}&var-overview_from=${__from}&var-overview_to=${__to}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "window_from"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              },
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "window_to"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              },
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "operation_id"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              },
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "business_id"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Trade"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "business_state"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Business state"
+              },
+              {
+                "id": "custom.width",
+                "value": 220
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "sla_status"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "SLA status"
+              },
+              {
+                "id": "custom.width",
+                "value": 140
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "elapsed_seconds"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Elapsed"
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "sla_status"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "Met": {
+                        "text": "Met",
+                        "color": "green"
+                      },
+                      "Breached": {
+                        "text": "Breached",
+                        "color": "orange"
+                      },
+                      "At risk": {
+                        "text": "At risk",
+                        "color": "yellow"
+                      },
+                      "Failed": {
+                        "text": "Failed",
+                        "color": "red"
+                      },
+                      "In progress": {
+                        "text": "In progress",
+                        "color": "blue"
+                      },
+                      "Unknown": {
+                        "text": "Unknown",
+                        "color": "gray"
+                      },
+                      "Stale": {
+                        "text": "Stale",
+                        "color": "gray"
+                      },
+                      "Excluded": {
+                        "text": "Excluded",
+                        "color": "gray"
+                      },
+                      "Instructions ready": {
+                        "text": "Instructions ready",
+                        "color": "green"
+                      },
+                      "Waiting for counterparty": {
+                        "text": "Waiting for counterparty",
+                        "color": "yellow"
+                      },
+                      "Rejected": {
+                        "text": "Rejected",
+                        "color": "red"
+                      },
+                      "Netted; output evidence missing": {
+                        "text": "Netted; output evidence missing",
+                        "color": "gray"
+                      },
+                      "Completed": {
+                        "text": "Completed",
+                        "color": "green"
+                      },
+                      "Observed open": {
+                        "text": "Observed open",
+                        "color": "yellow"
+                      },
+                      "Missing evidence": {
+                        "text": "Missing evidence",
+                        "color": "gray"
+                      },
+                      "Not reached": {
+                        "text": "Not reached",
+                        "color": "gray"
+                      },
+                      "Not required": {
+                        "text": "Not required",
+                        "color": "gray"
+                      },
+                      "Not applicable": {
+                        "text": "Not applicable",
+                        "color": "gray"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "elapsed_seconds"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "md",
+        "footer": {
+          "show": false
+        },
+        "wrapText": true
+      }
+    },
+    {
+      "id": 9,
+      "title": "Evidence and target",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "mocknet-c-reporting"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 4
+      },
+      "description": "A stale collector or delayed journal can make current SLA status uncertain. Demo thresholds are configurable, not contractual SLAs.",
+      "targets": [
+        {
+          "refId": "A",
+          "rawSql": "SELECT p.label AS milestone,p.target_seconds AS target_seconds,round(h.collector_age_seconds::numeric,1) AS collector_age_seconds,round(h.oldest_pending_seconds::numeric,1) AS pending_age_seconds,(SELECT count(*) FROM c_process_sla s WHERE $__timeFilter(s.admitted_at) AND s.policy_id=${policy:sqlstring} AND (${search:sqlstring}='' OR s.business_id=${search:sqlstring} OR s.operation_id=${search:sqlstring}) AND s.sla_status IN('Unknown','Stale')) AS uncertain_trades FROM c_sla_policy p CROSS JOIN c_evidence_health h WHERE p.policy_id=${policy:sqlstring}",
+          "format": "table",
+          "editorMode": "code",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 6,
+            "spanNulls": false
+          },
+          "noValue": "Not recorded"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "milestone"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Selected milestone"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "target_seconds"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Target (s)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "collector_age_seconds"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Collector age (s)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "pending_age_seconds"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Oldest pending (s)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "uncertain_trades"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Unknown / stale trades"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "collector_age_seconds"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 5
+                    },
+                    {
+                      "color": "red",
+                      "value": 10
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "pending_age_seconds"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 5
+                    },
+                    {
+                      "color": "red",
+                      "value": 10
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "uncertain_trades"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "blue",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      }
+    }
+  ]
+}

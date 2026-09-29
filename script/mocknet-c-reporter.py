@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pool committed MQ journal events and structured component logs. No OTLP or spans."""
+"""Pool committed MQ journal events and structured component logs. A separate worker exports reconstructed traces and logs."""
 import argparse
 import datetime
 import hashlib
@@ -23,6 +23,9 @@ SCRIPT = pathlib.Path(__file__).resolve()
 RUNNING = True
 BACKEND_CONFIG = json.loads((ROOT / 'observability/approach-c/backend/settings.json').read_text())
 SOURCE_STOP = threading.Event()
+BUSINESS_RETENTION_DAYS = int(os.environ.get('MOCKNET_BUSINESS_RETENTION_DAYS', '90'))
+if not 1 <= BUSINESS_RETENTION_DAYS <= 3650:
+    raise ValueError('MOCKNET_BUSINESS_RETENTION_DAYS must be between 1 and 3650')
 
 def source_loop():
     # A slow/unavailable REST source must never block the committed journal consumer.
@@ -118,7 +121,7 @@ def collect_journal(source, report):
 
 def collect_logs(report):
     count = 0
-    for path in sorted((STATE / 'logs').glob('components*.jsonl')):
+    for path in sorted([*(STATE / 'logs').glob('components*.jsonl'), *(STATE / 'logs').glob('application*.jsonl')]):
         try:
             with path.open('rb') as stream, report.transaction():
                 st = os.fstat(stream.fileno())
@@ -141,8 +144,16 @@ def collect_logs(report):
                             while raw and not raw.endswith(b'\n'): raw = stream.readline(65537)
                             raise ValueError('oversized line')
                         body = json.loads(raw)
-                        validate_component(body)
-                        insert(report, 'log:'+body['event_id'], 'component_log', body['at'], body['sequence'], body['event'], body['call_id'], body.get('operation_id'), body)
+                        if body.get('source') == 'application_log':
+                            if body.get('schema_version') != 1 or body.get('level') not in ('TRACE','DEBUG','INFO','WARN','ERROR'):
+                                raise ValueError('unsupported application event')
+                            uuid.UUID(body['event_id'])
+                            stamp=datetime.datetime.fromisoformat(body['at'].replace('Z','+00:00'))
+                            if stamp.tzinfo is None: raise ValueError('timestamp needs timezone')
+                            insert(report, 'app:'+body['event_id'], 'application_log', body['at'], None, body['level'], body['event_id'], body.get('operation_id'), body)
+                        else:
+                            validate_component(body)
+                            insert(report, 'log:'+body['event_id'], 'component_log', body['at'], body['sequence'], body['event'], body['call_id'], body.get('operation_id'), body)
                         count += 1
                     except (ValueError, KeyError, TypeError, UnicodeError) as error:
                         report.execute('INSERT INTO quarantine(file_id,position,error) VALUES(%s,%s,%s) ON CONFLICT DO NOTHING',
@@ -156,14 +167,17 @@ def collect_logs(report):
 def maintain(source, report):
     # Preserve latest state even for old unresolved messages. Detailed history expires.
     with report.transaction():
-        report.execute("""DELETE FROM evidence e WHERE observed_at<now()-interval '72 hours'
-          AND (source='component_log' OR (source='mq_journal' AND EXISTS(
+        report.execute("""DELETE FROM evidence e WHERE observed_at < now() -
+          CASE WHEN source='mq_journal' THEN make_interval(days=>%s) ELSE interval '72 hours' END
+          AND NOT EXISTS(SELECT 1 FROM c_log_exports x WHERE x.event_id=e.event_id AND x.state<>'exported')
+          AND (source IN('component_log','application_log') OR (source='mq_journal' AND EXISTS(
             SELECT 1 FROM evidence newer WHERE newer.source=e.source AND newer.kind=e.kind
-              AND newer.entity_id=e.entity_id AND newer.sequence>e.sequence)))""")
+              AND newer.entity_id=e.entity_id AND newer.sequence>e.sequence)))""", (BUSINESS_RETENTION_DAYS,))
+        report.execute("DELETE FROM c_log_exports x WHERE sent_at<now()-interval '72 hours' AND state='exported' AND NOT EXISTS(SELECT 1 FROM evidence e WHERE e.event_id=x.event_id)")
         report.execute("DELETE FROM queue_samples WHERE at<now()-interval '72 hours'")
         report.execute("DELETE FROM tool_runs WHERE requested_at<now()-interval '72 hours'")
         report.execute("UPDATE tool_runs SET status='interrupted',error_code='completion not recorded' WHERE status='running' AND requested_at<now()-interval '2 minutes'")
-    source.execute("DELETE FROM c_mq_journal WHERE delivered_at<now()-interval '72 hours'")
+    source.execute("DELETE FROM c_mq_journal WHERE delivered_at<now()-make_interval(days=>%s)", (BUSINESS_RETENTION_DAYS,))
 
 def stop_signal(*_):
     global RUNNING

@@ -1,0 +1,34 @@
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: never
+  metrics:
+    tags:
+      service: mocknet
+      environment: production
+      version: ${MOCKNET_VERSION}
+      app_instance: ${MOCKNET_INSTANCE}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: ${MOCKNET_DB_POOL:16}
+      minimum-idle: 4
+      connection-timeout: 2000
+  jpa:
+    open-in-view: false
+mocknet:
+  instance: ${MOCKNET_INSTANCE}
+  threads:
+    ingestion: ${MOCKNET_INGESTION_WORKERS:8}
+    matching: ${MOCKNET_MATCHING_WORKERS:8}
+    netting: ${MOCKNET_NETTING_WORKERS:6}
+    settlement: ${MOCKNET_SETTLEMENT_WORKERS:2}
+  broker:
+    poll-interval-millis: 250

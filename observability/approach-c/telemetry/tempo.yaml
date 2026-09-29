@@ -1,0 +1,41 @@
+server:
+  http_listen_port: 3200
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+ingester:
+  max_block_duration: 5m
+compactor:
+  compaction:
+    block_retention: 72h
+# Traces Drilldown uses TraceQL metrics, in addition to ordinary trace lookup.
+# Keep all span kinds so the UI's Root spans / All spans switch is meaningful.
+metrics_generator:
+  # C deliberately exports after collecting committed evidence.
+  metrics_ingestion_time_range_slack: 1h
+  storage:
+    path: /var/tempo/generator/wal
+  traces_storage:
+    path: /var/tempo/generator/traces
+    ingestion_time_range_slack: 1h
+  processor:
+    local_blocks:
+      filter_server_spans: false
+      flush_to_storage: true
+overrides:
+  defaults:
+    metrics_generator:
+      processors: [local-blocks]
+storage:
+  trace:
+    backend: local
+    wal:
+      path: /var/tempo/wal
+      ingestion_time_range_slack: 1h
+    local:
+      path: /var/tempo/blocks

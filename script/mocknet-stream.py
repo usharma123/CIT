@@ -27,6 +27,17 @@ APP = 'http://127.0.0.1:18081'
 RUNNING = True
 
 
+def require_c_demo_jvm():
+    app_jar = STATE / 'app.jar'
+    try:
+        pid = int((STATE / 'app.pid').read_text().strip())
+        command = subprocess.check_output(['ps', '-p', str(pid), '-o', 'command='], text=True, stderr=subprocess.DEVNULL)
+    except (OSError, ValueError, subprocess.CalledProcessError):
+        raise SystemExit('C feed requires the running local-demo C JVM') from None
+    if str(app_jar) not in command or '--spring.profiles.active=observability-demo' not in command:
+        raise SystemExit('C feed requires the running local-demo C JVM')
+
+
 def process_running():
     try:
         pid = int(PID_FILE.read_text())
@@ -150,6 +161,8 @@ def main():
         APP = 'http://127.0.0.1:' + ('18091' if args.approach == 'B' else '18101')
     if not 0.1 <= args.rate <= 10: parser.error('--rate must be between 0.1 and 10 requests/second')
     STATE.mkdir(parents=True, exist_ok=True)
+    if args.approach == 'C' and args.command in ('start', 'run'):
+        require_c_demo_jvm()
     if args.command == 'run': return run(args.rate)
     pid = process_running()
     if args.command == 'stop':

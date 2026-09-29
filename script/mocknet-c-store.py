@@ -15,6 +15,7 @@ with psycopg.connect(**admin, dbname='mocknet_c', autocommit=True) as db:
     if not db.execute("select 1 from pg_database where datname='telemetry_c'").fetchone():
         db.execute('CREATE DATABASE telemetry_c OWNER c_reporter')
     db.execute((ROOT / 'observability/approach-c/journal.sql').read_text())
+    db.execute((ROOT / 'observability/approach-c/business-journal.sql').read_text())
     db.execute((ROOT / 'observability/approach-c/backend/sources.sql').read_text())
     db.execute('GRANT SELECT, UPDATE(delivered_at), DELETE ON c_mq_journal TO c_journal_reader')
     db.execute('REVOKE CONNECT ON DATABASE mocknet_c FROM PUBLIC')
@@ -22,8 +23,10 @@ with psycopg.connect(**admin, dbname='mocknet_c', autocommit=True) as db:
 with psycopg.connect(**admin, dbname='telemetry_c', autocommit=True) as db:
     db.execute('SET ROLE c_reporter')
     db.execute((ROOT / 'observability/approach-c/reporting.sql').read_text())
+    db.execute((ROOT / 'observability/approach-c/business.sql').read_text())
     db.execute((ROOT / 'observability/approach-c/waterfall.sql').read_text())
     db.execute((ROOT / 'observability/approach-c/backend/reporting.sql').read_text())
+    db.execute((ROOT / 'observability/approach-c/telemetry/export.sql').read_text())
     db.execute('GRANT USAGE ON SCHEMA public TO grafana_c')
     db.execute('GRANT SELECT ON evidence,queue_samples,c_queue,c_attempt,c_call,c_operations,c_evidence_health TO grafana_c')
     db.execute('GRANT SELECT ON c_source_status,c_source_values,tool_runs TO grafana_c')
@@ -36,6 +39,9 @@ with psycopg.connect(**admin, dbname='telemetry_c', autocommit=True) as db:
     db.execute('GRANT CONNECT ON DATABASE telemetry_c TO c_reporter, grafana_c, mocknet_c,c_backend_reader,c_backend_writer')
     db.execute("ALTER ROLE grafana_c SET default_transaction_read_only=on")
     db.execute("ALTER ROLE grafana_c SET statement_timeout='10s'")
+    db.execute('ALTER ROLE grafana_c SET max_parallel_workers_per_gather=0')
+    # Interactive reporting spends more time compiling these plans than running them.
+    db.execute('ALTER ROLE grafana_c SET jit=off')
     for role in ('c_source_reader','c_backend_reader'):
         db.execute(sql.SQL('ALTER ROLE {} SET default_transaction_read_only=on').format(sql.Identifier(role)))
     for role in ('c_source_reader','c_backend_reader','c_backend_writer'):

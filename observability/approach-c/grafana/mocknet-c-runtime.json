@@ -1,0 +1,1263 @@
+{
+  "uid": "mocknet-c-runtime",
+  "title": "Runtime and queue metrics",
+  "schemaVersion": 40,
+  "version": 1,
+  "editable": false,
+  "tags": [
+    "mocknet",
+    "L3",
+    "Runtime",
+    "provisioned"
+  ],
+  "timezone": "browser",
+  "refresh": "",
+  "time": {
+    "from": "2026-09-29T13:11:01.973000+00:00",
+    "to": "2026-09-29T13:16:27.425000+00:00"
+  },
+  "links": [
+    {
+      "type": "link",
+      "title": "Business overview",
+      "url": "/d/mocknet-c-business",
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "Service health",
+      "url": "/d/mocknet-c-overview",
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "Queue diagnostics",
+      "url": "/d/mocknet-c-queues",
+      "keepTime": true
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "environment",
+        "label": "Environment",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "mocknet-c-prometheus"
+        },
+        "query": "label_values(mocknet_snapshot_timestamp, environment)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "multi": false
+      },
+      {
+        "name": "service",
+        "label": "Service",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "mocknet-c-prometheus"
+        },
+        "query": "label_values(mocknet_snapshot_timestamp, service)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "multi": false
+      },
+      {
+        "name": "version",
+        "label": "Version",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "mocknet-c-prometheus"
+        },
+        "query": "label_values(mocknet_snapshot_timestamp, version)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "multi": false
+      },
+      {
+        "name": "app_instance",
+        "label": "Instance",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "mocknet-c-prometheus"
+        },
+        "query": "label_values(mocknet_snapshot_timestamp, app_instance)",
+        "refresh": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "multi": false
+      },
+      {
+        "name": "stage",
+        "label": "Stage",
+        "type": "custom",
+        "query": "INGESTION,MATCHING,NETTING,SETTLEMENT,DEAD_LETTER",
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Queue depth \u2022 ready, scheduled retries, processing",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "description": "Shared database scope. max avoids duplicate snapshots from multiple app instances; version/instance filters apply to attempt metrics, not shared queues. Only successful scrapes with database snapshots less than 15 seconds old are used. A gap means unavailable evidence.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by(stage,state)((mocknet_queue_messages{service=~\"$service\",environment=~\"$environment\",stage=~\"$stage\",stage!=\"DEAD_LETTER\",state=~\"ready|scheduled|processing\"} and on(job,instance) (time()-mocknet_snapshot_timestamp{service=~\"$service\",environment=~\"$environment\"} < 15) and on(job,instance) (up{job=\"mocknet\"} == 1)))",
+          "legendFormat": "{{stage}} {{outcome}} {{state}}",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-c-prometheus"
+      }
+    },
+    {
+      "id": 2,
+      "title": "Oldest work \u2022 waiting versus processing",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "description": " Only successful scrapes with database snapshots less than 15 seconds old are used. A gap means unavailable evidence.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by(stage,state)((mocknet_queue_oldest_seconds{service=~\"$service\",environment=~\"$environment\",stage=~\"$stage\",stage!=\"DEAD_LETTER\"} and on(job,instance) (time()-mocknet_snapshot_timestamp{service=~\"$service\",environment=~\"$environment\"} < 15) and on(job,instance) (up{job=\"mocknet\"} == 1)))",
+          "legendFormat": "{{stage}} {{outcome}} {{state}}",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-c-prometheus"
+      }
+    },
+    {
+      "id": 3,
+      "title": "Attempt elapsed \u2022 p95 by stage",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "description": "Claim to recorded disposition; includes handler and bookkeeping, excludes ready wait and final commit/export. A percentile estimate from histogram buckets; no sample for an abandoned attempt.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95,sum by(le,stage)(rate(mocknet_processing_seconds_bucket{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\",stage=~\"$stage\",stage!=\"DEAD_LETTER\"}[$__rate_interval])))",
+          "legendFormat": "{{stage}} {{outcome}} {{state}}",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-c-prometheus"
+      }
+    },
+    {
+      "id": 4,
+      "title": "Database pool \u2022 active / idle / pending",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "hikaricp_connections_active{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\"}",
+          "legendFormat": "active {{app_instance}} {{pool}}",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "expr": "hikaricp_connections_idle{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\"}",
+          "legendFormat": "idle {{app_instance}} {{pool}}",
+          "range": true
+        },
+        {
+          "refId": "C",
+          "expr": "hikaricp_connections_pending{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\"}",
+          "legendFormat": "pending {{app_instance}} {{pool}}",
+          "range": true
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-c-prometheus"
+      }
+    },
+    {
+      "id": 5,
+      "title": "Database connection acquisition \u2022 maximum",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "hikaricp_connections_acquire_seconds_max{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\"}",
+          "legendFormat": "{{stage}} {{app_instance}} {{instance}}",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-c-prometheus"
+      }
+    },
+    {
+      "id": 6,
+      "title": "JVM heap used / max",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(jvm_memory_used_bytes{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\",area=\"heap\"})",
+          "legendFormat": "used",
+          "range": true
+        },
+        {
+          "refId": "B",
+          "expr": "sum(jvm_memory_max_bytes{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\",area=\"heap\"})",
+          "legendFormat": "max",
+          "range": true
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-c-prometheus"
+      }
+    },
+    {
+      "id": 7,
+      "title": "GC pause \u2022 seconds / second",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          },
+          "unit": "suffix:s/s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(jvm_gc_pause_seconds_sum{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\"}[$__rate_interval]))",
+          "legendFormat": "{{stage}} {{outcome}} {{state}}",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-c-prometheus"
+      }
+    },
+    {
+      "id": 8,
+      "title": "Configured workers",
+      "type": "stat",
+      "gridPos": {
+        "x": 12,
+        "y": 24,
+        "w": 12,
+        "h": 8
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "colorMode": "value"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "mocknet_worker_configured{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\",stage=~\"$stage\",stage!=\"DEAD_LETTER\"}",
+          "legendFormat": "{{stage}} {{app_instance}} {{instance}}",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-c-prometheus"
+      }
+    },
+    {
+      "id": 9,
+      "title": "Worker loop heartbeat age",
+      "type": "stat",
+      "gridPos": {
+        "x": 0,
+        "y": 32,
+        "w": 12,
+        "h": 8
+      },
+      "description": "Latest poll from any worker in the stage; not proof that every configured worker is alive.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "colorMode": "value"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "time()-mocknet_worker_heartbeat_timestamp{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\",stage=~\"$stage\",stage!=\"DEAD_LETTER\"}",
+          "legendFormat": "{{stage}} {{app_instance}} {{instance}}",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-c-prometheus"
+      }
+    },
+    {
+      "id": 10,
+      "title": "Paused consumers",
+      "type": "stat",
+      "gridPos": {
+        "x": 12,
+        "y": 32,
+        "w": 12,
+        "h": 8
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "colorMode": "value"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "mocknet_worker_paused{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\",stage=~\"$stage\",stage!=\"DEAD_LETTER\"}",
+          "legendFormat": "{{stage}} {{app_instance}} {{instance}}",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-c-prometheus"
+      }
+    },
+    {
+      "id": 11,
+      "title": "Telemetry scrape health",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 40,
+        "w": 12,
+        "h": 8
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "up{job=~\"mocknet|collector|tempo|loki|prometheus\"}",
+          "legendFormat": "{{job}}",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-c-prometheus"
+      }
+    },
+    {
+      "id": 12,
+      "title": "Queue data age",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 40,
+        "w": 12,
+        "h": 8
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "time()-mocknet_snapshot_timestamp{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\"}",
+          "legendFormat": "{{stage}} {{app_instance}} {{instance}}",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-c-prometheus"
+      }
+    },
+    {
+      "id": 13,
+      "title": "Ready wait before processing \u00b7 p95",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 48,
+        "w": 12,
+        "h": 8
+      },
+      "description": "Wait from ready time to claim, recorded only after an attempt finishes. Delayed retries are excluded. Read together with oldest-ready age: work never claimed has no histogram sample.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95,sum by(le,stage)(rate(mocknet_queue_wait_seconds_bucket{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\",stage=~\"$stage\",stage!=\"DEAD_LETTER\"}[$__rate_interval])))",
+          "legendFormat": "{{stage}}",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-c-prometheus"
+      }
+    },
+    {
+      "id": 14,
+      "title": "Retry share of finished attempts",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 48,
+        "w": 12,
+        "h": 8
+      },
+      "description": "Attempt ratio, not the percentage of failed business operations. A retry can recover. Undefined when there are no finished attempts.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by(stage)(rate(mocknet_processing_seconds_count{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\",stage=~\"$stage\",stage!=\"DEAD_LETTER\",outcome=\"retried\"}[$__rate_interval])) / sum by(stage)(rate(mocknet_processing_seconds_count{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\",stage=~\"$stage\",stage!=\"DEAD_LETTER\"}[$__rate_interval]))",
+          "legendFormat": "{{stage}}",
+          "instant": false,
+          "range": true
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-c-prometheus"
+      }
+    },
+    {
+      "id": 15,
+      "title": "Process CPU",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 56,
+        "w": 12,
+        "h": 8
+      },
+      "description": "Measured by C Micrometer without a Java agent. HTTP admission latency is separate from reconstructed operation elapsed time.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mocknet-c-prometheus"
+          },
+          "expr": "process_cpu_usage{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\"}",
+          "legendFormat": "Process CPU",
+          "range": true
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-c-prometheus"
+      }
+    },
+    {
+      "id": 16,
+      "title": "JVM non-heap used",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 56,
+        "w": 12,
+        "h": 8
+      },
+      "description": "Measured by C Micrometer without a Java agent. HTTP admission latency is separate from reconstructed operation elapsed time.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mocknet-c-prometheus"
+          },
+          "expr": "sum(jvm_memory_used_bytes{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\",area=\"nonheap\"})",
+          "legendFormat": "JVM non-heap used",
+          "range": true
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-c-prometheus"
+      }
+    },
+    {
+      "id": 17,
+      "title": "JVM live threads",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 64,
+        "w": 12,
+        "h": 8
+      },
+      "description": "Measured by C Micrometer without a Java agent. HTTP admission latency is separate from reconstructed operation elapsed time.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mocknet-c-prometheus"
+          },
+          "expr": "jvm_threads_live_threads{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\"}",
+          "legendFormat": "JVM live threads",
+          "range": true
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-c-prometheus"
+      }
+    },
+    {
+      "id": 18,
+      "title": "Loaded classes",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 64,
+        "w": 12,
+        "h": 8
+      },
+      "description": "Measured by C Micrometer without a Java agent. HTTP admission latency is separate from reconstructed operation elapsed time.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mocknet-c-prometheus"
+          },
+          "expr": "jvm_classes_loaded_classes{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\"}",
+          "legendFormat": "Loaded classes",
+          "range": true
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-c-prometheus"
+      }
+    },
+    {
+      "id": 19,
+      "title": "HTTP request rate",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 72,
+        "w": 12,
+        "h": 8
+      },
+      "description": "Measured by C Micrometer without a Java agent. HTTP admission latency is separate from reconstructed operation elapsed time.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mocknet-c-prometheus"
+          },
+          "expr": "sum by(uri)(rate(http_server_requests_seconds_count{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\",uri!=\"/actuator/prometheus\"}[$__rate_interval]))",
+          "legendFormat": "{{uri}}",
+          "range": true
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-c-prometheus"
+      }
+    },
+    {
+      "id": 20,
+      "title": "HTTP admission latency p95",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 72,
+        "w": 12,
+        "h": 8
+      },
+      "description": "Measured by C Micrometer without a Java agent. HTTP admission latency is separate from reconstructed operation elapsed time.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mocknet-c-prometheus"
+          },
+          "expr": "histogram_quantile(0.95,sum by(le)(rate(http_server_requests_seconds_bucket{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\",uri=\"/api/trades\"}[$__rate_interval])))",
+          "legendFormat": "HTTP admission latency p95",
+          "range": true
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-c-prometheus"
+      }
+    },
+    {
+      "id": 21,
+      "title": "HTTP server error rate",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 80,
+        "w": 12,
+        "h": 8
+      },
+      "description": "Measured by C Micrometer without a Java agent. HTTP admission latency is separate from reconstructed operation elapsed time.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mocknet-c-prometheus"
+          },
+          "expr": "sum(rate(http_server_requests_seconds_count{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\",status=~\"5..\"}[$__rate_interval])) or (0 * sum(rate(http_server_requests_seconds_count{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\"}[$__rate_interval])))",
+          "legendFormat": "HTTP server error rate",
+          "range": true
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-c-prometheus"
+      }
+    },
+    {
+      "id": 22,
+      "title": "GC allocation rate",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 80,
+        "w": 12,
+        "h": 8
+      },
+      "description": "Measured by C Micrometer without a Java agent. HTTP admission latency is separate from reconstructed operation elapsed time.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          },
+          "unit": "Bps"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mocknet-c-prometheus"
+          },
+          "expr": "sum(rate(jvm_gc_memory_allocated_bytes_total{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\"}[$__rate_interval]))",
+          "legendFormat": "GC allocation rate",
+          "range": true
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-c-prometheus"
+      }
+    },
+    {
+      "id": 23,
+      "title": "Open file descriptors",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 88,
+        "w": 12,
+        "h": 8
+      },
+      "description": "Measured by C Micrometer without a Java agent. HTTP admission latency is separate from reconstructed operation elapsed time.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "mocknet-c-prometheus"
+          },
+          "expr": "process_files_open_files{service=~\"$service\",environment=~\"$environment\",version=~\"$version\",app_instance=~\"$app_instance\"}",
+          "legendFormat": "Open file descriptors",
+          "range": true
+        }
+      ],
+      "datasource": {
+        "type": "prometheus",
+        "uid": "mocknet-c-prometheus"
+      }
+    }
+  ],
+  "annotations": {
+    "list": []
+  },
+  "description": "Agent-free Micrometer metrics from C only. JVM, HTTP, worker and pool metrics plus committed attempt histograms. Queue gauges represent the shared database and are not summed across exporters."
+}

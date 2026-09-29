@@ -1,0 +1,24 @@
+# Apply only through mocknet-approach-c.sh with MOCKNET_C_MODE=production.
+# Grafana still binds to loopback; an authenticated ingress and host-level
+# access controls remain deployment responsibilities.
+services:
+  grafana-c:
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_VIEWERS_CAN_EDIT: "false"
+      GF_SERVER_PROTOCOL: https
+      GF_SERVER_DOMAIN: ${MOCKNET_C_GRAFANA_HOST:?Set Grafana TLS hostname}
+      GF_SERVER_ENFORCE_DOMAIN: "true"
+      GF_SERVER_ROOT_URL: ${MOCKNET_C_GRAFANA_ROOT_URL:?Set HTTPS Grafana root URL}
+      GF_SERVER_CERT_FILE: /etc/grafana/tls/server.crt
+      GF_SERVER_CERT_KEY: /etc/grafana/tls/server.key
+      GF_SECURITY_COOKIE_SECURE: "true"
+      GF_SECURITY_STRICT_TRANSPORT_SECURITY: "true"
+      GF_SECURITY_CONTENT_SECURITY_POLICY: "true"
+      GF_SECURITY_DISABLE_GRAVATAR: "true"
+    volumes:
+      - ${MOCKNET_C_GRAFANA_CERT:?Set Grafana TLS certificate}:/etc/grafana/tls/server.crt:ro
+      - ${MOCKNET_C_GRAFANA_KEY:?Set Grafana TLS private key}:/etc/grafana/tls/server.key:ro
+  prometheus-c:
+    volumes:
+      - ./prometheus-production:/etc/prometheus:ro
